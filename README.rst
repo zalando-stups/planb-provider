@@ -22,7 +22,6 @@ Find the executable jar in the target directory. Building a Docker image with th
 
 .. code-block:: bash
 
-    $ ./mvnw package
     $ sudo pip3 install scm-source
     $ scm-source
     $ docker build -t planb-provider .
