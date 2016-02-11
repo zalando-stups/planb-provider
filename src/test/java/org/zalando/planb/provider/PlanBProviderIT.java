@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
@@ -46,8 +47,16 @@ public class PlanBProviderIT extends AbstractSpringTest {
         map.add("password", "secret");
         map.add("scope", "read_all");
 
-        ResponseEntity<OIDCCreateTokenResponse> response = rest.postForEntity(
-                URI.create("http://localhost:" + port + "/oauth2/access_token"), map, OIDCCreateTokenResponse.class);
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .body(map);
+
+        // ResponseEntity<OIDCCreateTokenResponse> response =
+        // rest.postForEntity(
+        // URI.create("http://localhost:" + port + "/oauth2/access_token"), map,
+        // OIDCCreateTokenResponse.class);
+
+        ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 

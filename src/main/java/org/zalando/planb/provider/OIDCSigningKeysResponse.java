@@ -1,27 +1,30 @@
 package org.zalando.planb.provider;
 
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import org.jose4j.jwk.JsonWebKey;
-import org.jose4j.jwk.PublicJsonWebKey;
-
 import java.io.IOException;
 import java.util.List;
 
-@JsonSerialize
+import org.jose4j.jwk.JsonWebKey;
+
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+
+//@JsonSerialize
 public class OIDCSigningKeysResponse {
 
 
     private List<JsonWebKey> keys;
 
+    protected OIDCSigningKeysResponse() {
+        // jackson
+    }
+
     public OIDCSigningKeysResponse(List<JsonWebKey> keys) {
         this.keys = keys;
     }
 
-    @JsonSerialize(using = JWKJsonSerializer.class)
+    // @JsonSerialize(using = JWKJsonSerializer.class)
     public List<JsonWebKey> getKeys() {
         return keys;
     }
