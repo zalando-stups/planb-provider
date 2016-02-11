@@ -28,7 +28,9 @@ public class PlanBProviderIT extends AbstractSpringTest {
     @Test
     public void run() {
         RestTemplate rest = new RestTemplate();
-        ResponseEntity<String> response = rest.getForEntity(URI.create("http://localhost:" + port), String.class);
+        ResponseEntity<String> response = rest.getForEntity(
+                URI.create("http://localhost:" + port + "/.well-known/openid-configuration"), String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        log.info(response.getBody());
     }
 }

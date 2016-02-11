@@ -1,0 +1,14 @@
+language: java
+
+sudo: false
+
+jdk: oraclejdk8
+
+before_script:
+  - pip install --user codecov
+
+script:
+  - mvn clean verify -Pintegration-test,pg-travis -U
+
+after_success:
+  - codecov
