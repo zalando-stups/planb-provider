@@ -8,14 +8,17 @@ Plan B Provider
 .. image:: https://codecov.io/github/zalando/planb-provider/coverage.svg?branch=master
     :target: https://codecov.io/github/zalando/planb-provider?branch=master
 
-Building:
+This is a minimalistic OpenID Connect provider that currently only supports the Resource Owner Password Credentials
+Grant to create JWTs.
+
+Building
+========
 
 .. code-block:: bash
 
     $ ./mvnw verify
 
-Docker Image
-============
+Find the executable jar in the target directory. Building a Docker image with the above artifact:
 
 .. code-block:: bash
 

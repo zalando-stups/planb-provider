@@ -1,5 +1,6 @@
 package org.zalando.planb.provider;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,10 +29,35 @@ public class OIDCDiscoveryIT extends AbstractSpringTest {
     RestTemplate rest = new RestTemplate();
 
     @Test
-    public void discoveryResponse() {
-        ResponseEntity<OIDCDiscoveryInformationResponse> response = rest.getForEntity(
-                URI.create("http://localhost:" + port + "/.well-known/openid-configuration"), OIDCDiscoveryInformationResponse.class);
+    public void discoveryAvailability() {
+        ResponseEntity<OIDCDiscoveryInformationResponse> response = rest
+                .getForEntity(
+                        URI.create("http://localhost:" + port + "/.well-known/openid-configuration"),
+                        OIDCDiscoveryInformationResponse.class);
+
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void jwksUrl() {
+        ResponseEntity<OIDCDiscoveryInformationResponse> response = rest
+                .getForEntity(
+                        URI.create("http://localhost:" + port + "/.well-known/openid-configuration"),
+                        OIDCDiscoveryInformationResponse.class);
+
+        assertThat(response.getBody().getJwksUri()).isEqualTo("http://localhost:" + port + "/oauth2/v3/certs");
+    }
+
+    @Test
+    @Ignore("No idea how to set X-Forwarded-Proto header in REST call.")
+    public void jwksUrlProto() {
+        // TODO figure out how to set header "X-Forwarded-Proto" to "https" to test loadbalancer logic
+        ResponseEntity<OIDCDiscoveryInformationResponse> response = rest
+                .getForEntity(
+                        URI.create("http://localhost:" + port + "/.well-known/openid-configuration"),
+                        OIDCDiscoveryInformationResponse.class);
+
+        assertThat(response.getBody().getJwksUri()).isEqualTo("https://localhost:8080/oauth2/v3/certs");
     }
 
 }

@@ -31,6 +31,7 @@ public class OIDCJWKsIT extends AbstractSpringTest {
     public void jwksResponse() {
         ResponseEntity<String> response = rest.getForEntity(
                 URI.create("http://localhost:" + port + "/oauth2/v3/certs"), String.class);
+
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 }
