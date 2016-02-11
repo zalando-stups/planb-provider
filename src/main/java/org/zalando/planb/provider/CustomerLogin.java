@@ -1,7 +1,5 @@
 package org.zalando.planb.provider;
 
-//import org.springframework.beans.factory.ObjectFactory;
-
 import org.zalando.planb.provider.domain.CustomerLoginResponse;
 
 import javax.jws.WebMethod;
