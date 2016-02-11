@@ -8,7 +8,7 @@ before_script:
   - pip install --user codecov
 
 script:
-  - mvn clean verify -Pintegration-test,pg-travis -U
+  - mvn clean verify -Pcoverage -U
 
 after_success:
   - codecov

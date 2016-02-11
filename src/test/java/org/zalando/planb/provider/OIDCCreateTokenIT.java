@@ -21,28 +21,11 @@ import org.springframework.web.client.RestTemplate;
 @SpringApplicationConfiguration(classes = { Main.class })
 @WebIntegrationTest(randomPort = true)
 @ActiveProfiles("it")
-public class PlanBProviderIT extends AbstractSpringTest {
-
-    private static final Logger log = LoggerFactory.getLogger(PlanBProviderIT.class);
-
+public class OIDCCreateTokenIT extends AbstractSpringTest {
     @Value("${local.server.port}")
     private int port;
 
     RestTemplate rest = new RestTemplate();
-
-    @Test
-    public void discoveryResponse() {
-        ResponseEntity<OIDCDiscoveryInformationResponse> response = rest.getForEntity(
-                URI.create("http://localhost:" + port + "/.well-known/openid-configuration"), OIDCDiscoveryInformationResponse.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    public void jwksResponse() {
-        ResponseEntity<String> response = rest.getForEntity(
-                URI.create("http://localhost:" + port + "/oauth2/v3/certs"), String.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
 
     @Test
     public void createTokenResponse() {
@@ -82,6 +65,6 @@ public class PlanBProviderIT extends AbstractSpringTest {
         ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-
+        // TODO verify JWT
     }
 }

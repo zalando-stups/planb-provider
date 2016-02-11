@@ -9,7 +9,6 @@ import org.jose4j.jwt.NumericDate;
 import org.jose4j.lang.JoseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.zalando.planb.provider.exception.AuthenticationFailedException;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -33,7 +32,7 @@ public class OIDC {
                                         @RequestParam(value = "username", required = true) String username,
                                         @RequestParam(value = "password", required = true) String password,
                                         @RequestParam(value = "scope", required = false) String scope)
-            throws AuthenticationFailedException, JoseException {
+            throws RealmAuthenticationFailedException, JoseException {
 
         Realm realm = realms.get(realmName); // TODO check availability
         if (realm == null) {
