@@ -68,8 +68,13 @@ public class OIDC {
     }
 
     @RequestMapping("/.well-known/openid-configuration")
-    OIDCDiscoveryInformationResponse getDiscoveryInformation() {
-        return new OIDCDiscoveryInformationResponse();
+    OIDCDiscoveryInformationResponse getDiscoveryInformation(
+            @RequestHeader(name = "Host") String hostname,
+    @RequestHeader(name = "X-Forwarded-Proto", required = false) String proto) {
+        if (proto == null) {
+            proto = "http";
+        }
+        return new OIDCDiscoveryInformationResponse(proto, hostname);
     }
 
     @RequestMapping("/oauth2/v3/certs")
