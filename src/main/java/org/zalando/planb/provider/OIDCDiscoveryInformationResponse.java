@@ -8,6 +8,9 @@ public class OIDCDiscoveryInformationResponse {
     @JsonProperty("jwks_uri")
     private String jwksUri;
 
+    protected OIDCDiscoveryInformationResponse() {
+    }
+
     public OIDCDiscoveryInformationResponse(String proto, String hostname) {
         jwksUri = proto + "://" + hostname + "/oauth2/v3/certs";
     }
