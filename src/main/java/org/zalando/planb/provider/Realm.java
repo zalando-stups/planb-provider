@@ -4,7 +4,7 @@ import java.util.Map;
 
 public interface Realm {
 
-    Map<String,Object> authenticate(String user, String password) throws AuthenticationFailedException;
+    Map<String,Object> authenticate(String user, String password, String[] scopes) throws AuthenticationFailedException;
 
     class AuthenticationFailedException extends Exception {}
 }
