@@ -6,7 +6,7 @@ Plan B Provider
     :target: https://travis-ci.org/zalando/planb-provider
 
 .. image:: https://codecov.io/github/zalando/planb-provider/coverage.svg?branch=master
-    :target: https://codecov.io/github/zalando/planb-provider?branch=master
+    :target: https://codecov.io/github/zalando/planb-provider?branch=master
 
 This is a minimalistic OpenID Connect provider that currently only supports the Resource Owner Password Credentials
 Grant to create JWTs.
