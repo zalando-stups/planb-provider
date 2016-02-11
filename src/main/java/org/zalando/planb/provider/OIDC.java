@@ -1,5 +1,6 @@
 package org.zalando.planb.provider;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.jose4j.jwk.JsonWebKey;
 import org.jose4j.jws.AlgorithmIdentifiers;
 import org.jose4j.jws.JsonWebSignature;
@@ -16,12 +17,8 @@ import java.util.Map;
 @RestController
 public class OIDC {
 
-    private final Realm realm;
-
     @Autowired
-    public OIDC(Realm realm) {
-        this.realm = realm;
-    }
+    private RealmConfig realms;
 
     @Autowired
     private OIDCKeyHolder keyHolder;
@@ -37,6 +34,11 @@ public class OIDC {
                                         @RequestParam(value = "password", required = true) String password,
                                         @RequestParam(value = "scope", required = false) String scope)
             throws AuthenticationFailedException, JoseException {
+
+        Realm realm = realms.get(realmName); // TODO check availability
+        if (realm == null) {
+            throw new UnsupportedOperationException("realm unknown");
+        }
 
         String[] scopes = scope.split(" ");
         Map<String, Object> extraClaims = realm.authenticate(username, password, scopes);
@@ -58,7 +60,7 @@ public class OIDC {
         jws.setPayload(claims.toJson());
         jws.setKey(keyHolder.getJsonWebKey().getPrivateKey());
         jws.setKeyIdHeaderValue(keyHolder.getJsonWebKey().getKeyId());
-        jws.setAlgorithmHeaderValue(AlgorithmIdentifiers.RSA_USING_SHA256);
+        jws.setAlgorithmHeaderValue(AlgorithmIdentifiers.ECDSA_USING_P256_CURVE_AND_SHA256);
 
         String jwt = jws.getCompactSerialization();
 
@@ -66,11 +68,17 @@ public class OIDC {
     }
 
     @RequestMapping("/.well-known/openid-configuration")
-    OIDCDiscoveryInformationResponse getDiscoveryInformation() {
-        return new OIDCDiscoveryInformationResponse();
+    OIDCDiscoveryInformationResponse getDiscoveryInformation(
+            @RequestHeader(name = "Host") String hostname,
+    @RequestHeader(name = "X-Forwarded-Proto", required = false) String proto) {
+        if (proto == null) {
+            proto = "http";
+        }
+        return new OIDCDiscoveryInformationResponse(proto, hostname);
     }
 
     @RequestMapping("/oauth2/v3/certs")
+    @JsonSerialize(using = OIDCSigningKeysSerializer.class)
     OIDCSigningKeysResponse getSigningKeys() {
         return new OIDCSigningKeysResponse(new ArrayList<JsonWebKey>() {{
             add(keyHolder.getJsonWebKey());
