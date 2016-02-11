@@ -63,6 +63,7 @@ public class PlanBProviderIT extends AbstractSpringTest {
         assertThat(response.getBody().getScope()).isEqualTo("uid name");
         assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
+        assertThat(response.getBody().getRealm()).isEqualTo("/test");
     }
 
     @Test

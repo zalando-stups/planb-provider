@@ -53,7 +53,8 @@ public class OIDC {
         claims.setIssuedAtToNow();
         claims.setSubject(username);
 
-        claims.setStringListClaim("scopes", scopes);
+        claims.setStringListClaim("scope", scopes);
+        claims.setStringClaim("realm", realmName);
         extraClaims.forEach(claims::setClaim);
 
         JsonWebSignature jws = new JsonWebSignature();
@@ -64,7 +65,7 @@ public class OIDC {
 
         String jwt = jws.getCompactSerialization();
 
-        return new OIDCCreateTokenResponse(jwt, jwt, (expiration / 1000), scope);
+        return new OIDCCreateTokenResponse(jwt, jwt, (expiration / 1000), scope, realmName);
     }
 
     @RequestMapping("/.well-known/openid-configuration")

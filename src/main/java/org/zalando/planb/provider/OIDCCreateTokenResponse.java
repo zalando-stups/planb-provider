@@ -18,14 +18,18 @@ public class OIDCCreateTokenResponse {
     @JsonProperty("scope")
     private String scope;
 
+    @JsonProperty("realm")
+    private String realm;
+
     private OIDCCreateTokenResponse() {
     }
 
-    public OIDCCreateTokenResponse(String accessToken, String idToken, long expiresIn, String scope) {
+    public OIDCCreateTokenResponse(String accessToken, String idToken, long expiresIn, String scope, String realm) {
         this.accessToken = accessToken;
         this.idToken = idToken;
         this.expiresIn = expiresIn;
         this.scope = scope;
+        this.realm = realm;
     }
 
     public String getAccessToken() {
@@ -47,4 +51,6 @@ public class OIDCCreateTokenResponse {
     public String getScope() {
         return scope;
     }
+
+    public String getRealm() { return realm; }
 }
