@@ -60,7 +60,7 @@ public class OIDC {
         jws.setPayload(claims.toJson());
         jws.setKey(keyHolder.getJsonWebKey().getPrivateKey());
         jws.setKeyIdHeaderValue(keyHolder.getJsonWebKey().getKeyId());
-        jws.setAlgorithmHeaderValue(AlgorithmIdentifiers.RSA_USING_SHA256);
+        jws.setAlgorithmHeaderValue(AlgorithmIdentifiers.ECDSA_USING_P256_CURVE_AND_SHA256);
 
         String jwt = jws.getCompactSerialization();
 
