@@ -1,0 +1,163 @@
+swagger: '2.0'
+
+info:
+  title: Plan B API
+  description: API for managing clients, users and their credentials
+  version: "1.0"
+
+securityDefinitions:
+  oauth2:
+    type: oauth2
+    flow: implicit
+    authorizationUrl: none
+    scopes:
+      uid: user identitiy
+
+security:
+  - oauth2:
+    - uid
+
+paths:
+  /clients/{realm}/{id}:
+    put:
+      summary: Save client
+      description: |
+        Creates or overrides a client and all of its properties
+      tags:
+        - Clients
+      consumes:
+        - application/json
+      parameters:
+        - $ref: '#/parameters/Realm'
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Client'
+      responses:
+        200:
+          description: Client has been saved
+
+    patch:
+      summary: Save client properties
+      description: |
+        Updates the given client properties
+      tags:
+        - Clients
+      consumes:
+        - application/json
+      parameters:
+        - $ref: '#/parameters/Realm'
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Client'
+      responses:
+        200:
+          description: Client has been updated
+
+    delete:
+      summary: Delete a client
+      description: |
+        Remove a client completely.
+        Deleted clients won't be able to authenticate anymore.
+      tags:
+        - Clients
+      parameters:
+        - $ref: '#/parameters/Realm'
+        - $ref: '#/parameters/Id'
+      responses:
+        200:
+          description: Client has been deleted
+
+  /users/{realm}/{id}:
+    put:
+      summary: Save user
+      description: |
+        Creates or overrides a user and all of its properties
+      tags:
+        - Users
+      consumes:
+        - application/json
+      parameters:
+        - $ref: '#/parameters/Realm'
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/User'
+      responses:
+        200:
+          description: User has been saved
+
+    patch:
+      summary: Save user properties
+      description: |
+        Updates the given user properties
+      tags:
+        - Users
+      consumes:
+        - application/json
+      parameters:
+        - $ref: '#/parameters/Realm'
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/User'
+      responses:
+        200:
+          description: User has been updated
+
+    delete:
+      summary: Delete a user
+      description: |
+        Remove a user completely.
+        Deleted users won't be able to authenticate anymore.
+      tags:
+        - Users
+      parameters:
+        - $ref: '#/parameters/Realm'
+        - $ref: '#/parameters/Id'
+      responses:
+        200:
+          description: User has been deleted
+
+parameters:
+
+  Realm:
+    name: realm
+    in: path
+    required: true
+    type: string
+
+  Id:
+    name: id
+    in: path
+    required: true
+    type: string
+
+  Client:
+    name: client
+    in: body
+    required: true
+    schema:
+      $ref: '#/definitions/Client'
+
+  User:
+    name: user
+    in: body
+    required: true
+    schema:
+      $ref: '#/definitions/User'
+
+definitions:
+
+  Client:
+    type: object
+    properties:
+      secret_hash:
+        type: string
+      scopes:
+        type: array
+        items:
+          type: string
+
+  User:
+    type: object
+    properties:
+      password_hashes:
+        type: array
+        items:
+          type: string
+      scopes:
+        type: object
