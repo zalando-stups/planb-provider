@@ -1,12 +1,21 @@
 package org.zalando.planb.provider.domain;
 
-import com.google.common.base.MoreObjects;
+import javax.xml.bind.annotation.*;
 
+import static com.google.common.base.MoreObjects.toStringHelper;
+
+@XmlAccessorType(XmlAccessType.FIELD)
+@XmlType(name = "customerLoginResponse", propOrder = {
+        "customerNumber","loginResult"
+})
+@XmlRootElement(name="return")
 public class CustomerLoginResponse {
 
-    private String customerNumber;
+    @XmlElement(name = "customerNumber")
+    protected String customerNumber;
 
-    private String loginResult;
+    @XmlElement(name = "loginResult")
+    protected String loginResult;
 
     public String getCustomerNumber() {
         return customerNumber;
@@ -26,7 +35,7 @@ public class CustomerLoginResponse {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
+        return toStringHelper(this)
                 .add("customerNumber", customerNumber)
                 .add("loginResult", loginResult)
                 .toString();
