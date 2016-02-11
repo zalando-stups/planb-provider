@@ -139,6 +139,10 @@ paths:
               description: OAuth client configuration relevant information
               type: object
               properties:
+                # New stuff needed for syncing a user to the shadow auth provider
+                id:
+                  description: take an existing client id, coming from the "master" auth provider
+                  type: string
                 redirect_urls:
                   description: list of whitelisted redirect URLs configured in each realm's configuration
                   type: array
