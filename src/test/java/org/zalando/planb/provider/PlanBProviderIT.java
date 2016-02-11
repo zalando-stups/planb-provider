@@ -13,6 +13,8 @@ import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 @SpringApplicationConfiguration(classes = { Main.class })
@@ -25,12 +27,30 @@ public class PlanBProviderIT extends AbstractSpringTest {
     @Value("${local.server.port}")
     private int port;
 
+    RestTemplate rest = new RestTemplate();
+
     @Test
     public void run() {
-        RestTemplate rest = new RestTemplate();
         ResponseEntity<String> response = rest.getForEntity(
                 URI.create("http://localhost:" + port + "/.well-known/openid-configuration"), String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         log.info(response.getBody());
+    }
+
+    @Test
+    public void createToken() {
+
+        MultiValueMap<String, Object> map = new LinkedMultiValueMap<String, Object>();
+        map.add("grant_type", "password");
+        map.add("username", "klaus");
+        map.add("password", "secret");
+        map.add("scope", "read_all");
+
+        ResponseEntity<OIDCCreateTokenResponse> response = rest.postForEntity(
+                URI.create("http://localhost:" + port + "/oauth2/access_token"), map, OIDCCreateTokenResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        log.info(response.getBody().toString());
     }
 }
