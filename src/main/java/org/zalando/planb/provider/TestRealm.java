@@ -1,6 +1,7 @@
 package org.zalando.planb.provider;
 
 import org.springframework.stereotype.Component;
+import org.zalando.planb.provider.exception.AuthenticationFailedException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,7 +12,7 @@ public class TestRealm implements Realm {
     public Map<String, Object> authenticate(final String user, final String password, final String[] scopes)
             throws AuthenticationFailedException {
         if (!password.equals("test")) {
-            throw new Realm.AuthenticationFailedException();
+            throw new AuthenticationFailedException();
         }
 
         return new HashMap<String, Object>() {{
