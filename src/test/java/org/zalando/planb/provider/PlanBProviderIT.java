@@ -10,11 +10,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 @SpringApplicationConfiguration(classes = { Main.class })
@@ -39,10 +39,15 @@ public class PlanBProviderIT extends AbstractSpringTest {
 
     @Test
     public void createToken() {
-        RequestEntity<Void> request = new RequestEntity<>(HttpMethod.GET,
-                URI.create("http://localhost:" + port + "/oauth2/access_token"));
 
-        ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
+        MultiValueMap<String, Object> map = new LinkedMultiValueMap<String, Object>();
+        map.add("grant_type", "password");
+        map.add("username", "klaus");
+        map.add("password", "secret");
+        map.add("scope", "read_all");
+
+        ResponseEntity<OIDCCreateTokenResponse> response = rest.postForEntity(
+                URI.create("http://localhost:" + port + "/oauth2/access_token"), map, OIDCCreateTokenResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
