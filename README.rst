@@ -2,25 +2,23 @@
 Plan B Provider
 ===============
 
+.. image:: https://travis-ci.org/zalando/planb-provider.svg?branch=master
+    :target: https://travis-ci.org/zalando/planb-provider
+.. image:: https://codecov.io/github/zalando/planb-provider/coverage.svg?branch=master
+    :target: https://codecov.io/github/zalando/planb-provider?branch=master
+
 Building:
 
 .. code-block:: bash
 
-    $ ./mvnw clean install
-
-
-To skip integration-test:
-
-.. code-block:: bash
-
-    $ ./mvnw clean install -DskipITs
+    $ ./mvnw verify
 
 Docker Image
 ============
 
 .. code-block:: bash
 
-    $ ./mvnw clean package
+    $ ./mvnw package
     $ sudo pip3 install scm-source
     $ scm-source
     $ docker build -t planb-provider .
