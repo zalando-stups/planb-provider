@@ -31,35 +31,56 @@ public class PlanBProviderIT extends AbstractSpringTest {
     RestTemplate rest = new RestTemplate();
 
     @Test
-    public void run() {
-        ResponseEntity<String> response = rest.getForEntity(
-                URI.create("http://localhost:" + port + "/.well-known/openid-configuration"), String.class);
+    public void discoveryResponse() {
+        ResponseEntity<OIDCDiscoveryInformationResponse> response = rest.getForEntity(
+                URI.create("http://localhost:" + port + "/.well-known/openid-configuration"), OIDCDiscoveryInformationResponse.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        log.info(response.getBody());
     }
 
     @Test
-    public void createToken() {
+    public void jwksResponse() {
+        ResponseEntity<String> response = rest.getForEntity(
+                URI.create("http://localhost:" + port + "/oauth2/v3/certs"), String.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
 
-        MultiValueMap<String, Object> map = new LinkedMultiValueMap<String, Object>();
-        map.add("grant_type", "password");
-        map.add("username", "klaus");
-        map.add("password", "secret");
-        map.add("scope", "read_all");
+    @Test
+    public void createTokenResponse() {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<String, Object>();
+        requestParameters.add("realm", "/test");
+        requestParameters.add("grant_type", "password");
+        requestParameters.add("username", "klaus");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid name");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
-                .body(map);
-
-        // ResponseEntity<OIDCCreateTokenResponse> response =
-        // rest.postForEntity(
-        // URI.create("http://localhost:" + port + "/oauth2/access_token"), map,
-        // OIDCCreateTokenResponse.class);
+                .body(requestParameters);
 
         ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getScope()).isEqualTo("uid name");
+        assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
+        assertThat(response.getBody().getAccessToken()).isNotEmpty();
+    }
 
-        log.info(response.getBody().toString());
+    @Test
+    public void jwtClaims() {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<String, Object>();
+        requestParameters.add("realm", "/test");
+        requestParameters.add("grant_type", "password");
+        requestParameters.add("username", "klaus");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid name");
+
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .body(requestParameters);
+
+        ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+
     }
 }

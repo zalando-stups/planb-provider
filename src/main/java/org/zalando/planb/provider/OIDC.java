@@ -1,5 +1,6 @@
 package org.zalando.planb.provider;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.jose4j.jwk.JsonWebKey;
 import org.jose4j.jws.AlgorithmIdentifiers;
 import org.jose4j.jws.JsonWebSignature;
@@ -16,12 +17,8 @@ import java.util.Map;
 @RestController
 public class OIDC {
 
-    private final Realm realm;
-
     @Autowired
-    public OIDC(Realm realm) {
-        this.realm = realm;
-    }
+    private RealmConfig realms;
 
     @Autowired
     private OIDCKeyHolder keyHolder;
@@ -37,6 +34,11 @@ public class OIDC {
                                         @RequestParam(value = "password", required = true) String password,
                                         @RequestParam(value = "scope", required = false) String scope)
             throws AuthenticationFailedException, JoseException {
+
+        Realm realm = realms.get(realmName); // TODO check availability
+        if (realm == null) {
+            throw new UnsupportedOperationException("realm unknown");
+        }
 
         String[] scopes = scope.split(" ");
         Map<String, Object> extraClaims = realm.authenticate(username, password, scopes);
@@ -71,6 +73,7 @@ public class OIDC {
     }
 
     @RequestMapping("/oauth2/v3/certs")
+    @JsonSerialize(using = OIDCSigningKeysSerializer.class)
     OIDCSigningKeysResponse getSigningKeys() {
         return new OIDCSigningKeysResponse(new ArrayList<JsonWebKey>() {{
             add(keyHolder.getJsonWebKey());
