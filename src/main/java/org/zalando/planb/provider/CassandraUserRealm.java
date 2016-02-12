@@ -26,13 +26,20 @@ public class CassandraUserRealm implements UserRealm {
     private Session session;
 
     private PreparedStatement selectUser;
+    private String realmName;
 
     @PostConstruct
     void prepareStatements() {
         selectUser = session.prepare(
                 select("password_hashes")
                         .from(cassandraProperties.getKeyspace(), "user")
+                        // TODO also match with this.realmName
                         .where(eq("username", bindMarker("username"))));
+    }
+
+    @Override
+    public void initialize(String realmName) {
+        this.realmName = realmName;
     }
 
     @Override

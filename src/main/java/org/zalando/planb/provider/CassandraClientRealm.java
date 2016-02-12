@@ -25,8 +25,16 @@ public class CassandraClientRealm implements ClientRealm {
     @Autowired
     private Session session;
 
-    @Override
-    public void authenticate(String clientId, String clientSecret, String[] scopes) throws RealmAuthenticationException, RealmAuthorizationException {
+    private String realmName;
 
+    @Override
+    public void initialize(String realmName) {
+        this.realmName = realmName;
+    }
+
+    @Override
+    public void authenticate(String clientId, String clientSecret, String[] scopes)
+            throws RealmAuthenticationException, RealmAuthorizationException {
+        // TODO look up clientId in this.realmName and compare the clientSecret and scopes
     }
 }
