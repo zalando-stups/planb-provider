@@ -74,6 +74,11 @@
             <artifactId>stups-jaxws-oauth2</artifactId>
             <version>1.0.10</version>
         </dependency>
+        <dependency>
+            <groupId>com.datastax.cassandra</groupId>
+            <artifactId>cassandra-driver-core</artifactId>
+            <version>3.0.0</version>
+        </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -102,6 +107,29 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <id>reserve-network-port</id>
+                        <goals>
+                            <goal>reserve-network-port</goal>
+                        </goals>
+                        <phase>process-test-resources</phase>
+                        <configuration>
+                            <portNames>
+                                <portName>cassandra.rpcPort</portName>
+                                <portName>cassandra.jmxPort</portName>
+                                <portName>cassandra.storagePort</portName>
+                                <portName>cassandra.stopPort</portName>
+                                <portName>cassandra.nativeTransportPort</portName>
+                            </portNames>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <executions>
@@ -110,6 +138,55 @@
                             <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <cassandra.listenAddress>127.0.0.1</cassandra.listenAddress>
+                                <cassandra.port>${cassandra.nativeTransportPort}</cassandra.port>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>cassandra-maven-plugin</artifactId>
+                <version>2.1.7-1</version>
+                <executions>
+                    <execution>
+                        <id>delete-cassandra</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>delete</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>start-cassandra</id>
+                        <goals>
+                            <goal>start</goal>
+                            <goal>cql-exec</goal>
+                        </goals>
+                        <configuration>
+                            <listenAddress>127.0.0.1</listenAddress>
+                            <jmxPort>${cassandra.jmxPort}</jmxPort>
+                            <rpcPort>${cassandra.rpcPort}</rpcPort>
+                            <stopPort>${cassandra.stopPort}</stopPort>
+                            <storagePort>${cassandra.storagePort}</storagePort>
+                            <nativeTransportPort>${cassandra.nativeTransportPort}</nativeTransportPort>
+                            <startNativeTransport>true</startNativeTransport>
+                            <cqlVersion>3.0.0</cqlVersion>
+                            <script>schema.cql</script>
+                            <cqlScript>src/test/resources/testdata.cql</cqlScript>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>stop-cassandra</id>
+                        <goals>
+                            <goal>stop</goal>
+                        </goals>
+                        <configuration>
+                            <listenAddress>127.0.0.1</listenAddress>
+                            <stopPort>${cassandra.stopPort}</stopPort>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

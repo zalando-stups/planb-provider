@@ -7,3 +7,8 @@ tokens:
     test-tokens: customerLogin=1234567889
     accessTokenUri: http://localhost:44332
     credentialsDirectory: .
+
+cassandra:
+  keyspace: provider
+  contactPoints: 127.0.0.1
+  clusterName: Test Cluster

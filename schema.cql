@@ -2,16 +2,20 @@ CREATE SCHEMA provider
     WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1};
 
 CREATE TABLE provider.client (
-	client_id TEXT PRIMARY KEY, -- OAuth 2 client ID
-	client_secret_hash TEXT,    -- Base64-encoded Bcrypt hash of the client secret
-	scopes SET<TEXT>,           -- scopes this client is allowed to request
-	is_confidential BOOLEAN     -- whether the client is confidential or not (non-confidential clients should only be allowed to use the implicit flow)
+	client_id TEXT,                  -- OAuth 2 client ID
+	realm TEXT,                      -- Data pool this entity belongs to
+	client_secret_hash TEXT,         -- Base64-encoded Bcrypt hash of the client secret
+	scopes SET<TEXT>,                -- scopes this client is allowed to request
+	is_confidential BOOLEAN,         -- whether the client is confidential or not (non-confidential clients should only be allowed to use the implicit flow)
+	PRIMARY KEY ((client_id), realm)
 );
 
 CREATE TABLE provider.user (
-	username TEXT PRIMARY KEY,  -- name of service user
+	username TEXT,              -- name of service user
+    realm TEXT,                 -- Data pool this entity belongs to
 	password_hashes SET<TEXT>,  -- set of Base64-encoded Bcrypt hashes
-	scopes MAP<TEXT, TEXT>      -- scopes and values for this user
+	scopes MAP<TEXT, TEXT>,     -- scopes and values for this user
+	PRIMARY KEY ((username), realm)
 );
 
 CREATE TABLE provider.keypair (

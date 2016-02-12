@@ -1,5 +1,10 @@
 package org.zalando.planb.provider;
 
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
 import org.jose4j.jwk.HttpsJwks;
 import org.jose4j.jwt.MalformedClaimException;
 import org.jose4j.jwt.consumer.InvalidJwtException;
@@ -7,7 +12,9 @@ import org.jose4j.jwt.consumer.JwtConsumer;
 import org.jose4j.jwt.consumer.JwtConsumerBuilder;
 import org.jose4j.jwt.consumer.JwtContext;
 import org.jose4j.keys.resolvers.HttpsJwksVerificationKeyResolver;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
@@ -19,6 +26,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import javax.annotation.PostConstruct;
 import java.net.URI;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,7 +38,20 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     @Value("${local.server.port}")
     private int port;
 
+    @Autowired
+    private Session session;
+
     RestTemplate rest = new RestTemplate();
+
+    @PostConstruct
+    public void prepareUser() {
+        final Statement insert =
+                QueryBuilder.insertInto("user")
+                        .value("username", "foo")
+                        .value("password_hashes", new String[]{"bar"})
+                        .setConsistencyLevel(ConsistencyLevel.ONE);
+        session.execute(insert);
+    }
 
     @Test
     public void createToken() {

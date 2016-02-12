@@ -17,3 +17,6 @@ logging:
   level:
     root: INFO
 #    org.apache.cxf: DEBUG
+
+cassandra:
+  keyspace: provider

@@ -1,8 +1,6 @@
 package org.zalando.planb.provider;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -17,7 +15,7 @@ public class RealmConfig {
     private CustomerLoginRealm customerLoginRealm;
 
     @Autowired
-    private TestRealm testRealm;
+    private InMemoryRealm testRealm;
 
     @PostConstruct
     void setup() {
