@@ -1,5 +1,5 @@
 customerLoginRealm:
-  url:  ${CUSTOMER_LOGIN_REALM_URL}
+  url:  ${CUSTOMER_LOGIN_REALM_URL:http://example.com/ws/customerService?wsdl}
 
 logging:
   level:

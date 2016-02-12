@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
-import org.zalando.planb.provider.exception.AuthenticationFailedException;
 
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
@@ -56,12 +55,12 @@ public class CustomerLoginRealm implements Realm {
     }
 
     @Override
-    public Map<String, Object> authenticate(String user, String password, String[] scopes) throws AuthenticationFailedException {
+    public Map<String, Object> authenticate(String user, String password, String[] scopes) throws RealmAuthenticationFailedException {
 
         Optional<CustomerLoginResponse> response = ofNullable(customerLoginWebService.authenticate(APP_DOMAIN_ID, user, password));
 
         if (!response.isPresent() || !"SUCCESS".equals(response.get().getLoginResult())) {
-            throw new AuthenticationFailedException("User not authenticated: " + user);
+            throw new RealmAuthenticationFailedException("User not authenticated: " + user);
         }
 
         return new HashMap<String, Object>() {{
