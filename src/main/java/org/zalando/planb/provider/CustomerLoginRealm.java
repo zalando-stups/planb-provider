@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
+import org.zalando.stups.oauth2.jaxws.cxf.interceptors.OAuth2TokenInterceptor;
+import org.zalando.stups.tokens.AccessTokens;
 
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
@@ -21,16 +23,20 @@ import static java.util.Optional.ofNullable;
 public class CustomerLoginRealm implements Realm {
 
     private static final Logger log = LoggerFactory.getLogger(CustomerLoginRealm.class);
+
     public static final int APP_DOMAIN_ID = 1;
+    public static final String SERVICE_ID = "customerLogin";
 
     @Value("${customerLoginRealm.url}")
     private String customerLoginRealmUrl;
 
     private final Environment environment;
+    private final AccessTokens accessTokens;
 
     @Autowired
-    public CustomerLoginRealm(Environment environment) {
+    public CustomerLoginRealm(Environment environment, AccessTokens accessTokens) {
         this.environment = environment;
+        this.accessTokens = accessTokens;
     }
 
     private CustomerLoginWebService customerLoginWebService;
@@ -40,6 +46,8 @@ public class CustomerLoginRealm implements Realm {
         JaxWsProxyFactoryBean factory = new JaxWsProxyFactoryBean();
         factory.setAddress(customerLoginRealmUrl);
         factory.setServiceClass(CustomerLoginWebService.class);
+        OAuth2TokenInterceptor oAuth2TokenInterceptor = new OAuth2TokenInterceptor(accessTokens, SERVICE_ID);
+        factory.getOutInterceptors().add(oAuth2TokenInterceptor);
 
         if (environment.containsProperty("debug") || environment.containsProperty("trace")) {
             LoggingInInterceptor loggingInInterceptor = new LoggingInInterceptor();

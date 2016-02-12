@@ -16,9 +16,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
 @ActiveProfiles({"it"})
-public class CustomerLoginWebServiceRealmInternal extends AbstractSpringTest {
+public class CustomerLoginRealmInternal extends AbstractSpringTest {
 
-    private static final Logger log = LoggerFactory.getLogger(CustomerLoginWebServiceRealmInternal.class);
+    private static final Logger log = LoggerFactory.getLogger(CustomerLoginRealmInternal.class);
 
     public static final String UID = "uid";
 

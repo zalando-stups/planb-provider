@@ -1,6 +1,18 @@
 customerLoginRealm:
   url:  ${CUSTOMER_LOGIN_REALM_URL:http://example.com/ws/customerService?wsdl}
 
+#
+# OAuth2
+#
+tokens:
+    accessTokenUri: ${ACCESS_TOKEN_URI}
+    credentialsDirectory: ${CREDENTIALS_DIR}
+
+    token-configuration-list:
+        - tokenId: customerLogin
+          scopes:
+              - customer_service.all
+
 logging:
   level:
     root: INFO

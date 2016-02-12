@@ -14,6 +14,16 @@ Grant to create JWTs.
 Building
 ========
 
+Setup the following env variable:
+
+.. code-block:: bash
+
+    $ export ACCESS_TOKEN_URI="https://example.com/oauth2/access_token"
+    $ export CREDENTIALS_DIR="/meta/credentials"
+    $ export OAUTH2_ACCESS_TOKENS=customerLogin=test
+
+Building the artifact and running all tests:
+
 .. code-block:: bash
 
     $ ./mvnw verify
@@ -37,9 +47,6 @@ Testing internal endpoints
     $ export CUSTOMER_LOGIN_TEST_CUSTOMER_NUMBER=12345
     $ ./mvnw verify -Pinternal
 
-testUser:  ${:test}
-  testPassword:  ${:test}
-  testCustomerNumber:  ${:12345}
 
 Testing the endpoints
 =====================
