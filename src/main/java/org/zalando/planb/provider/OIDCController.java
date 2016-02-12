@@ -15,7 +15,6 @@ import java.util.Map;
 
 @RestController
 public class OIDCController {
-
     @Autowired
     private RealmConfig realms;
 
@@ -31,17 +30,35 @@ public class OIDCController {
                                         @RequestParam(value = "grant_type", required = true) String grantType,
                                         @RequestParam(value = "username", required = true) String username,
                                         @RequestParam(value = "password", required = true) String password,
-                                        @RequestParam(value = "scope", required = false) String scope)
+                                        @RequestParam(value = "scope", required = false) String scope,
+                                        @RequestHeader(name = "Authorization", required = false) String authorization)
             throws RealmAuthenticationException, JoseException, RealmAuthorizationException {
 
-        UserRealm userRealm = realms.getUserRealm(realmName); // TODO check availability
-        if (userRealm == null) {
-            throw new UnsupportedOperationException("realm unknown");
+        // check for supported grant types
+        if (!"password".equals(grantType)) {
+            throw new UnsupportedOperationException("unsupported grant type");
         }
 
+        // retrieve realms for the given realm
+        ClientRealm clientRealm = realms.getClientRealm(realmName);
+        if (clientRealm == null) {
+            throw new UnsupportedOperationException("realm unknown (client)");
+        }
+
+        UserRealm userRealm = realms.getUserRealm(realmName);
+        if (userRealm == null) {
+            throw new UnsupportedOperationException("realm unknown (user)");
+        }
+
+        // parse requested scopes
         String[] scopes = scope.split(" ");
+
+        // do the authentication
+        System.out.println("DEBUG Authorization: " + authorization); // TODO remove
+        clientRealm.authenticate("TODOclientId", "test", scopes); // TODO take clientId and clientSecret from basic auth
         Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes);
 
+        // request authorized, create and return JWT
         JwtClaims claims = new JwtClaims();
         claims.setIssuer("PlanB");
 
@@ -50,7 +67,7 @@ public class OIDCController {
 
         claims.setGeneratedJwtId();
         claims.setIssuedAtToNow();
-        claims.setSubject(username);
+        claims.setSubject(username); // can be overridden by the user realm
 
         claims.setStringListClaim("scope", scopes);
         claims.setStringClaim("realm", realmName);

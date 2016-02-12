@@ -5,6 +5,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -15,6 +16,7 @@ import java.util.Set;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 
 @Component
+@Scope("prototype")
 public class CassandraUserRealm implements UserRealm {
 
     @Autowired
@@ -47,7 +49,7 @@ public class CassandraUserRealm implements UserRealm {
         // TODO put password_hash to the query and find
 
         return new HashMap<String, Object>() {{
-            put("uid", username);
+            put("sub", username);
         }};
     }
 }

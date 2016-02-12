@@ -7,8 +7,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Scope;
 import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.zalando.stups.oauth2.jaxws.cxf.interceptors.OAuth2TokenInterceptor;
 import org.zalando.stups.tokens.AccessTokens;
 
@@ -19,7 +20,8 @@ import java.util.Optional;
 
 import static java.util.Optional.ofNullable;
 
-@Service("customerLoginClient")
+@Component
+@Scope("prototype")
 public class CustomerLoginUserRealm implements UserRealm {
 
     private static final Logger log = LoggerFactory.getLogger(CustomerLoginUserRealm.class);

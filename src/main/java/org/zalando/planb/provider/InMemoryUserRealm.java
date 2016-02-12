@@ -1,11 +1,13 @@
 package org.zalando.planb.provider;
 
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Component
+@Scope("prototype")
 public class InMemoryUserRealm implements UserManagedRealm {
     @Override
     public Map<String, Object> authenticate(final String username, final String password, final String[] scopes)
@@ -15,7 +17,7 @@ public class InMemoryUserRealm implements UserManagedRealm {
         }
 
         return new HashMap<String, Object>() {{
-            put("uid", username);
+            put("sub", username);
         }};
     }
 

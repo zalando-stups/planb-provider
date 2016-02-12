@@ -1,8 +1,10 @@
 package org.zalando.planb.provider;
 
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 @Component
+@Scope("prototype")
 public class InMemoryClientRealm implements ClientManagedRealm {
     @Override
     public void authenticate(final String clientId, final String clientSecret, final String[] scopes)

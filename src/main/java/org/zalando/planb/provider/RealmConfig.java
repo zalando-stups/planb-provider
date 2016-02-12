@@ -1,6 +1,8 @@
 package org.zalando.planb.provider;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -8,24 +10,38 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
-public class RealmConfig {
-    private final Map<String,UserRealm> userRealms = new HashMap<>();
+public class RealmConfig implements BeanFactoryAware {
     private final Map<String,ClientRealm> clientRealms = new HashMap<>();
+    private final Map<String,UserRealm> userRealms = new HashMap<>();
+    private BeanFactory beanFactory;
 
-    @Autowired
-    private CustomerLoginUserRealm customerLoginRealm;
+    @Override
+    public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+        this.beanFactory = beanFactory;
+    }
 
-    @Autowired
-    private UserManagedRealm testRealm;
+    void newRealm(String realmName, Class<? extends ClientRealm> clientRealmImpl, Class<? extends UserRealm> userRealmImpl) {
+        ClientRealm clientRealm = beanFactory.getBean(clientRealmImpl);
+        clientRealm.initialize(realmName);
+        clientRealms.put(realmName, clientRealm);
+
+        UserRealm userRealm = beanFactory.getBean(userRealmImpl);
+        userRealm.initialize(realmName);
+        userRealms.put(realmName, userRealm);
+    }
 
     @PostConstruct
     void setup() {
-        // find a nicer way to initialize as beans and provide configuration
-        userRealms.put("/test", testRealm);
-        userRealms.put("/customers", customerLoginRealm);
+        newRealm("/test", InMemoryClientRealm.class, InMemoryUserRealm.class);
+        newRealm("/services", CassandraClientRealm.class, CassandraUserRealm.class);
+        newRealm("/customers", CassandraClientRealm.class, CustomerLoginUserRealm.class);
     }
 
     UserRealm getUserRealm(String name) {
         return userRealms.get(name);
+    }
+
+    ClientRealm getClientRealm(String name) {
+        return clientRealms.get(name);
     }
 }
