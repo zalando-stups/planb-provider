@@ -1,37 +1,56 @@
 package org.zalando.planb.provider;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class OIDCCreateTokenResponse {
-    private String access_token;
-    private String id_token;
-    private String token_type = "Bearer";
-    private long expires_in;
+    @JsonProperty("access_token")
+    private String accessToken;
+
+    @JsonProperty("id_token")
+    private String idToken;
+
+    @JsonProperty("token_type")
+    private String tokenType = "Bearer";
+
+    @JsonProperty("expires_in")
+    private long expiresIn;
+
+    @JsonProperty("scope")
     private String scope;
 
+    @JsonProperty("realm")
+    private String realm;
 
-    public OIDCCreateTokenResponse(String access_token, String id_token, long expires_in, String scope) {
-        this.access_token = access_token;
-        this.id_token = id_token;
-        this.expires_in = expires_in;
+    private OIDCCreateTokenResponse() {
+    }
+
+    public OIDCCreateTokenResponse(String accessToken, String idToken, long expiresIn, String scope, String realm) {
+        this.accessToken = accessToken;
+        this.idToken = idToken;
+        this.expiresIn = expiresIn;
         this.scope = scope;
+        this.realm = realm;
     }
 
-    public String getAccess_token() {
-        return access_token;
+    public String getAccessToken() {
+        return accessToken;
     }
 
-    public String getId_token() {
-        return id_token;
+    public String getIdToken() {
+        return idToken;
     }
 
-    public String getToken_type() {
-        return token_type;
+    public String getTokenType() {
+        return tokenType;
     }
 
-    public long getExpires_in() {
-        return expires_in;
+    public long getExpiresIn() {
+        return expiresIn;
     }
 
     public String getScope() {
         return scope;
     }
+
+    public String getRealm() { return realm; }
 }
