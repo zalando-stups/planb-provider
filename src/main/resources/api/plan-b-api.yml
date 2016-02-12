@@ -169,6 +169,7 @@ definitions:
     properties:
       secret_hash:
         type: string
+        description: Base64-encoded Bcrypt hash of the client secret
       scopes:
         type: array
         items:
@@ -181,6 +182,7 @@ definitions:
         type: array
         items:
           type: string
+          description: Base64-encoded Bcrypt hash of the password
       scopes:
         type: object
 
@@ -189,3 +191,4 @@ definitions:
     properties:
       password_hash:
         type: string
+        description: Base64-encoded Bcrypt hash of the password
