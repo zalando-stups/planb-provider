@@ -117,7 +117,7 @@
                 <configuration>
                     <apiFile>${project.basedir}/src/main/resources/api/plan-b-api.yml</apiFile>
                     <language>springinterfacesResponseEntityNoSwaggerAnnotations</language>
-                    <apiPackage>org.zalando.planb.provider.services</apiPackage>
+                    <apiPackage>org.zalando.planb.provider.api</apiPackage>
                     <yamlToJson>true</yamlToJson>
                     <yamlToJsonOutputDirectory>${project.build.directory}/classes</yamlToJsonOutputDirectory>
                 </configuration>
