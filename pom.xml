@@ -110,7 +110,67 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.zalando.maven.plugins</groupId>
+                <artifactId>swagger-codegen-maven-plugin</artifactId>
+                <version>0.4.20</version>
+                <configuration>
+                    <apiFile>${project.basedir}/src/main/resources/api/plan-b-api.yml</apiFile>
+                    <language>springinterfacesResponseEntityNoSwaggerAnnotations</language>
+                    <apiPackage>org.zalando.planb.provider.services</apiPackage>
+                    <yamlToJson>true</yamlToJson>
+                    <yamlToJsonOutputDirectory>${project.build.directory}/classes</yamlToJsonOutputDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>generate-code</id>
+                        <goals>
+                            <goal>codegen</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.zalando.stups</groupId>
+                        <artifactId>swagger-codegen-template-spring-interfaces</artifactId>
+                        <version>0.4.20</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
         </plugins>
+        <pluginManagement>
+            <plugins>
+                <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+                <plugin>
+                    <groupId>org.eclipse.m2e</groupId>
+                    <artifactId>lifecycle-mapping</artifactId>
+                    <version>1.0.0</version>
+                    <configuration>
+                        <lifecycleMappingMetadata>
+                            <pluginExecutions>
+                                <pluginExecution>
+                                    <pluginExecutionFilter>
+                                        <groupId>
+                                            org.zalando.maven.plugins
+                                        </groupId>
+                                        <artifactId>
+                                            swagger-codegen-maven-plugin
+                                        </artifactId>
+                                        <versionRange>[0.4.20,)</versionRange>
+                                        <goals>
+                                            <goal>codegen</goal>
+                                        </goals>
+                                    </pluginExecutionFilter>
+                                    <action>
+                                        <ignore></ignore>
+                                    </action>
+                                </pluginExecution>
+                            </pluginExecutions>
+                        </lifecycleMappingMetadata>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 
     <profiles>
