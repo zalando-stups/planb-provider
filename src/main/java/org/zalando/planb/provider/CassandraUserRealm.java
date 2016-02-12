@@ -34,20 +34,20 @@ public class CassandraUserRealm implements UserRealm {
     }
 
     @Override
-    public Map<String, Object> authenticate(final String user, final String password, final String[] scopes)
-            throws RealmAuthenticationFailedException {
+    public Map<String, Object> authenticate(final String username, final String password, final String[] scopes)
+            throws RealmAuthenticationException {
 
         // selectUser to figure out password
 
 
-        final ResultSet result = session.execute(selectUser.bind().setString("username", user));
+        final ResultSet result = session.execute(selectUser.bind().setString("username", username));
         final Row row = result.one();
         final Set<String> passwordHashes = row.getSet("password_hashes", String.class);
 
         // TODO put password_hash to the query and find
 
         return new HashMap<String, Object>() {{
-            put("uid", user);
+            put("uid", username);
         }};
     }
 }

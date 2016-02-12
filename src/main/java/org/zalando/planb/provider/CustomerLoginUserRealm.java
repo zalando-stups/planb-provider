@@ -63,12 +63,12 @@ public class CustomerLoginUserRealm implements UserRealm {
     }
 
     @Override
-    public Map<String, Object> authenticate(String user, String password, String[] scopes) throws RealmAuthenticationFailedException {
+    public Map<String, Object> authenticate(String user, String password, String[] scopes) throws RealmAuthenticationException {
 
         Optional<CustomerLoginResponse> response = ofNullable(customerLoginWebService.authenticate(APP_DOMAIN_ID, user, password));
 
         if (!response.isPresent() || !"SUCCESS".equals(response.get().getLoginResult())) {
-            throw new RealmAuthenticationFailedException("User not authenticated: " + user);
+            throw new RealmAuthenticationException("User not authenticated: " + user);
         }
 
         return new HashMap<String, Object>() {{

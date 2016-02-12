@@ -32,7 +32,7 @@ public class OIDCController {
                                         @RequestParam(value = "username", required = true) String username,
                                         @RequestParam(value = "password", required = true) String password,
                                         @RequestParam(value = "scope", required = false) String scope)
-            throws RealmAuthenticationFailedException, JoseException {
+            throws RealmAuthenticationException, JoseException, RealmAuthorizationException {
 
         UserRealm userRealm = realms.getUserRealm(realmName); // TODO check availability
         if (userRealm == null) {

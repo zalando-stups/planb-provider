@@ -35,7 +35,7 @@ public class CustomerLoginUserRealmInternal extends AbstractSpringTest {
     private String customerLoginTestCustomerNumber;
 
     @Test
-    public void testAuthenticate() throws RealmAuthenticationFailedException {
+    public void testAuthenticate() throws RealmAuthenticationException {
         Map<String, Object> authenticate = customerLoginRealm.authenticate(customerLoginTestUser, customerLoginTestPassword, new String[]{UID});
         assertThat(authenticate.get(UID)).isEqualTo(customerLoginTestCustomerNumber);
     }

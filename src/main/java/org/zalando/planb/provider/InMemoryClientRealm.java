@@ -2,21 +2,14 @@ package org.zalando.planb.provider;
 
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
-
 @Component
-public class InMemoryUserRealm implements UserManagedRealm {
+public class InMemoryClientRealm implements ClientManagedRealm {
     @Override
-    public Map<String, Object> authenticate(final String username, final String password, final String[] scopes)
+    public void authenticate(final String clientId, final String clientSecret, final String[] scopes)
             throws RealmAuthenticationException {
-        if (!password.equals("test")) {
-            throw new RealmAuthenticationException("user " + username + " presented wrong secret");
+        if (!clientSecret.equals("test")) {
+            throw new RealmAuthenticationException("client " + clientId + " presented wrong secret");
         }
-
-        return new HashMap<String, Object>() {{
-            put("uid", username);
-        }};
     }
 
     @Override
