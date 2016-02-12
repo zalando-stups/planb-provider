@@ -17,6 +17,9 @@ public class RealmConfig {
 
     Realm get(String name) {
         RealmPlugin plugin = realmPluginRegistry.getPluginFor(name);
+        if (plugin == null) {
+            return new TestRealm();
+        }
         return plugin.get(name);
     }
 }
