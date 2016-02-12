@@ -112,6 +112,21 @@ paths:
         200:
           description: User has been deleted
 
+  /users/{realm}/{id}/password:
+    post:
+      summary: add password
+      description: |
+        Add the given password to the list of valid passwords of this user
+      tags:
+        - Users
+      parameters:
+        - $ref: '#/parameters/Realm'
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Password'
+      responses:
+        201:
+          description: The password has successfully been saved
+
 parameters:
 
   Realm:
@@ -140,6 +155,13 @@ parameters:
     schema:
       $ref: '#/definitions/User'
 
+  Password:
+    name: password
+    in: body
+    required: true
+    schema:
+      $ref: '#/definitions/Password'
+
 definitions:
 
   Client:
@@ -161,3 +183,9 @@ definitions:
           type: string
       scopes:
         type: object
+
+  Password:
+    type: object
+    properties:
+      password_hash:
+        type: string
