@@ -5,8 +5,8 @@ customerLoginRealm:
 # OAuth2
 #
 tokens:
-    accessTokenUri: ${ACCESS_TOKEN_URI:}
-    credentialsDirectory: ${CREDENTIALS_DIR:.}
+    accessTokenUri: ${ACCESS_TOKEN_URI}
+    credentialsDirectory: ${CREDENTIALS_DIR}
 
     token-configuration-list:
         - tokenId: customerLogin

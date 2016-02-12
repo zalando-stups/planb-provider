@@ -4,4 +4,6 @@ customerLoginRealm:
   testCustomerNumber:  ${CUSTOMER_LOGIN_TEST_CUSTOMER_NUMBER:12345}
 
 tokens:
-  test-tokens: customerLogin=1234567889
+    test-tokens: customerLogin=1234567889
+    accessTokenUri: http://localhost:44332
+    credentialsDirectory: .
