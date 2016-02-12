@@ -9,7 +9,20 @@ CREATE TABLE provider.client (
 );
 
 CREATE TABLE provider.user (
-	username TEXT PRIMARY KEY ,
+	username TEXT PRIMARY KEY,
 	password_hashes SET<TEXT>,
 	scopes MAP<TEXT, TEXT>
+);
+
+CREATE TABLE provider.keypair (
+	kid TEXT PRIMARY KEY,
+	private_key_pem TEXT,
+	public_key_jwk TEXT,
+	valid_from INT
+);
+
+CREATE TABLE provider.keypair_archive (
+	kid TEXT PRIMARY KEY ,
+	public_key_jwk TEXT,
+	valid_from INT
 );
