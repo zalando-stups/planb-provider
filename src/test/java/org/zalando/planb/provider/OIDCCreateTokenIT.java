@@ -91,4 +91,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat("uid").isIn(context.getJwtClaims().getClaimValue("scope"));
         assertThat("name").isIn(context.getJwtClaims().getClaimValue("scope"));
     }
+
+    // TODO 401 on bad client, 401 on bad user, 400 on bad input, 403 on bad scopes in client, 403 on bad scopes in user
+    // TODO disable detailed http responses in production mode
 }

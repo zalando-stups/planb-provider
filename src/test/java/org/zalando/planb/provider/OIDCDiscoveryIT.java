@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +20,7 @@ import java.net.URI;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringApplicationConfiguration(classes = { Main.class })
+@SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
 @ActiveProfiles("it")
 public class OIDCDiscoveryIT extends AbstractSpringTest {
@@ -49,15 +50,15 @@ public class OIDCDiscoveryIT extends AbstractSpringTest {
     }
 
     @Test
-    @Ignore("No idea how to set X-Forwarded-Proto header in REST call.")
     public void jwksUrlProto() {
-        // TODO figure out how to set header "X-Forwarded-Proto" to "https" to test loadbalancer logic
-        ResponseEntity<OIDCDiscoveryInformationResponse> response = rest
-                .getForEntity(
-                        URI.create("http://localhost:" + port + "/.well-known/openid-configuration"),
-                        OIDCDiscoveryInformationResponse.class);
+        RequestEntity request = RequestEntity.get(URI.create("http://localhost:" + port + "/.well-known/openid-configuration"))
+                .header("X-Forwarded-Proto", "https")
+                .build();
 
-        assertThat(response.getBody().getJwksUri()).isEqualTo("https://localhost:8080/oauth2/v3/certs");
+        ResponseEntity<OIDCDiscoveryInformationResponse> response = rest
+                .exchange(request, OIDCDiscoveryInformationResponse.class);
+
+        assertThat(response.getBody().getJwksUri()).isEqualTo("https://localhost:" + port + "/oauth2/v3/certs");
     }
 
 }
