@@ -9,7 +9,6 @@ import org.jose4j.jwt.NumericDate;
 import org.jose4j.lang.JoseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.zalando.planb.provider.exception.AuthenticationFailedException;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -33,7 +32,7 @@ public class OIDC {
                                         @RequestParam(value = "username", required = true) String username,
                                         @RequestParam(value = "password", required = true) String password,
                                         @RequestParam(value = "scope", required = false) String scope)
-            throws AuthenticationFailedException, JoseException {
+            throws RealmAuthenticationFailedException, JoseException {
 
         Realm realm = realms.get(realmName); // TODO check availability
         if (realm == null) {
@@ -53,7 +52,8 @@ public class OIDC {
         claims.setIssuedAtToNow();
         claims.setSubject(username);
 
-        claims.setStringListClaim("scopes", scopes);
+        claims.setStringListClaim("scope", scopes);
+        claims.setStringClaim("realm", realmName);
         extraClaims.forEach(claims::setClaim);
 
         JsonWebSignature jws = new JsonWebSignature();
@@ -64,7 +64,7 @@ public class OIDC {
 
         String jwt = jws.getCompactSerialization();
 
-        return new OIDCCreateTokenResponse(jwt, jwt, (expiration / 1000), scope);
+        return new OIDCCreateTokenResponse(jwt, jwt, (expiration / 1000), scope, realmName);
     }
 
     @RequestMapping("/.well-known/openid-configuration")

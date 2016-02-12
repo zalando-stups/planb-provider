@@ -4,6 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.URI;
 
+import org.jose4j.jwa.AlgorithmConstraints;
+import org.jose4j.jwk.HttpsJwks;
+import org.jose4j.jwt.MalformedClaimException;
+import org.jose4j.jwt.consumer.InvalidJwtException;
+import org.jose4j.jwt.consumer.JwtConsumer;
+import org.jose4j.jwt.consumer.JwtConsumerBuilder;
+import org.jose4j.jwt.consumer.JwtContext;
+import org.jose4j.keys.resolvers.HttpsJwksVerificationKeyResolver;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,34 +27,17 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-@SpringApplicationConfiguration(classes = { Main.class })
+@SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
 @ActiveProfiles("it")
-public class PlanBProviderIT extends AbstractSpringTest {
-
-    private static final Logger log = LoggerFactory.getLogger(PlanBProviderIT.class);
-
+public class OIDCCreateTokenIT extends AbstractSpringTest {
     @Value("${local.server.port}")
     private int port;
 
     RestTemplate rest = new RestTemplate();
 
     @Test
-    public void discoveryResponse() {
-        ResponseEntity<OIDCDiscoveryInformationResponse> response = rest.getForEntity(
-                URI.create("http://localhost:" + port + "/.well-known/openid-configuration"), OIDCDiscoveryInformationResponse.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    public void jwksResponse() {
-        ResponseEntity<String> response = rest.getForEntity(
-                URI.create("http://localhost:" + port + "/oauth2/v3/certs"), String.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    public void createTokenResponse() {
+    public void createToken() {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<String, Object>();
         requestParameters.add("realm", "/test");
         requestParameters.add("grant_type", "password");
@@ -63,10 +55,14 @@ public class PlanBProviderIT extends AbstractSpringTest {
         assertThat(response.getBody().getScope()).isEqualTo("uid name");
         assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
+        assertThat(response.getBody().getRealm()).isEqualTo("/test");
+
+        assertThat(response.getBody().getAccessToken()).isNotEmpty();
+        assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
     }
 
     @Test
-    public void jwtClaims() {
+    public void jwtClaims() throws InvalidJwtException, MalformedClaimException {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<String, Object>();
         requestParameters.add("realm", "/test");
         requestParameters.add("grant_type", "password");
@@ -79,8 +75,22 @@ public class PlanBProviderIT extends AbstractSpringTest {
                 .body(requestParameters);
 
         ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        String jwt = response.getBody().getIdToken();
 
+        // fetch JWK
+        HttpsJwks httpsJkws = new HttpsJwks("http://localhost:" + port + "/oauth2/v3/certs");
+        HttpsJwksVerificationKeyResolver httpsJwksKeyResolver = new HttpsJwksVerificationKeyResolver(httpsJkws);
+        JwtConsumer jwtConsumer = new JwtConsumerBuilder()
+                .setVerificationKeyResolver(httpsJwksKeyResolver)
+                .build();
 
+        // verify JWT
+        JwtContext context = jwtConsumer.process(jwt);
+        assertThat(context.getJwtClaims().getSubject()).isEqualTo("klaus");
+        assertThat("uid").isIn((Iterable<String>)context.getJwtClaims().getClaimValue("scope"));
+        assertThat("name").isIn((Iterable<String>)context.getJwtClaims().getClaimValue("scope"));
     }
+
+    // TODO 401 on bad client, 401 on bad user, 400 on bad input, 403 on bad scopes in client, 403 on bad scopes in user
+    // TODO disable detailed http responses in production mode
 }

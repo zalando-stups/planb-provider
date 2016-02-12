@@ -15,7 +15,7 @@ public class OIDCKeyHolder {
         jsonWebKey = EcJwkGenerator.generateJwk(EllipticCurves.P256);
         jsonWebKey.setKeyId("testkey");
         jsonWebKey.setAlgorithm(AlgorithmIdentifiers.ECDSA_USING_P256_CURVE_AND_SHA256);
-        jsonWebKey.setUse("sign");
+        jsonWebKey.setUse("sig");
     }
 
     PublicJsonWebKey getJsonWebKey() {
