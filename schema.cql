@@ -1,4 +1,4 @@
-CREATE KEYSPACE provider
+CREATE KEYSPACE provider;
 WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3};
 
 CREATE TABLE provider.client (
