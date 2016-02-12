@@ -36,6 +36,12 @@ Find the executable jar in the target directory. Building a Docker image with th
     $ scm-source
     $ docker build -t planb-provider .
 
+Code generation
+===============
+
+Java interfaces and classes for some REST APIs are auto-generated on build by swagger-codegen-maven-plugin. Find the
+generated sources in target/generated-sources/swagger-codegen/.
+
 Testing internal endpoints
 ==========================
 
