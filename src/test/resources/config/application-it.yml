@@ -1,0 +1,6 @@
+customerLoginRealm:
+  testUser:  ${CUSTOMER_LOGIN_TEST_USER}
+  testPassword:  ${CUSTOMER_LOGIN_TEST_PASSWORD}
+  testCustomerNumber:  ${CUSTOMER_LOGIN_TEST_CUSTOMER_NUMBER}
+
+

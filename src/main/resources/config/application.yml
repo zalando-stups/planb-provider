@@ -1,3 +1,7 @@
-#
-#
-#
+customerLoginRealm:
+  url:  ${CUSTOMER_LOGIN_REALM_URL}
+
+logging:
+  level:
+    root: INFO
+#    org.apache.cxf: DEBUG
