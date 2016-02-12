@@ -3,4 +3,5 @@ customerLoginRealm:
   testPassword:  ${CUSTOMER_LOGIN_TEST_PASSWORD:test}
   testCustomerNumber:  ${CUSTOMER_LOGIN_TEST_CUSTOMER_NUMBER:12345}
 
-
+tokens:
+  test-tokens: customerLogin=1234567889
