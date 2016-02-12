@@ -35,7 +35,7 @@ Requesting a new JWT:
 .. code-block:: bash
 
     $ curl --silent -X POST -d "grant_type=password&username=foo&password=test&scope=uid" \
-         http://localhost:8080/oauth2/access_token\?realm\=/test | jq .
+         "http://localhost:8080/oauth2/access_token?realm=/test" | jq .
 
 Get the OpenID Connect configuration discovery document:
 
