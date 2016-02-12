@@ -1,0 +1,23 @@
+#
+#
+#
+planb:
+  realms:
+    soap:
+      realms:
+        - name: zoap_1
+        - name: zoap_2
+
+    cassandra:
+      realms:
+        - name: zwiebel
+          seeds:
+            - 192.168.13.21
+            - 192.168.14.21
+            - 192.168.15.21
+
+        - name: brot
+          seeds:
+            - 192.168.17.21
+            - 192.168.18.21
+            - 192.168.19.21

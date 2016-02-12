@@ -1,25 +1,22 @@
 package org.zalando.planb.provider;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.plugin.core.PluginRegistry;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
-import java.util.HashMap;
-import java.util.Map;
+import org.zalando.planb.provider.realms.RealmPlugin;
 
 @Component
 public class RealmConfig {
 
-    private final Map<String,Realm> realms = new HashMap<>();
+    private final PluginRegistry<RealmPlugin, String> realmPluginRegistry;
 
-    @PostConstruct
-    void setup() {
-        // find a nicer way to initialize as beans and provide configuration
-        realms.put("/test", new TestRealm());
+    @Autowired
+    public RealmConfig(PluginRegistry<RealmPlugin, String> realmPluginRegistry) {
+        this.realmPluginRegistry = realmPluginRegistry;
     }
 
     Realm get(String name) {
-        return realms.get(name);
+        RealmPlugin plugin = realmPluginRegistry.getPluginFor(name);
+        return plugin.get(name);
     }
 }
