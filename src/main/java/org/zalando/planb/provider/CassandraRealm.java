@@ -1,17 +1,16 @@
 package org.zalando.planb.provider;
 
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.querybuilder.Clause;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.cassandra.*;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 
@@ -39,6 +38,13 @@ public class CassandraRealm implements Realm {
             throws RealmAuthenticationFailedException {
 
         // selectUser to figure out password
+
+
+        final ResultSet result = session.execute(selectUser.bind().setString("username", user));
+        final Row row = result.one();
+        final Set<String> passwordHashes = row.getSet("password_hashes", String.class);
+
+        // TODO put password_hash to the query and find
 
         return new HashMap<String, Object>() {{
             put("uid", user);
