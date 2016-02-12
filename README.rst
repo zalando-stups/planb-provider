@@ -25,3 +25,27 @@ Find the executable jar in the target directory. Building a Docker image with th
     $ sudo pip3 install scm-source
     $ scm-source
     $ docker build -t planb-provider .
+
+
+Testing the endpoints
+=====================
+
+Requesting a new JWT:
+
+.. code-block:: bash
+
+    $ curl --silent -X POST -d "grant_type=password&username=foo&password=test&scope=uid" \
+         http://localhost:8080/oauth2/access_token\?realm\=/test | jq .
+
+Get the OpenID Connect configuration discovery document:
+
+.. code-block:: bash
+
+    $ curl --silent http://localhost:8080/oauth2/v3/certs | jq .
+
+
+Retrieving all public keys for verification:
+
+.. code-block:: bash
+
+    $ curl --silent http://localhost:8080/oauth2/v3/certs | jq .
