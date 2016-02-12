@@ -5,6 +5,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.google.common.collect.Sets;
 import org.jose4j.jwk.HttpsJwks;
 import org.jose4j.jwt.MalformedClaimException;
 import org.jose4j.jwt.consumer.InvalidJwtException;
@@ -29,6 +30,7 @@ import org.springframework.web.client.RestTemplate;
 import javax.annotation.PostConstruct;
 import java.net.URI;
 
+import static com.google.common.collect.Sets.newHashSet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringApplicationConfiguration(classes = {Main.class})
@@ -48,7 +50,8 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         final Statement insert =
                 QueryBuilder.insertInto("user")
                         .value("username", "foo")
-                        .value("password_hashes", new String[]{"bar"})
+                        .value("realm", "/planb")
+                        .value("password_hashes", newHashSet("bar"))
                         .setConsistencyLevel(ConsistencyLevel.ONE);
         session.execute(insert);
     }

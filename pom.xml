@@ -163,7 +163,8 @@
                         <id>start-cassandra</id>
                         <goals>
                             <goal>start</goal>
-                            <goal>cql-exec</goal>
+                            <!-- TODO insert test data? -->
+                            <!--<goal>cql-exec</goal>-->
                         </goals>
                         <configuration>
                             <listenAddress>127.0.0.1</listenAddress>
@@ -175,7 +176,7 @@
                             <startNativeTransport>true</startNativeTransport>
                             <cqlVersion>3.0.0</cqlVersion>
                             <script>schema.cql</script>
-                            <cqlScript>src/test/resources/testdata.cql</cqlScript>
+                            <!--<cqlScript>src/test/resources/testdata.cql</cqlScript>-->
                         </configuration>
                     </execution>
                     <execution>
