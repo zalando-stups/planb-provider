@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 @RestController
-public class OIDC {
+public class OIDCController {
 
     @Autowired
     private RealmConfig realms;
@@ -34,13 +34,13 @@ public class OIDC {
                                         @RequestParam(value = "scope", required = false) String scope)
             throws RealmAuthenticationFailedException, JoseException {
 
-        Realm realm = realms.get(realmName); // TODO check availability
-        if (realm == null) {
+        UserRealm userRealm = realms.getUserRealm(realmName); // TODO check availability
+        if (userRealm == null) {
             throw new UnsupportedOperationException("realm unknown");
         }
 
         String[] scopes = scope.split(" ");
-        Map<String, Object> extraClaims = realm.authenticate(username, password, scopes);
+        Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes);
 
         JwtClaims claims = new JwtClaims();
         claims.setIssuer("PlanB");

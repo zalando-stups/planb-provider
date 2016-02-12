@@ -1,6 +1,6 @@
 package org.zalando.planb.provider;
 
-public interface ManagedRealm extends Realm {
+public interface ClientManagedRealm extends ClientRealm {
 
     void create();
     void update();

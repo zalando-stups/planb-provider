@@ -16,14 +16,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
 @ActiveProfiles({"it"})
-public class CustomerLoginRealmInternal extends AbstractSpringTest {
+public class CustomerLoginUserRealmInternal extends AbstractSpringTest {
 
-    private static final Logger log = LoggerFactory.getLogger(CustomerLoginRealmInternal.class);
+    private static final Logger log = LoggerFactory.getLogger(CustomerLoginUserRealmInternal.class);
 
     public static final String UID = "uid";
 
     @Autowired
-    private CustomerLoginRealm customerLoginRealm;
+    private CustomerLoginUserRealm customerLoginRealm;
 
     @Value("${customerLoginRealm.testUser}")
     private String customerLoginTestUser;

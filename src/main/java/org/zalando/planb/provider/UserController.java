@@ -14,7 +14,7 @@ import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.OK;
 
 @RestController
-public class UsersApiController implements UsersApi {
+public class UserController implements UsersApi {
 
     private final Logger log = getLogger(getClass());
 

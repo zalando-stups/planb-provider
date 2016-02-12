@@ -15,7 +15,7 @@ import java.util.Set;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 
 @Component
-public class CassandraRealm implements Realm {
+public class CassandraUserRealm implements UserRealm {
 
     @Autowired
     private CassandraProperties cassandraProperties;

@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
-public class InMemoryRealm implements ManagedRealm {
+public class InMemoryUserRealm implements UserManagedRealm {
     @Override
     public Map<String, Object> authenticate(final String user, final String password, final String[] scopes)
             throws RealmAuthenticationFailedException {

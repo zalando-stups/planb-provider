@@ -20,7 +20,7 @@ import java.net.URI;
 @SpringApplicationConfiguration(classes = { Main.class })
 @WebIntegrationTest(randomPort = true)
 @ActiveProfiles("it")
-public class ClientsApiControllerIT extends AbstractSpringTest {
+public class ClientControllerIT extends AbstractSpringTest {
 
     @Value("${local.server.port}")
     private int port;

@@ -12,7 +12,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 import static org.springframework.http.HttpStatus.OK;
 
 @RestController
-public class ClientsApiController implements ClientsApi {
+public class ClientController implements ClientsApi {
 
     private final Logger log = getLogger(getClass());
 

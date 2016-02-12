@@ -20,9 +20,9 @@ import java.util.Optional;
 import static java.util.Optional.ofNullable;
 
 @Service("customerLoginClient")
-public class CustomerLoginRealm implements Realm {
+public class CustomerLoginUserRealm implements UserRealm {
 
-    private static final Logger log = LoggerFactory.getLogger(CustomerLoginRealm.class);
+    private static final Logger log = LoggerFactory.getLogger(CustomerLoginUserRealm.class);
 
     public static final int APP_DOMAIN_ID = 1;
     public static final String SERVICE_ID = "customerLogin";
@@ -34,7 +34,7 @@ public class CustomerLoginRealm implements Realm {
     private final AccessTokens accessTokens;
 
     @Autowired
-    public CustomerLoginRealm(Environment environment, AccessTokens accessTokens) {
+    public CustomerLoginUserRealm(Environment environment, AccessTokens accessTokens) {
         this.environment = environment;
         this.accessTokens = accessTokens;
     }
