@@ -1,6 +1,7 @@
 package org.zalando.planb.provider;
 
-import org.jose4j.jwk.*;
+import org.jose4j.jwk.EcJwkGenerator;
+import org.jose4j.jwk.PublicJsonWebKey;
 import org.jose4j.jws.AlgorithmIdentifiers;
 import org.jose4j.keys.EllipticCurves;
 import org.jose4j.lang.JoseException;

@@ -1,7 +1,6 @@
 package org.zalando.planb.provider;
 
-import java.net.URI;
-
+import com.google.common.collect.Lists;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,7 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestTemplate;
 import org.zalando.planb.provider.api.Client;
 
-import com.google.common.collect.Lists;
+import java.net.URI;
 
 
 @SpringApplicationConfiguration(classes = { Main.class })
