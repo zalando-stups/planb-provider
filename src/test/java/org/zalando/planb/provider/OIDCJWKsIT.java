@@ -33,5 +33,7 @@ public class OIDCJWKsIT extends AbstractSpringTest {
                 URI.create("http://localhost:" + port + "/oauth2/v3/certs"), String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        // TODO check the actual expected keys
     }
 }

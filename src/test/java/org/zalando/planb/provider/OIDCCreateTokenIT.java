@@ -62,7 +62,6 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     }
 
     @Test
-    @Ignore("The fetched JWK somehow doesn't verify the JWT.")
     public void jwtClaims() throws InvalidJwtException, MalformedClaimException {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<String, Object>();
         requestParameters.add("realm", "/test");
@@ -88,8 +87,8 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         // verify JWT
         JwtContext context = jwtConsumer.process(jwt);
         assertThat(context.getJwtClaims().getSubject()).isEqualTo("klaus");
-        assertThat("uid").isIn(context.getJwtClaims().getClaimValue("scope"));
-        assertThat("name").isIn(context.getJwtClaims().getClaimValue("scope"));
+        assertThat("uid").isIn((Iterable<String>)context.getJwtClaims().getClaimValue("scope"));
+        assertThat("name").isIn((Iterable<String>)context.getJwtClaims().getClaimValue("scope"));
     }
 
     // TODO 401 on bad client, 401 on bad user, 400 on bad input, 403 on bad scopes in client, 403 on bad scopes in user
