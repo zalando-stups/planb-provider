@@ -64,11 +64,11 @@ Requesting a new JWT:
     $ curl --silent -X POST -d "grant_type=password&username=foo&password=test&scope=uid" \
          "http://localhost:8080/oauth2/access_token?realm=/test" | jq .
 
-Get the OpenID Connect configuration discovery document:
+Get the `OpenID Connect configuration discovery document`_:
 
 .. code-block:: bash
 
-    $ curl --silent http://localhost:8080/oauth2/v3/certs | jq .
+    $ curl --silent http://localhost:8080/.well-known/openid-configuration | jq .
 
 
 Retrieving all public keys for verification:
@@ -76,3 +76,5 @@ Retrieving all public keys for verification:
 .. code-block:: bash
 
     $ curl --silent http://localhost:8080/oauth2/v3/certs | jq .
+
+.. _OpenID Connect configuration discovery document: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
