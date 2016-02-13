@@ -34,6 +34,7 @@ public class UserController implements UsersApi {
             @PathVariable("id") String id,
             @RequestBody User user) {
         log.info("Create or replace user /{}/{}: {}", realm, id, user);
+        getUserManagedRealm(realm).createOrReplace(id, user);
         return new ResponseEntity<>(OK);
     }
 
