@@ -43,6 +43,7 @@ public class UserController implements UsersApi {
             @PathVariable("realm") String realm,
             @PathVariable("id") String id) {
         log.info("Delete user /{}/{}", realm, id);
+        getUserManagedRealm(realm).delete(id);
         return new ResponseEntity<>(OK);
     }
 
