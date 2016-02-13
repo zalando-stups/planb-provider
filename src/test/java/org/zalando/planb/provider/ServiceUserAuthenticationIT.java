@@ -77,12 +77,14 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
                 OIDCCreateTokenResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getScope()).isEqualTo("uid");
-        assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
-        assertThat(response.getBody().getRealm()).isEqualTo("/services");
-        assertThat(response.getBody().getAccessToken()).isNotEmpty();
-        assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
+        final OIDCCreateTokenResponse tokenResponse = response.getBody();
+        assertThat(tokenResponse.getScope()).isEqualTo("uid");
+        assertThat(tokenResponse.getTokenType()).isEqualTo("Bearer");
+        assertThat(tokenResponse.getRealm()).isEqualTo("/services");
+        assertThat(tokenResponse.getAccessToken()).isNotEmpty();
+        assertThat(tokenResponse.getAccessToken()).isEqualTo(tokenResponse.getIdToken());
 
+        System.out.println(tokenResponse.getAccessToken());
     }
 
     private String hashAndEncodePassword(String clientSecret) {

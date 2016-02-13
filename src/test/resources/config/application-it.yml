@@ -12,3 +12,8 @@ cassandra:
   keyspace: provider
   contactPoints: 127.0.0.1
   clusterName: Test Cluster
+
+logging:
+  level:
+    # print the AutoConfiguration report
+    org.springframework.boot.autoconfigure.logging.AutoConfigurationReportLoggingInitializer: DEBUG
