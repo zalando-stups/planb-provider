@@ -84,12 +84,6 @@ public class CassandraClientRealm implements ClientManagedRealm {
     }
 
     @Override
-    public void authenticate(String clientId, String clientSecret, String[] scopes)
-            throws RealmAuthenticationException, RealmAuthorizationException {
-        // TODO look up clientId in this.realmName and compare the clientSecret and scopes
-    }
-
-    @Override
     public String getName() {
         return realmName;
     }
