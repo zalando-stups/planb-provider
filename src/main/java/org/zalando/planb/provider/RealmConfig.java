@@ -15,6 +15,10 @@ public class RealmConfig implements BeanFactoryAware {
     private final Map<String,UserRealm> userRealms = new HashMap<>();
     private BeanFactory beanFactory;
 
+    public static String ensureLeadingSlash(String realmName) {
+        return realmName.startsWith("/") ? realmName : "/" + realmName;
+    }
+
     @Override
     public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
         this.beanFactory = beanFactory;

@@ -43,6 +43,11 @@ public class CassandraUserRealm implements UserRealm {
     }
 
     @Override
+    public String getName() {
+        return realmName;
+    }
+
+    @Override
     public Map<String, Object> authenticate(final String username, final String password, final String[] scopes)
             throws RealmAuthenticationException {
 

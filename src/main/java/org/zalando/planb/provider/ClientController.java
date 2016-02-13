@@ -57,14 +57,10 @@ public class ClientController implements ClientsApi {
 
     private ClientManagedRealm getClientManagedRealm(final String realm) {
         return Optional.of(realm)
-                .map(ClientController::ensureLeadingSlash)
+                .map(RealmConfig::ensureLeadingSlash)
                 .map(realms::getClientRealm)
                 .filter(r -> r instanceof ClientManagedRealm)
                 .map(r -> ((ClientManagedRealm) r))
                 .orElseThrow(() -> new RealmNotManagedException(realm));
-    }
-
-    private static String ensureLeadingSlash(String realmName) {
-        return realmName.startsWith("/") ? realmName : "/" + realmName;
     }
 }

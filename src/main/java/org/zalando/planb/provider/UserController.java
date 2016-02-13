@@ -1,6 +1,7 @@
 package org.zalando.planb.provider;
 
 import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -8,6 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.zalando.planb.provider.api.Password;
 import org.zalando.planb.provider.api.User;
 import org.zalando.planb.provider.api.UsersApi;
+
+import java.util.Optional;
 
 import static org.slf4j.LoggerFactory.getLogger;
 import static org.springframework.http.HttpStatus.CREATED;
@@ -17,6 +20,13 @@ import static org.springframework.http.HttpStatus.OK;
 public class UserController implements UsersApi {
 
     private final Logger log = getLogger(getClass());
+
+    private final RealmConfig realms;
+
+    @Autowired
+    public UserController(RealmConfig realms) {
+        this.realms = realms;
+    }
 
     @Override
     public ResponseEntity<Void> usersRealmIdPut(
@@ -51,5 +61,14 @@ public class UserController implements UsersApi {
             @RequestBody Password password) {
         log.info("Add user password /{}/{}: {}", realm, id, password);
         return new ResponseEntity<>(CREATED);
+    }
+
+    private UserManagedRealm getUserManagedRealm(final String realm) {
+        return Optional.of(realm)
+                .map(RealmConfig::ensureLeadingSlash)
+                .map(realms::getUserRealm)
+                .filter(r -> r instanceof UserManagedRealm)
+                .map(r -> ((UserManagedRealm) r))
+                .orElseThrow(() -> new RealmNotManagedException(realm));
     }
 }

@@ -34,6 +34,7 @@ public class CustomerLoginUserRealm implements UserRealm {
 
     private final Environment environment;
     private final AccessTokens accessTokens;
+    private String realmName;
 
     @Autowired
     public CustomerLoginUserRealm(Environment environment, AccessTokens accessTokens) {
@@ -79,4 +80,13 @@ public class CustomerLoginUserRealm implements UserRealm {
     }
 
 
+    @Override
+    public void initialize(String realmName) {
+        this.realmName = realmName;
+    }
+
+    @Override
+    public String getName() {
+        return realmName;
+    }
 }

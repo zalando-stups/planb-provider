@@ -19,8 +19,6 @@ public interface ClientManagedRealm extends ClientRealm {
         createOrReplace(clientId, update);
     }
 
-    String getName();
-
     void delete(String clientId) throws NotFoundException;
 
     void createOrReplace(String id, Client client);
