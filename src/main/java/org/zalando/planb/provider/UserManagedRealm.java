@@ -1,14 +1,41 @@
 package org.zalando.planb.provider;
 
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.zalando.planb.provider.api.Password;
 import org.zalando.planb.provider.api.User;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import static java.lang.String.format;
+import static java.util.Collections.singletonMap;
+import static java.util.stream.Collectors.toSet;
 
 public interface UserManagedRealm extends UserRealm {
+
+    default Map<String, Object> authenticate(String username, String password, String[] scopes)
+            throws RealmAuthenticationException, RealmAuthorizationException {
+        final User user = get(username).orElseThrow(() -> new RealmAuthenticationException(
+                format("User %s does not exist in realm %s", username, getName())));
+
+        if (!user.getPasswordHashes().stream().anyMatch(passwordHash -> BCrypt.checkpw(password, passwordHash))) {
+            throw new RealmAuthenticationException(format("Invalid password for user %s in realm %s", username, getName()));
+        }
+
+        final Set userScopes = ((Map) user.getScopes()).keySet();
+        final Set<String> missingScopes = Stream.of(scopes)
+                .filter(scope -> !userScopes.contains(scope))
+                .collect(toSet());
+
+        if (!missingScopes.isEmpty()) {
+            throw new RealmAuthorizationException(
+                    format("User %s in realm %s is not configured for scopes %s", username, getName(), missingScopes));
+        }
+
+        return singletonMap("sub", username);
+    }
 
     default void update(String username, User data) throws NotFoundException {
         final User existing = get(username).orElseThrow(() -> new NotFoundException(format("Could not find user %s in realm %s", username, getName())));

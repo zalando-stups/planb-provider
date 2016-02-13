@@ -5,13 +5,13 @@ import org.springframework.stereotype.Component;
 import org.zalando.planb.provider.api.Password;
 import org.zalando.planb.provider.api.User;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 
 import static com.google.common.collect.Maps.newConcurrentMap;
 import static java.lang.String.format;
+import static java.util.Collections.singletonMap;
 
 @Component
 @Scope("prototype")
@@ -28,9 +28,7 @@ public class InMemoryUserRealm implements UserManagedRealm {
             throw new RealmAuthenticationException("user " + username + " presented wrong secret");
         }
 
-        return new HashMap<String, Object>() {{
-            put("sub", username);
-        }};
+        return singletonMap("sub", username);
     }
 
 
