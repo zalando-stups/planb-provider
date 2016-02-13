@@ -3,6 +3,7 @@ package org.zalando.planb.provider;
 import org.zalando.planb.provider.api.Password;
 import org.zalando.planb.provider.api.User;
 
+import java.util.Map;
 import java.util.Optional;
 
 import static java.lang.String.format;
@@ -13,8 +14,12 @@ public interface UserManagedRealm extends UserRealm {
         final User existing = get(username).orElseThrow(() -> new NotFoundException(format("Could not find user %s in realm %s", username, getName())));
 
         final User update = new User();
-        update.setPasswordHashes(Optional.ofNullable(data.getPasswordHashes()).filter(list -> !list.isEmpty()).orElseGet(existing::getPasswordHashes));
-        update.setScopes(Optional.ofNullable(data.getScopes()).orElseGet(existing::getScopes));
+        update.setPasswordHashes(Optional.ofNullable(data.getPasswordHashes())
+                .filter(list -> !list.isEmpty()).orElseGet(existing::getPasswordHashes));
+
+        update.setScopes(Optional.ofNullable(data.getScopes())
+                .filter(scopes -> scopes instanceof Map && !((Map) scopes).isEmpty())
+                .orElseGet(existing::getScopes));
 
         createOrReplace(username, update);
     }
