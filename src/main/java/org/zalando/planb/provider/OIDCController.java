@@ -19,6 +19,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 @RestController
 public class OIDCController {
+    private static final Base64.Decoder BASE_64_DECODER = Base64.getDecoder();
+
     @Autowired
     private RealmConfig realms;
 
@@ -58,10 +60,7 @@ public class OIDCController {
         String[] scopes = scope.split(" ");
 
         // do the authentication
-        System.out.println("DEBUG Authorization: " + authorization); // TODO remove
-
-        final Base64.Decoder base64Decoder = Base64.getDecoder();
-        final String[] clientCredentials = authorization.map(base64Decoder::decode)
+        final String[] clientCredentials = authorization.map(BASE_64_DECODER::decode)
                 .map(bytes -> new String(bytes, UTF_8))
                 .map(string -> string.split(":"))
                 .filter(array -> array.length == 2)
