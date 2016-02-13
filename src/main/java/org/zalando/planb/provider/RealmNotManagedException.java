@@ -2,7 +2,14 @@ package org.zalando.planb.provider;
 
 public class RealmNotManagedException extends RuntimeException {
 
-    public RealmNotManagedException(String realm) {
-        super(realm + " is not managed");
+    private final String realmName;
+
+    public RealmNotManagedException(String realmName) {
+        super(realmName + " is not a managed realm");
+        this.realmName = realmName;
+    }
+
+    public String getRealmName() {
+        return realmName;
     }
 }

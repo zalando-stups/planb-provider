@@ -32,6 +32,7 @@ public class ClientController implements ClientsApi {
             @PathVariable("id") String id,
             @RequestBody Client client) {
         log.info("Create or replace client /{}/{}: {}", realm, id, client);
+        getClientManagedRealm(realm).createOrReplace(id, client);
         return new ResponseEntity<>(OK);
     }
 
@@ -40,9 +41,16 @@ public class ClientController implements ClientsApi {
             @PathVariable("realm") String realm,
             @PathVariable("id") String id) throws RealmNotManagedException {
         log.info("Delete client /{}/{}", realm, id);
-        final ClientManagedRealm clientManagedRealm = getClientManagedRealm(realm);
-        log.info("Found managed realm: {}", clientManagedRealm);
-        clientManagedRealm.delete(id);
+        getClientManagedRealm(realm).delete(id);
+        return new ResponseEntity<>(OK);
+    }
+
+    @Override
+    public ResponseEntity<Void> clientsRealmIdPatch(
+            @PathVariable("realm") String realm,
+            @PathVariable("id") String id,
+            @RequestBody Client client) {
+        log.info("Update client /{}/{}: {}", realm, id, client);
         return new ResponseEntity<>(OK);
     }
 
@@ -53,15 +61,6 @@ public class ClientController implements ClientsApi {
                 .filter(r -> r instanceof ClientManagedRealm)
                 .map(r -> ((ClientManagedRealm) r))
                 .orElseThrow(() -> new RealmNotManagedException(realm));
-    }
-
-    @Override
-    public ResponseEntity<Void> clientsRealmIdPatch(
-            @PathVariable("realm") String realm,
-            @PathVariable("id") String id,
-            @RequestBody Client client) {
-        log.info("Update client /{}/{}: {}", realm, id, client);
-        return new ResponseEntity<>(OK);
     }
 
     private static String ensureLeadingSlash(String realmName) {

@@ -31,11 +31,6 @@ public class InMemoryClientRealm implements ClientManagedRealm {
     }
 
     @Override
-    public void create() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public void update() {
         throw new UnsupportedOperationException();
     }
@@ -45,6 +40,11 @@ public class InMemoryClientRealm implements ClientManagedRealm {
         if (clients.remove(clientId) == null) {
             throw new NotFoundException(format("Could not find client %s in realm %s", clientId, realmName));
         }
+    }
+
+    @Override
+    public void createOrReplace(String id, Client client) {
+        clients.put(id, client);
     }
 
 
