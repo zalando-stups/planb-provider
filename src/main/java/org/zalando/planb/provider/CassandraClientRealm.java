@@ -1,6 +1,7 @@
 package org.zalando.planb.provider;
 
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
@@ -13,6 +14,7 @@ import org.zalando.planb.provider.api.Client;
 import java.util.Optional;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
+import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.String.format;
 import static org.hibernate.validator.internal.util.CollectionHelper.newHashSet;
 
@@ -88,18 +90,13 @@ public class CassandraClientRealm implements ClientManagedRealm {
     }
 
     @Override
-    public void update() {
-
+    public String getName() {
+        return realmName;
     }
 
     @Override
     public void delete(String clientId) {
-        final Optional<Row> client = Optional.ofNullable(
-                session.execute(findOne.bind().setString(CLIENT_ID, clientId)).one());
-
-        if (!client.isPresent()) {
-            throw new NotFoundException(format("Could not find client %s in realm %s", clientId, realmName));
-        }
+        get(clientId).orElseThrow(() -> new NotFoundException(format("Could not find client %s in realm %s", clientId, realmName)));
 
         session.execute(deleteOne.bind().setString(CLIENT_ID, clientId));
     }
@@ -111,5 +108,21 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .setString(CLIENT_SECRET_HASH, client.getSecretHash())
                 .setSet(SCOPES, newHashSet(client.getScopes()))
                 .setBool(IS_CONFIDENTIAL, client.getIsConfidential()));
+    }
+
+    @Override
+    public Optional<Client> get(String clientId) {
+        return Optional.ofNullable(findOne.bind().setString(CLIENT_ID, clientId))
+                .map(session::execute)
+                .map(ResultSet::one)
+                .map(CassandraClientRealm::toClient);
+    }
+
+    private static Client toClient(Row row) {
+        final Client client = new Client();
+        client.setSecretHash(row.getString(CLIENT_SECRET_HASH));
+        client.setScopes(newArrayList(row.getSet(SCOPES, String.class)));
+        client.setIsConfidential(row.getBool(IS_CONFIDENTIAL));
+        return client;
     }
 }

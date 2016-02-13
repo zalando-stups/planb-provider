@@ -2,7 +2,6 @@ package org.zalando.planb.provider;
 
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.google.common.collect.Lists;
 import org.assertj.core.api.Condition;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,13 +10,14 @@ import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.zalando.planb.provider.api.Client;
 
-import javax.annotation.PostConstruct;
 import java.net.URI;
+import java.util.List;
 import java.util.Objects;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
@@ -28,6 +28,7 @@ import static org.assertj.core.api.StrictAssertions.allOf;
 import static org.assertj.core.api.StrictAssertions.failBecauseExceptionWasNotThrown;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.RequestEntity.patch;
 import static org.springframework.http.RequestEntity.put;
 
 
@@ -39,25 +40,16 @@ public class ClientControllerIT extends AbstractSpringTest {
     @Value("${local.server.port}")
     private int port;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    // use Apache HttpClient, because it supports the PATCH method
+    private final RestTemplate restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
 
     @Autowired
     private Session session;
 
-    @PostConstruct
-    public void setUp() throws Exception {
-        session.execute(insertInto("client")
-                .value("client_id", "0815")
-                .value("realm", "/services")
-                .value("client_secret_hash", "qwertz")
-                .value("scopes", newHashSet("foo", "bar"))
-                .value("is_confidential", true));
-    }
-
     @Test
     public void invoke() {
         final Client body = new Client();
-        body.setScopes(Lists.newArrayList("one", "two"));
+        body.setScopes(asList("one", "two"));
         body.setSecretHash("secret_hash");
 
         final RequestEntity<?> request = put(URI.create("http://localhost:" + port + "/clients/test/13"))
@@ -80,21 +72,18 @@ public class ClientControllerIT extends AbstractSpringTest {
 
     @Test
     public void testDeleteServicesClient() throws Exception {
-        assertThat(session.execute(
-                select().all()
-                        .from("client")
-                        .where(eq("client_id", "0815"))
-                        .and(eq("realm", "/services"))).one())
-                .isNotNull();
+        // given an existing client
+        session.execute(insertInto("client")
+                .value("client_id", "0815")
+                .value("realm", "/services")
+                .value("client_secret_hash", "qwertz")
+                .value("scopes", newHashSet("foo", "bar"))
+                .value("is_confidential", true));
+        assertThat(fetchClient("0815", "/services")).isNotNull();
 
         restTemplate.delete(URI.create("http://localhost:" + port + "/clients/services/0815"));
 
-        assertThat(session.execute(
-                select().all()
-                        .from("client")
-                        .where(eq("client_id", "0815"))
-                        .and(eq("realm", "/services"))).one())
-                .isNull();
+        assertThat(fetchClient("0815", "/services")).isNull();
     }
 
     @Test
@@ -139,13 +128,70 @@ public class ClientControllerIT extends AbstractSpringTest {
         assertThat(fetchClient("4711", "/customers")).isNotNull().has(valuesEqualTo(body2));
     }
 
+    @Test
+    public void testUpdateServicesClientNotFound() throws Exception {
+        try {
+            final URI uri = URI.create("http://localhost:" + port + "/clients/services/not-found");
+            restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(new Client()), Void.class);
+            failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
+        } catch (final HttpClientErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
+        }
+    }
+
+    @Test
+    public void testUpdateClient() throws Exception {
+        // given an existing client
+        session.execute(insertInto("client")
+                .value("client_id", "1234")
+                .value("realm", "/services")
+                .value("client_secret_hash", "qwertz")
+                .value("scopes", newHashSet("foo", "bar"))
+                .value("is_confidential", true));
+
+        final Client service1234 = new Client();
+        service1234.setSecretHash("qwertz");
+        service1234.setScopes(asList("foo", "bar"));
+        service1234.setIsConfidential(true);
+
+        final URI uri = URI.create("http://localhost:" + port + "/clients/services/1234");
+
+        // when the secretHash is updated
+        final String newSecretHash = "llsdflhsdhjdjoj345";
+        final Client body1 = new Client();
+        body1.setSecretHash(newSecretHash);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(body1), Void.class);
+
+        // then changes only this change is reflected in data storage
+        service1234.setSecretHash(newSecretHash);
+        assertThat(fetchClient("1234", "/services")).has(valuesEqualTo(service1234));
+
+        // when the scopes are updated
+        final List<String> newScopes = asList("mickey", "mouse", "donald", "duck");
+        final Client body2 = new Client();
+        body2.setScopes(newScopes);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(body2), Void.class);
+
+        // then this change is also reflected in data storage
+        service1234.setScopes(newScopes);
+        assertThat(fetchClient("1234", "/services")).has(valuesEqualTo(service1234));
+
+        // and when finally the confidential flag is updated
+        final Client body3 = new Client();
+        body3.setIsConfidential(false);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(body3), Void.class);
+
+        // then this change is also reflected in data storage
+        service1234.setIsConfidential(false);
+        assertThat(fetchClient("1234", "/services")).has(valuesEqualTo(service1234));
+    }
+
     private Condition<? super Row> valuesEqualTo(Client expected) {
         return allOf(
                 new Condition<>(r -> Objects.equals(r.getString("client_secret_hash"), expected.getSecretHash()), "client_secret_hash = %s", expected.getSecretHash()),
                 new Condition<>(r -> Objects.equals(r.getBool("is_confidential"), expected.getIsConfidential()), "is_confidential = %s", expected.getIsConfidential()),
                 new Condition<>(r -> Objects.equals(r.getSet("scopes", String.class), newHashSet(expected.getScopes())), "scopes = %s", expected.getScopes()));
     }
-
 
     private Row fetchClient(String clientId, String realm) {
         return session

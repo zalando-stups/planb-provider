@@ -51,6 +51,7 @@ public class ClientController implements ClientsApi {
             @PathVariable("id") String id,
             @RequestBody Client client) {
         log.info("Update client /{}/{}: {}", realm, id, client);
+        getClientManagedRealm(realm).update(id, client);
         return new ResponseEntity<>(OK);
     }
 

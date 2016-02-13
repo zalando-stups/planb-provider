@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.zalando.planb.provider.api.Client;
 
+import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
 
 import static com.google.common.collect.Maps.newConcurrentMap;
@@ -31,8 +32,8 @@ public class InMemoryClientRealm implements ClientManagedRealm {
     }
 
     @Override
-    public void update() {
-        throw new UnsupportedOperationException();
+    public String getName() {
+        return realmName;
     }
 
     @Override
@@ -45,6 +46,11 @@ public class InMemoryClientRealm implements ClientManagedRealm {
     @Override
     public void createOrReplace(String id, Client client) {
         clients.put(id, client);
+    }
+
+    @Override
+    public Optional<Client> get(String clientId) {
+        return Optional.ofNullable(clients.get(clientId));
     }
 
 
