@@ -1,6 +1,9 @@
 package org.zalando.planb.provider;
 
+import com.datastax.driver.core.ConsistencyLevel;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import static com.datastax.driver.core.ConsistencyLevel.ONE;
 
 @ConfigurationProperties(prefix = "cassandra")
 public class CassandraProperties {
@@ -8,6 +11,8 @@ public class CassandraProperties {
     private String contactPoints;
     private String clusterName;
     private int port;
+    private ConsistencyLevel writeConsistencyLevel = ONE; // TODO what is a sane default?
+    private ConsistencyLevel readConsistencyLevel = ONE; // TODO what is a sane default?
 
     public String getKeyspace() {
         return keyspace;
@@ -39,5 +44,21 @@ public class CassandraProperties {
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+    public ConsistencyLevel getWriteConsistencyLevel() {
+        return writeConsistencyLevel;
+    }
+
+    public void setWriteConsistencyLevel(ConsistencyLevel writeConsistencyLevel) {
+        this.writeConsistencyLevel = writeConsistencyLevel;
+    }
+
+    public ConsistencyLevel getReadConsistencyLevel() {
+        return readConsistencyLevel;
+    }
+
+    public void setReadConsistencyLevel(ConsistencyLevel readConsistencyLevel) {
+        this.readConsistencyLevel = readConsistencyLevel;
     }
 }

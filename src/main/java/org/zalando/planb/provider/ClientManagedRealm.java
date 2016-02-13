@@ -4,6 +4,7 @@ public interface ClientManagedRealm extends ClientRealm {
 
     void create();
     void update();
-    void delete();
+
+    void delete(String clientId) throws NotFoundException;
 
 }

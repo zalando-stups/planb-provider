@@ -102,6 +102,14 @@
             <version>3.1.0</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Generates META-INF/spring-configuration-metadata.json for all @ConfigurationProperties.
+             This provides us auto completion for yaml files -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
     <build>
