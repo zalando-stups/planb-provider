@@ -77,6 +77,12 @@
             <groupId>org.zalando.stups</groupId>
             <artifactId>stups-jaxws-oauth2</artifactId>
             <version>1.0.10</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>mockito-all</artifactId>
+                    <groupId>org.mockito</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.datastax.cassandra</groupId>
