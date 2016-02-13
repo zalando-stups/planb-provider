@@ -63,6 +63,7 @@ public class UserController implements UsersApi {
             @PathVariable("id") String id,
             @RequestBody Password password) {
         log.info("Add user password /{}/{}: {}", realm, id, password);
+        getUserManagedRealm(realm).addPassword(id, password);
         return new ResponseEntity<>(CREATED);
     }
 

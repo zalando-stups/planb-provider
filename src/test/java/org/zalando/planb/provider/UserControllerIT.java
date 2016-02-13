@@ -14,6 +14,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.zalando.planb.provider.api.Password;
 import org.zalando.planb.provider.api.User;
 
 import java.net.URI;
@@ -24,13 +25,14 @@ import java.util.Objects;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.StrictAssertions.allOf;
 import static org.assertj.core.api.StrictAssertions.failBecauseExceptionWasNotThrown;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.http.RequestEntity.patch;
+import static org.springframework.http.RequestEntity.*;
 import static org.springframework.http.RequestEntity.put;
 
 @SpringApplicationConfiguration(classes = {Main.class})
@@ -164,6 +166,24 @@ public class UserControllerIT extends AbstractSpringTest {
         // then this change is also reflected in data storage
         service1234.setScopes(newScopes);
         assertThat(fetchUser("1234", "/services")).has(valuesEqualTo(service1234));
+    }
+
+    @Test
+    public void testAddPassword() throws Exception {
+        // given an existing user
+        session.execute(insertInto("user")
+                .value("username", "9876")
+                .value("realm", "/services")
+                .value("password_hashes", singleton("foo"))
+                .value("scopes", singletonMap("write", "true")));
+
+        final URI uri = URI.create("http://localhost:" + port + "/users/services/9876/password");
+        final Password body = new Password();
+        body.setPasswordHash("bar");
+        assertThat(restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).body(body), Void.class)
+                .getStatusCode())
+                .isEqualTo(CREATED);
+        assertThat(fetchUser("9876", "/services").getSet("password_hashes", String.class)).containsOnly("foo", "bar");
     }
 
     private Condition<? super Row> valuesEqualTo(User expected) {
