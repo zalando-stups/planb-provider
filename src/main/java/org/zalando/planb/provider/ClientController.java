@@ -60,7 +60,7 @@ public class ClientController implements ClientsApi {
                 .map(RealmConfig::ensureLeadingSlash)
                 .map(realms::getClientRealm)
                 .filter(r -> r instanceof ClientManagedRealm)
-                .map(r -> ((ClientManagedRealm) r))
+                .map(r -> (ClientManagedRealm) r)
                 .orElseThrow(() -> new RealmNotManagedException(realm));
     }
 }

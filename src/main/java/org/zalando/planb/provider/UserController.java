@@ -53,6 +53,7 @@ public class UserController implements UsersApi {
             @PathVariable("id") String id,
             @RequestBody User user) {
         log.info("Update user /{}/{}: {}", realm, id, user);
+        getUserManagedRealm(realm).update(id, user);
         return new ResponseEntity<>(OK);
     }
 
@@ -70,7 +71,7 @@ public class UserController implements UsersApi {
                 .map(RealmConfig::ensureLeadingSlash)
                 .map(realms::getUserRealm)
                 .filter(r -> r instanceof UserManagedRealm)
-                .map(r -> ((UserManagedRealm) r))
+                .map(r -> (UserManagedRealm) r)
                 .orElseThrow(() -> new RealmNotManagedException(realm));
     }
 }

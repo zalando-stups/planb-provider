@@ -17,15 +17,20 @@ import org.springframework.web.client.RestTemplate;
 import org.zalando.planb.provider.api.User;
 
 import java.net.URI;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonMap;
-import static org.assertj.core.api.StrictAssertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.StrictAssertions.allOf;
+import static org.assertj.core.api.StrictAssertions.failBecauseExceptionWasNotThrown;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.RequestEntity.patch;
 import static org.springframework.http.RequestEntity.put;
 
 @SpringApplicationConfiguration(classes = {Main.class})
@@ -109,6 +114,56 @@ public class UserControllerIT extends AbstractSpringTest {
         } catch (final HttpClientErrorException e) {
             Assertions.assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
         }
+    }
+
+    @Test
+    public void testUpdateUserNotFound() throws Exception {
+        try {
+            final URI uri = URI.create("http://localhost:" + port + "/users/services/not-found");
+            restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(new User()), Void.class);
+            failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
+        } catch (final HttpClientErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
+        }
+    }
+
+    @Test
+    public void testUpdateUser() throws Exception {
+        // given an existing user
+        session.execute(insertInto("user")
+                .value("username", "1234")
+                .value("realm", "/services")
+                .value("password_hashes", newHashSet("foo", "bar"))
+                .value("scopes", singletonMap("write", "true")));
+
+        final User service1234 = new User();
+        service1234.setPasswordHashes(asList("foo", "bar"));
+        service1234.setScopes(asList("foo", "bar"));
+        service1234.setScopes(singletonMap("write", "true"));
+
+        final URI uri = URI.create("http://localhost:" + port + "/users/services/1234");
+
+        // when the password_hashes is updated
+        final List<String> newPasswordHashes = asList("bar", "hello", "world");
+        final User body1 = new User();
+        body1.setPasswordHashes(newPasswordHashes);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(body1), Void.class);
+
+        // then changes only this change is reflected in data storage
+        service1234.setPasswordHashes(newPasswordHashes);
+        assertThat(fetchUser("1234", "/services")).has(valuesEqualTo(service1234));
+
+        // when the scopes are updated
+        final Map<String, String> newScopes = ImmutableMap.of(
+                "uid", "mickey-mouse",
+                "write_all", "true");
+        final User body2 = new User();
+        body2.setScopes(newScopes);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(body2), Void.class);
+
+        // then this change is also reflected in data storage
+        service1234.setScopes(newScopes);
+        assertThat(fetchUser("1234", "/services")).has(valuesEqualTo(service1234));
     }
 
     private Condition<? super Row> valuesEqualTo(User expected) {
