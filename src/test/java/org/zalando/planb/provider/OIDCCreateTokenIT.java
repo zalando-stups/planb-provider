@@ -26,8 +26,10 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
 import java.net.URI;
+import java.util.Base64;
 
 import static com.google.common.collect.Sets.newHashSet;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringApplicationConfiguration(classes = {Main.class})
@@ -64,6 +66,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .header("Authorization", Base64.getEncoder().encodeToString(("foobar" + ':' + "test").getBytes(UTF_8)))
                 .body(requestParameters);
 
         ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
@@ -71,7 +74,6 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getScope()).isEqualTo("uid name");
         assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
-        assertThat(response.getBody().getAccessToken()).isNotEmpty();
         assertThat(response.getBody().getRealm()).isEqualTo("/test");
 
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
@@ -89,6 +91,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .header("Authorization", Base64.getEncoder().encodeToString(("foobar" + ':' + "test").getBytes(UTF_8)))
                 .body(requestParameters);
 
         ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);

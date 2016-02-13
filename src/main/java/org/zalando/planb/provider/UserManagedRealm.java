@@ -4,12 +4,14 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.zalando.planb.provider.api.Password;
 import org.zalando.planb.provider.api.User;
 
+import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toSet;
 
@@ -20,7 +22,11 @@ public interface UserManagedRealm extends UserRealm {
         final User user = get(username).orElseThrow(() -> new RealmAuthenticationException(
                 format("User %s does not exist in realm %s", username, getName())));
 
-        if (!user.getPasswordHashes().stream().anyMatch(passwordHash -> BCrypt.checkpw(password, passwordHash))) {
+        final Base64.Decoder base64Decoder = Base64.getDecoder();
+        if (!user.getPasswordHashes().stream()
+                .map(base64Decoder::decode)
+                .map(bytes -> new String(bytes, UTF_8))
+                .anyMatch(passwordHash -> BCrypt.checkpw(password, passwordHash))) {
             throw new RealmAuthenticationException(format("Invalid password for user %s in realm %s", username, getName()));
         }
 

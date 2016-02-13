@@ -3,11 +3,13 @@ package org.zalando.planb.provider;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.zalando.planb.provider.api.Client;
 
+import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toSet;
 
 public interface ClientManagedRealm extends ClientRealm {
@@ -17,7 +19,10 @@ public interface ClientManagedRealm extends ClientRealm {
             throws RealmAuthenticationException, RealmAuthorizationException {
         final Client client = get(clientId)
                 .filter(Client::getIsConfidential) // TODO hardcoded assumption, that ony Resource Owner Password Credentials is supported
-                .filter(c -> BCrypt.checkpw(clientSecret, c.getSecretHash()))
+                .filter(c -> {
+                    final String secretHash = new String(Base64.getDecoder().decode(c.getSecretHash()), UTF_8);
+                    return BCrypt.checkpw(clientSecret, secretHash);
+                })
                 .orElseThrow(RealmAuthenticationException::new);
 
         final Set<String> missingScopes = Stream.of(scopes)

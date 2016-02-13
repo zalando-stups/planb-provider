@@ -11,7 +11,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Map;
+import java.util.Optional;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 @RestController
 public class OIDCController {
@@ -31,7 +35,7 @@ public class OIDCController {
                                         @RequestParam(value = "username", required = true) String username,
                                         @RequestParam(value = "password", required = true) String password,
                                         @RequestParam(value = "scope", required = false) String scope,
-                                        @RequestHeader(name = "Authorization", required = false) String authorization)
+                                        @RequestHeader(name = "Authorization") Optional<String> authorization)
             throws RealmAuthenticationException, JoseException, RealmAuthorizationException {
 
         // check for supported grant types
@@ -55,7 +59,15 @@ public class OIDCController {
 
         // do the authentication
         System.out.println("DEBUG Authorization: " + authorization); // TODO remove
-        clientRealm.authenticate("TODOclientId", "test", scopes); // TODO take clientId and clientSecret from basic auth
+
+        final Base64.Decoder base64Decoder = Base64.getDecoder();
+        final String[] clientCredentials = authorization.map(base64Decoder::decode)
+                .map(bytes -> new String(bytes, UTF_8))
+                .map(string -> string.split(":"))
+                .filter(array -> array.length == 2)
+                .orElseThrow(() -> new RealmAuthenticationException("Malformed or missing Authorization header"));
+
+        clientRealm.authenticate(clientCredentials[0], clientCredentials[1], scopes);
         Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes);
 
         // request authorized, create and return JWT
