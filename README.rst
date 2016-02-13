@@ -71,10 +71,11 @@ Get the `OpenID Connect configuration discovery document`_:
     $ curl --silent http://localhost:8080/.well-known/openid-configuration | jq .
 
 
-Retrieving all public keys for verification:
+Retrieving all public keys (`set of JWKs`_) for verification:
 
 .. code-block:: bash
 
     $ curl --silent http://localhost:8080/oauth2/v3/certs | jq .
 
 .. _OpenID Connect configuration discovery document: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
+.. _set of JWKs: https://tools.ietf.org/html/rfc7517#section-5
