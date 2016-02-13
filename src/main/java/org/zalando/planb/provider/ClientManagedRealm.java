@@ -18,12 +18,17 @@ public interface ClientManagedRealm extends ClientRealm {
     default void authenticate(String clientId, String clientSecret, String[] scopes)
             throws RealmAuthenticationException, RealmAuthorizationException {
         final Client client = get(clientId)
-                .filter(Client::getIsConfidential) // TODO hardcoded assumption, that ony Resource Owner Password Credentials is supported
-                .filter(c -> {
-                    final String secretHash = new String(Base64.getDecoder().decode(c.getSecretHash()), UTF_8);
-                    return BCrypt.checkpw(clientSecret, secretHash);
-                })
-                .orElseThrow(RealmAuthenticationException::new);
+                .orElseThrow(() -> new RealmAuthenticationException(format("Client %s does not exist in realm %s", clientId, getName())));
+
+        // TODO hardcoded assumption, that ony Resource Owner Password Credentials is supported
+        if (!client.getIsConfidential()) {
+            throw new RealmAuthenticationException(format("Client %s in realm %s is public. password grant not allowed", clientId, getName()));
+        }
+
+        final String decodedSecretHash = new String(Base64.getDecoder().decode(client.getSecretHash()), UTF_8);
+        if (!BCrypt.checkpw(clientSecret, decodedSecretHash)) {
+            throw new RealmAuthenticationException(format("Invalid secret supplied for client %s in realm %s", clientId, getName()));
+        }
 
         final Set<String> missingScopes = Stream.of(scopes)
                 .filter(scope -> !client.getScopes().contains(scope))
