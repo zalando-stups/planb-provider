@@ -33,6 +33,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+            <version>4.12</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
@@ -63,11 +68,6 @@
             <groupId>org.zalando.zmon</groupId>
             <artifactId>zmon-actuator</artifactId>
             <version>0.9.5</version>
-        </dependency>
-        <dependency>
-            <groupId>org.bitbucket.b_c</groupId>
-            <artifactId>jose4j</artifactId>
-            <version>0.4.4</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -110,6 +110,13 @@
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>3.1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- use another JWT library for verifying tokens in test than it produced to ensure compatibility -->
+            <groupId>org.bitbucket.b_c</groupId>
+            <artifactId>jose4j</artifactId>
+            <version>0.4.4</version>
             <scope>test</scope>
         </dependency>
 

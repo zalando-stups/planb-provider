@@ -1,24 +1,28 @@
 package org.zalando.planb.provider;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.jose4j.jwk.JsonWebKey;
-import org.jose4j.jws.AlgorithmIdentifiers;
-import org.jose4j.jws.JsonWebSignature;
-import org.jose4j.jwt.JwtClaims;
-import org.jose4j.jwt.NumericDate;
-import org.jose4j.lang.JoseException;
+import com.google.common.base.Joiner;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 @RestController
 public class OIDCController {
+    private static final long EXPIRATION_TIME = 8;
+    private static final TimeUnit EXPIRATION_TIME_UNIT = TimeUnit.HOURS;
+
+    private static final Joiner COMMA_SEPARATED = Joiner.on(",");
+
     private static final Base64.Decoder BASE_64_DECODER = Base64.getDecoder();
 
     @Autowired
@@ -38,7 +42,7 @@ public class OIDCController {
                                         @RequestParam(value = "password", required = true) String password,
                                         @RequestParam(value = "scope", required = false) String scope,
                                         @RequestHeader(name = "Authorization") Optional<String> authorization)
-            throws RealmAuthenticationException, JoseException, RealmAuthorizationException {
+            throws RealmAuthenticationException, RealmAuthorizationException, JOSEException {
 
         // check for supported grant types
         if (!"password".equals(grantType)) {
@@ -69,47 +73,43 @@ public class OIDCController {
         clientRealm.authenticate(clientCredentials[0], clientCredentials[1], scopes);
         Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes);
 
-        // request authorized, create and return JWT
-        JwtClaims claims = new JwtClaims();
-        claims.setIssuer("PlanB");
+        // request authorized, create JWT
+        JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
+                .issuer("PlanB")
+                .expirationTime(new Date(System.currentTimeMillis() + EXPIRATION_TIME_UNIT.toMillis(EXPIRATION_TIME)))
+                .issueTime(new Date())
+                .subject(username)
+                .claim("realm", realmName)
+                .claim("scope", scopes);
+        extraClaims.forEach(claimsBuilder::claim);
+        JWTClaimsSet claims = claimsBuilder.build();
 
-        long expiration = System.currentTimeMillis() + (8 * 60 * 60 * 1000);
-        claims.setExpirationTime(NumericDate.fromMilliseconds(expiration));
+        // sign JWT
+        SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.ES256), claims);
+        jwt.sign(keyHolder.getCurrentSigner());
 
-        claims.setGeneratedJwtId();
-        claims.setIssuedAtToNow();
-        claims.setSubject(username); // can be overridden by the user realm
-
-        claims.setStringListClaim("scope", scopes);
-        claims.setStringClaim("realm", realmName);
-        extraClaims.forEach(claims::setClaim);
-
-        JsonWebSignature jws = new JsonWebSignature();
-        jws.setPayload(claims.toJson());
-        jws.setKey(keyHolder.getJsonWebKey().getPrivateKey());
-        jws.setKeyIdHeaderValue(keyHolder.getJsonWebKey().getKeyId());
-        jws.setAlgorithmHeaderValue(AlgorithmIdentifiers.ECDSA_USING_P256_CURVE_AND_SHA256);
-
-        String jwt = jws.getCompactSerialization();
-
-        return new OIDCCreateTokenResponse(jwt, jwt, (expiration / 1000), scope, realmName);
+        // done
+        String rawJWT = jwt.serialize();
+        return new OIDCCreateTokenResponse(rawJWT, rawJWT, EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME), scope, realmName);
     }
 
     @RequestMapping("/.well-known/openid-configuration")
     OIDCDiscoveryInformationResponse getDiscoveryInformation(
             @RequestHeader(name = "Host") String hostname,
-    @RequestHeader(name = "X-Forwarded-Proto", required = false) String proto) {
+            @RequestHeader(name = "X-Forwarded-Proto", required = false) String proto) {
         if (proto == null) {
             proto = "http";
         }
+
         return new OIDCDiscoveryInformationResponse(proto, hostname);
     }
 
     @RequestMapping("/oauth2/v3/certs")
-    @JsonSerialize(using = OIDCSigningKeysSerializer.class)
-    OIDCSigningKeysResponse getSigningKeys() {
-        return new OIDCSigningKeysResponse(new ArrayList<JsonWebKey>() {{
-            add(keyHolder.getJsonWebKey());
-        }});
+    String getSigningKeys() {
+        List<String> jwks = keyHolder.getPublicJwks().stream()
+                .map(JWK::toJSONString)
+                .collect(Collectors.toList());
+
+        return "{\"keys\": [" + COMMA_SEPARATED.join(jwks) + "]}";
     }
 }
