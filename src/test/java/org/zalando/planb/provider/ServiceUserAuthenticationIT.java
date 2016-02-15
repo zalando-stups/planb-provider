@@ -50,7 +50,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
         client.setIsConfidential(true);
         client.setSecretHash(hashAndEncodePassword(clientSecret));
         client.setScopes(singletonList(scope));
-        http.exchange(put(URI.create("http://localhost:" + port + "/clients" + realm + "/" + clientId))
+        http.exchange(put(URI.create("http://localhost:" + port + "/raw-sync/clients" + realm + "/" + clientId))
                 .contentType(APPLICATION_JSON)
                 .body(client), Void.class);
 
@@ -58,7 +58,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
         final User user = new User();
         user.setPasswordHashes(singletonList(hashAndEncodePassword(userPassword)));
         user.setScopes(singletonMap(scope, "test-service"));
-        http.exchange(put(URI.create("http://localhost:" + port + "/users" + realm + "/" + username))
+        http.exchange(put(URI.create("http://localhost:" + port + "/raw-sync/users" + realm + "/" + username))
                 .contentType(APPLICATION_JSON)
                 .body(user), Void.class);
 

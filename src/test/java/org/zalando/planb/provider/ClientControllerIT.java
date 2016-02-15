@@ -46,13 +46,17 @@ public class ClientControllerIT extends AbstractSpringTest {
     @Autowired
     private Session session;
 
+    private String basePath() {
+        return "http://localhost:" + port + "/raw-sync";
+    }
+
     @Test
     public void invoke() {
         final Client body = new Client();
         body.setScopes(asList("one", "two"));
         body.setSecretHash("secret_hash");
 
-        final RequestEntity<?> request = put(URI.create("http://localhost:" + port + "/clients/test/13"))
+        final RequestEntity<?> request = put(URI.create(basePath() + "/clients/test/13"))
                 .contentType(APPLICATION_JSON)
                 .body(body);
 
@@ -63,7 +67,7 @@ public class ClientControllerIT extends AbstractSpringTest {
     @Test
     public void testDeleteInNotManagedRealm() throws Exception {
         try {
-            restTemplate.delete(URI.create("http://localhost:" + port + "/clients/animals/1"));
+            restTemplate.delete(URI.create(basePath() + "/clients/animals/1"));
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
@@ -81,7 +85,7 @@ public class ClientControllerIT extends AbstractSpringTest {
                 .value("is_confidential", true));
         assertThat(fetchClient("0815", "/services")).isNotNull();
 
-        restTemplate.delete(URI.create("http://localhost:" + port + "/clients/services/0815"));
+        restTemplate.delete(URI.create(basePath() + "/clients/services/0815"));
 
         assertThat(fetchClient("0815", "/services")).isNull();
     }
@@ -89,7 +93,7 @@ public class ClientControllerIT extends AbstractSpringTest {
     @Test
     public void testDeleteServicesClientNotFound() throws Exception {
         try {
-            restTemplate.delete(URI.create("http://localhost:" + port + "/clients/services/not-found"));
+            restTemplate.delete(URI.create(basePath() + "/clients/services/not-found"));
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
@@ -98,7 +102,7 @@ public class ClientControllerIT extends AbstractSpringTest {
 
     @Test
     public void testCreateAndReplaceClient() throws Exception {
-        final URI uri = URI.create("http://localhost:" + port + "/clients/customers/4711");
+        final URI uri = URI.create(basePath() + "/clients/customers/4711");
 
         // check that client doesn't exist before
         assertThat(fetchClient("4711", "/customers")).isNull();
@@ -131,7 +135,7 @@ public class ClientControllerIT extends AbstractSpringTest {
     @Test
     public void testUpdateServicesClientNotFound() throws Exception {
         try {
-            final URI uri = URI.create("http://localhost:" + port + "/clients/services/not-found");
+            final URI uri = URI.create(basePath() + "/clients/services/not-found");
             restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(new Client()), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
@@ -154,7 +158,7 @@ public class ClientControllerIT extends AbstractSpringTest {
         service1234.setScopes(asList("foo", "bar"));
         service1234.setIsConfidential(true);
 
-        final URI uri = URI.create("http://localhost:" + port + "/clients/services/1234");
+        final URI uri = URI.create(basePath() + "/clients/services/1234");
 
         // when the secretHash is updated
         final String newSecretHash = "llsdflhsdhjdjoj345";

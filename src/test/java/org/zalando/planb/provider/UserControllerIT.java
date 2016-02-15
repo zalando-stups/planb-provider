@@ -50,9 +50,13 @@ public class UserControllerIT extends AbstractSpringTest {
     private final RestTemplate restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
 
 
+    private String basePath() {
+        return "http://localhost:" + port + "/raw-sync";
+    }
+
     @Test
     public void testCreateAndReplaceUser() throws Exception {
-        final URI uri = URI.create("http://localhost:" + port + "/users/services/4711");
+        final URI uri = URI.create(basePath() + "/users/services/4711");
 
         // check that client doesn't exist before
         assertThat(fetchUser("4711", "/services")).isNull();
@@ -86,7 +90,7 @@ public class UserControllerIT extends AbstractSpringTest {
     @Test
     public void testDeleteInNotManagedRealm() throws Exception {
         try {
-            restTemplate.delete(URI.create("http://localhost:" + port + "/users/animals/1"));
+            restTemplate.delete(URI.create(basePath() + "/users/animals/1"));
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (HttpClientErrorException e) {
             Assertions.assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
@@ -103,7 +107,7 @@ public class UserControllerIT extends AbstractSpringTest {
                 .value("scopes", singletonMap("write", "true")));
         assertThat(fetchUser("0815", "/services")).isNotNull();
 
-        restTemplate.delete(URI.create("http://localhost:" + port + "/users/services/0815"));
+        restTemplate.delete(URI.create(basePath() + "/users/services/0815"));
 
         assertThat(fetchUser("0815", "/services")).isNull();
     }
@@ -111,7 +115,7 @@ public class UserControllerIT extends AbstractSpringTest {
     @Test
     public void testDeleteUsersNotFound() throws Exception {
         try {
-            restTemplate.delete(URI.create("http://localhost:" + port + "/users/services/not-found"));
+            restTemplate.delete(URI.create(basePath() + "/users/services/not-found"));
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
             Assertions.assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
@@ -121,7 +125,7 @@ public class UserControllerIT extends AbstractSpringTest {
     @Test
     public void testUpdateUserNotFound() throws Exception {
         try {
-            final URI uri = URI.create("http://localhost:" + port + "/users/services/not-found");
+            final URI uri = URI.create(basePath() + "/users/services/not-found");
             restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(new User()), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
@@ -143,7 +147,7 @@ public class UserControllerIT extends AbstractSpringTest {
         service1234.setScopes(asList("foo", "bar"));
         service1234.setScopes(singletonMap("write", "true"));
 
-        final URI uri = URI.create("http://localhost:" + port + "/users/services/1234");
+        final URI uri = URI.create(basePath() + "/users/services/1234");
 
         // when the password_hashes is updated
         final List<String> newPasswordHashes = asList("bar", "hello", "world");
@@ -177,7 +181,7 @@ public class UserControllerIT extends AbstractSpringTest {
                 .value("password_hashes", singleton("foo"))
                 .value("scopes", singletonMap("write", "true")));
 
-        final URI uri = URI.create("http://localhost:" + port + "/users/services/9876/password");
+        final URI uri = URI.create(basePath() + "/users/services/9876/password");
         final Password body = new Password();
         body.setPasswordHash("bar");
         assertThat(restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).body(body), Void.class)

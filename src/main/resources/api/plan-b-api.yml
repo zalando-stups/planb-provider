@@ -5,6 +5,8 @@ info:
   description: API for managing clients, users and their credentials
   version: "1.0"
 
+basePath: "/raw-sync"
+
 securityDefinitions:
   oauth2:
     type: oauth2
