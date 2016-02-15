@@ -1,6 +1,9 @@
 CREATE SCHEMA provider
     WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1};
 
+-- IMPORTANT: for production, please use:
+-- CREATE SCHEMA provider WITH replication = {'class': 'NetworkTopologyStrategy', 'eu-west': 3, 'eu-central': 3};
+
 CREATE TABLE provider.client (
     client_id TEXT,                  -- OAuth 2 client ID
     realm TEXT,                      -- Data pool this entity belongs to
