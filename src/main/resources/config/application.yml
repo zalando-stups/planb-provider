@@ -20,3 +20,9 @@ logging:
 
 cassandra:
   keyspace: provider
+
+# expose management endpoints on a different port
+management:
+  port: 7979
+  security:
+    enabled: false

@@ -26,9 +26,11 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.StrictAssertions.allOf;
 import static org.assertj.core.api.StrictAssertions.failBecauseExceptionWasNotThrown;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.http.RequestEntity.patch;
+import static org.springframework.http.RequestEntity.delete;
+import static org.springframework.http.RequestEntity.*;
 import static org.springframework.http.RequestEntity.put;
 
 
@@ -58,6 +60,7 @@ public class ClientControllerIT extends AbstractSpringTest {
 
         final RequestEntity<?> request = put(URI.create(basePath() + "/clients/test/13"))
                 .contentType(APPLICATION_JSON)
+                .header(AUTHORIZATION, VALID_ACCESS_TOKEN)
                 .body(body);
 
         final ResponseEntity<Void> response = restTemplate.exchange(request, Void.class);
@@ -67,7 +70,8 @@ public class ClientControllerIT extends AbstractSpringTest {
     @Test
     public void testDeleteInNotManagedRealm() throws Exception {
         try {
-            restTemplate.delete(URI.create(basePath() + "/clients/animals/1"));
+            restTemplate.exchange(delete(URI.create(basePath() + "/clients/animals/1"))
+                    .header(AUTHORIZATION, VALID_ACCESS_TOKEN).build(), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
@@ -85,7 +89,8 @@ public class ClientControllerIT extends AbstractSpringTest {
                 .value("is_confidential", true));
         assertThat(fetchClient("0815", "/services")).isNotNull();
 
-        restTemplate.delete(URI.create(basePath() + "/clients/services/0815"));
+        restTemplate.exchange(delete(URI.create(basePath() + "/clients/services/0815"))
+                .header(AUTHORIZATION, VALID_ACCESS_TOKEN).build(), Void.class);
 
         assertThat(fetchClient("0815", "/services")).isNull();
     }
@@ -93,7 +98,8 @@ public class ClientControllerIT extends AbstractSpringTest {
     @Test
     public void testDeleteServicesClientNotFound() throws Exception {
         try {
-            restTemplate.delete(URI.create(basePath() + "/clients/services/not-found"));
+            restTemplate.exchange(delete(URI.create(basePath() + "/clients/services/not-found"))
+                    .header(AUTHORIZATION, VALID_ACCESS_TOKEN).build(), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
@@ -113,7 +119,7 @@ public class ClientControllerIT extends AbstractSpringTest {
         body1.setIsConfidential(true);
 
         // create the client
-        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).body(body1), Void.class)
+        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body1), Void.class)
                 .getStatusCode())
                 .isEqualTo(OK);
 
@@ -125,7 +131,7 @@ public class ClientControllerIT extends AbstractSpringTest {
         body2.setIsConfidential(false);
 
         // update the client. modify all (non-key) columns
-        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).body(body2), Void.class)
+        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body2), Void.class)
                 .getStatusCode())
                 .isEqualTo(OK);
 
@@ -136,7 +142,7 @@ public class ClientControllerIT extends AbstractSpringTest {
     public void testUpdateServicesClientNotFound() throws Exception {
         try {
             final URI uri = URI.create(basePath() + "/clients/services/not-found");
-            restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(new Client()), Void.class);
+            restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(new Client()), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
@@ -164,7 +170,7 @@ public class ClientControllerIT extends AbstractSpringTest {
         final String newSecretHash = "llsdflhsdhjdjoj345";
         final Client body1 = new Client();
         body1.setSecretHash(newSecretHash);
-        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(body1), Void.class);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body1), Void.class);
 
         // then changes only this change is reflected in data storage
         service1234.setSecretHash(newSecretHash);
@@ -174,7 +180,7 @@ public class ClientControllerIT extends AbstractSpringTest {
         final List<String> newScopes = asList("mickey", "mouse", "donald", "duck");
         final Client body2 = new Client();
         body2.setScopes(newScopes);
-        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(body2), Void.class);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body2), Void.class);
 
         // then this change is also reflected in data storage
         service1234.setScopes(newScopes);
@@ -183,7 +189,7 @@ public class ClientControllerIT extends AbstractSpringTest {
         // and when finally the confidential flag is updated
         final Client body3 = new Client();
         body3.setIsConfidential(false);
-        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(body3), Void.class);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body3), Void.class);
 
         // then this change is also reflected in data storage
         service1234.setIsConfidential(false);

@@ -17,3 +17,9 @@ logging:
   level:
     # print the AutoConfiguration report
     org.springframework.boot.autoconfigure.logging.AutoConfigurationReportLoggingInitializer: DEBUG
+
+security:
+  oauth2:
+    resource:
+      # see AbstractSpringTest: WireMockRule wireMock = new WireMockRule(10080)
+      token-info-uri: http://localhost:10080/tokeninfo
