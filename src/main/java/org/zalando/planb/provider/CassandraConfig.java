@@ -17,7 +17,7 @@ public class CassandraConfig {
     @Bean
     Session initializeCassandra() {
         Cluster cluster = Cluster.builder()
-                .addContactPoints(cassandra.getContactPoints())
+                .addContactPoints(cassandra.getContactPoints().split(","))
                 .withClusterName(cassandra.getClusterName())
                 .withPort(cassandra.getPort())
                 .build();

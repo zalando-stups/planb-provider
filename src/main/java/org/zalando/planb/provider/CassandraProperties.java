@@ -1,6 +1,7 @@
 package org.zalando.planb.provider;
 
 import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.ProtocolOptions;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import static com.datastax.driver.core.ConsistencyLevel.ONE;
@@ -8,9 +9,12 @@ import static com.datastax.driver.core.ConsistencyLevel.ONE;
 @ConfigurationProperties(prefix = "cassandra")
 public class CassandraProperties {
     private String keyspace;
-    private String contactPoints;
+    /**
+     * Comma-separated string list of hosts
+     */
+    private String contactPoints = "localhost";
     private String clusterName;
-    private int port;
+    private int port = ProtocolOptions.DEFAULT_PORT;
     private ConsistencyLevel writeConsistencyLevel = ONE; // TODO what is a sane default?
     private ConsistencyLevel readConsistencyLevel = ONE; // TODO what is a sane default?
 
