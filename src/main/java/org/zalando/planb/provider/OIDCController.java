@@ -57,7 +57,7 @@ public class OIDCController {
                                         @RequestParam(value = "grant_type", required = true) String grantType,
                                         @RequestParam(value = "username", required = true) String username,
                                         @RequestParam(value = "password", required = true) String password,
-                                        @RequestParam(value = "scope", required = false) String scope,
+                                        @RequestParam(value = "scope") Optional<String> scope,
                                         @RequestHeader(name = "Authorization") Optional<String> authorization)
             throws RealmAuthenticationException, RealmAuthorizationException, JOSEException {
 
@@ -78,7 +78,7 @@ public class OIDCController {
         }
 
         // parse requested scopes
-        String[] scopes = scope.split(" ");
+        String[] scopes = scope.map(string -> string.split(" ")).orElse(new String[]{});
 
         // do the authentication
         final String[] clientCredentials = getClientCredentials(authorization);
@@ -103,7 +103,7 @@ public class OIDCController {
 
         // done
         String rawJWT = jwt.serialize();
-        return new OIDCCreateTokenResponse(rawJWT, rawJWT, EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME), scope, realmName);
+        return new OIDCCreateTokenResponse(rawJWT, rawJWT, EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME), scope.orElse(""), realmName);
     }
 
     @RequestMapping("/.well-known/openid-configuration")
