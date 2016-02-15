@@ -72,7 +72,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
 
         final ResponseEntity<OIDCCreateTokenResponse> response = http.exchange(
                 post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
-                        .header("Authorization", Base64.getEncoder().encodeToString((clientId + ':' + clientSecret).getBytes(UTF_8)))
+                        .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((clientId + ':' + clientSecret).getBytes(UTF_8)))
                         .body(requestParameters),
                 OIDCCreateTokenResponse.class);
 

@@ -66,7 +66,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
-                .header("Authorization", Base64.getEncoder().encodeToString(("foobar" + ':' + "test").getBytes(UTF_8)))
+                .header("Authorization", "Basic " + Base64.getEncoder().encodeToString(("foobar" + ':' + "test").getBytes(UTF_8)))
                 .body(requestParameters);
 
         ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
@@ -91,7 +91,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
-                .header("Authorization", Base64.getEncoder().encodeToString(("foobar" + ':' + "test").getBytes(UTF_8)))
+                .header("Authorization",  "Basic " + Base64.getEncoder().encodeToString(("foobar" + ':' + "test").getBytes(UTF_8)))
                 .body(requestParameters);
 
         ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);

@@ -25,11 +25,28 @@ public class OIDCController {
 
     private static final Base64.Decoder BASE_64_DECODER = Base64.getDecoder();
 
+    private static final String BASIC_AUTH_PREFIX = "Basic ";
+
     @Autowired
     private RealmConfig realms;
 
     @Autowired
     private OIDCKeyHolder keyHolder;
+
+    /**
+     * Get client_id and client_secret from HTTP Basic Auth
+     */
+    public static String[] getClientCredentials(Optional<String> authorization) throws RealmAuthenticationException {
+        final String[] clientCredentials = authorization
+                .filter(string -> string.toUpperCase().startsWith(BASIC_AUTH_PREFIX.toUpperCase()))
+                .map(string -> string.substring(BASIC_AUTH_PREFIX.length()))
+                .map(BASE_64_DECODER::decode)
+                .map(bytes -> new String(bytes, UTF_8))
+                .map(string -> string.split(":"))
+                .filter(array -> array.length == 2)
+                .orElseThrow(() -> new RealmAuthenticationException("Malformed or missing Authorization header"));
+        return clientCredentials;
+    }
 
     /**
      * https://bitbucket.org/b_c/jose4j/wiki/JWT%20Examples
@@ -64,11 +81,7 @@ public class OIDCController {
         String[] scopes = scope.split(" ");
 
         // do the authentication
-        final String[] clientCredentials = authorization.map(BASE_64_DECODER::decode)
-                .map(bytes -> new String(bytes, UTF_8))
-                .map(string -> string.split(":"))
-                .filter(array -> array.length == 2)
-                .orElseThrow(() -> new RealmAuthenticationException("Malformed or missing Authorization header"));
+        final String[] clientCredentials = getClientCredentials(authorization);
 
         clientRealm.authenticate(clientCredentials[0], clientCredentials[1], scopes);
         Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes);
