@@ -54,6 +54,16 @@ Testing internal endpoints
     $ ./mvnw verify -Pinternal
 
 
+Setting up some example keys
+============================
+
+.. code-block:: bash
+
+    $ openssl genrsa -out test-rs256-2048.pem 2048
+    $ openssl ecparam -genkey -out test-es256-prime256v1.pem -name prime256v1
+    $ openssl ecparam -genkey -out test-es384-secp384r1.pem -name secp384r1
+    $ openssl ecparam -genkey -out test-es512-secp521r1.pem -name secp521r1
+
 Testing the endpoints
 =====================
 

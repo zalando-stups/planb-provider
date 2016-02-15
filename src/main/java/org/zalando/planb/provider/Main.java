@@ -1,10 +1,13 @@
 package org.zalando.planb.provider;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.cassandra.CassandraAutoConfiguration;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+
+import java.security.Security;
 
 @Configuration
 @EnableAutoConfiguration(exclude = {
@@ -12,6 +15,12 @@ import org.springframework.context.annotation.Configuration;
 })
 @ComponentScan // for IntelliJ
 public class Main {
+
+    static {
+        // initialize BouncyCastle
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
     public static void main(String[] args) throws Exception {
         SpringApplication.run(Main.class, args);
     }

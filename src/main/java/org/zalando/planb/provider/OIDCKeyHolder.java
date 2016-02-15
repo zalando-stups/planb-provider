@@ -1,24 +1,31 @@
 package org.zalando.planb.provider;
 
+import com.google.common.io.Resources;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.KeyUse;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.io.StringReader;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
-import java.security.spec.ECGenParameterSpec;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -54,17 +61,44 @@ public class OIDCKeyHolder {
         }
     }
 
-    private void loadKeys() throws JOSEException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+    private void loadKeys() throws JOSEException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, IOException {
         List<JWK> privateJwks = new ArrayList<>();
 
         // fetch list from cassandra
         // TODO implement cassandra fetching instead of inmemory generation
-        KeyPairGenerator keyGenerator = KeyPairGenerator.getInstance("EC");
-        ECGenParameterSpec kpgparams = new ECGenParameterSpec("secp256r1");
-        keyGenerator.initialize(kpgparams);
-        KeyPair keyPair = keyGenerator.generateKeyPair();
 
-        JWK testJwk = new ECKey.Builder(ECKey.Curve.P_256, (ECPublicKey) keyPair.getPublic())
+        /**
+         * SELECT privateKey, kty, kid, alg FROM keys WHERE validFrom <= NOW ORDER BY validFrom ASC LIMIT 1
+         * KMS decrypt key
+         */
+        // http://connect2id.com/products/nimbus-jose-jwt/openssl-key-generation
+
+        URL pemUrl = Resources.getResource("test-es384-secp384r1.pem");
+        String pemRaw = Resources.toString(pemUrl, Charset.forName("UTF-8"));
+
+        PEMParser pemParser = new PEMParser(new StringReader(pemRaw));
+
+        Object pemObject = pemParser.readObject();
+        if (pemObject instanceof ASN1ObjectIdentifier) {
+            /**
+             * Skip EC parameter header, could be retrieved with following code:
+             * ASN1ObjectIdentifier ecOID = (ASN1ObjectIdentifier) pemObject;
+             * X9ECParameters ecSpec = ECNamedCurveTable.getByOID(ecOID);
+             */
+            // next entry is supposed to be the real key pair
+            pemObject = pemParser.readObject();
+        }
+
+        PEMKeyPair pemKeyPair = (PEMKeyPair) pemObject;
+
+        KeyPair keyPair = new JcaPEMKeyConverter()
+                .getKeyPair(pemKeyPair);
+
+        pemParser.close();
+
+        //ECPrivateKeyParameters privateKey = (ECPrivateKeyParameters) PrivateKeyFactory.createKey(Resources.toByteArray(url));
+
+        JWK testJwk = new ECKey.Builder(ECKey.Curve.P_384, (ECPublicKey) keyPair.getPublic())
                 .privateKey((ECPrivateKey) keyPair.getPrivate())
                 .keyID("testkey")
                 .keyUse(KeyUse.SIGNATURE)
@@ -97,3 +131,6 @@ public class OIDCKeyHolder {
         return publicJwks.get();
     }
 }
+
+
+

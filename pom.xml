@@ -119,6 +119,16 @@
             <version>0.4.4</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <version>1.54</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk15on</artifactId>
+            <version>1.54</version>
+        </dependency>
 
         <!-- Generates META-INF/spring-configuration-metadata.json for all @ConfigurationProperties.
              This provides us auto completion for yaml files -->
