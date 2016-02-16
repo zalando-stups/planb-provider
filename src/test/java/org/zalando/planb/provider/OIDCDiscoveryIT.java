@@ -7,6 +7,7 @@ import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestTemplate;
 
@@ -21,7 +22,7 @@ public class OIDCDiscoveryIT extends AbstractSpringTest {
     @Value("${local.server.port}")
     private int port;
 
-    RestTemplate rest = new RestTemplate();
+    RestTemplate rest = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
 
     @Test
     public void discoveryAvailability() {

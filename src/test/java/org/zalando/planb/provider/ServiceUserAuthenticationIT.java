@@ -9,6 +9,7 @@ import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
@@ -39,7 +40,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
     @Value("${local.server.port}")
     private int port;
 
-    private final RestOperations http = new RestTemplate();
+    private final RestOperations http = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
 
     @Test
     public void testServiceUserFlow() throws Exception {

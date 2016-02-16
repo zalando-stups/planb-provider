@@ -14,6 +14,7 @@ import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -35,7 +36,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     @Value("${local.server.port}")
     private int port;
 
-    private final RestTemplate rest = new RestTemplate();
+    private final RestTemplate rest = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
 
     private ResponseEntity<OIDCCreateTokenResponse> createToken(String realm, String clientId, String clientSecret,
                                                                 String username, String password, String scope) {
