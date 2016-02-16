@@ -1,7 +1,5 @@
 package org.zalando.planb.provider;
 
-import java.net.URI;
-
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,10 +10,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URI;
+
 @SpringApplicationConfiguration(classes = { Main.class })
 @WebIntegrationTest(randomPort = true)
 @ActiveProfiles("it")
-public class ControllerAdviceIT extends AbstractSpringTest {
+public class ExceptionHandlingIT extends AbstractSpringTest {
 
     @Value("${local.server.port}")
     private int port;
@@ -28,7 +28,8 @@ public class ControllerAdviceIT extends AbstractSpringTest {
         restTemplate.setErrorHandler(new PassThroughResponseErrorHandler());
         ResponseEntity<String> response = restTemplate.exchange(request, String.class);
         Assertions.assertThat(response.getStatusCode().is5xxServerError()).isTrue();
-        Assertions.assertThat(response.getBody()).contains("NO DETAILS PROVIDED");
+        Assertions.assertThat(response.getBody()).contains("TEST_ERROR");
+        Assertions.assertThat(response.getBody()).doesNotContain("Caused by");
     }
 
 }

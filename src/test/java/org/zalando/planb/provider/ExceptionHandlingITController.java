@@ -4,7 +4,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-public class ErrorController {
+public class ExceptionHandlingITController {
 
     @RequestMapping(value = "/throwError")
     public void error() {

@@ -1,8 +1,8 @@
 package org.zalando.planb.provider;
 
-public class NotFoundException extends RuntimeException {
+public class NotFoundException extends RestException {
 
     public NotFoundException(String message) {
-        super(message);
+        super(404, message);
     }
 }

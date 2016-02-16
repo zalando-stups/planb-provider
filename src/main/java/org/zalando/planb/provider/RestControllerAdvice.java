@@ -1,43 +1,40 @@
 package org.zalando.planb.provider;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
 
-@ControllerAdvice(annotations = { RestController.class })
+import java.util.Map;
+
+import static java.util.Collections.singletonMap;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.ResponseEntity.status;
+
+@ControllerAdvice
 public class RestControllerAdvice {
+    private static final Logger LOG = LoggerFactory.getLogger(RestControllerAdvice.class);
 
-    private final Logger log = LoggerFactory.getLogger(RestControllerAdvice.class);
-
-    private final Environment environment;
-
-    @Autowired
-    public RestControllerAdvice(Environment environment) {
-        this.environment = environment;
+    @ExceptionHandler(ServletRequestBindingException.class)
+    public ResponseEntity<Map<String, String>> argumentProcessingExceptions(ServletRequestBindingException e) {
+        return status(BAD_REQUEST)
+                .body(singletonMap("error_message", e.getMessage()));
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    @ResponseBody
-    public Object handleExceptions(Exception e) {
-        log.error(e.getMessage(), e);
-        if (environment.containsProperty("debug") || environment.containsProperty("trace")) {
-            StringWriter sw = new StringWriter();
-            e.printStackTrace(new PrintWriter(sw));
-            return new ErrorResponse(e.getMessage(), sw.toString());
-
-        }
-        return new ErrorResponse(e.getMessage());
+    @ExceptionHandler(RestException.class)
+    public ResponseEntity<Map<String,String>> handleRestExceptions(RestException e) {
+        LOG.warn("{} (status {} / {})", e.getMessage(), e.getStatusCode(), e.getClass().getSimpleName());
+        return status(e.getStatusCode())
+                .body(singletonMap("error_message", e.getMessage()));
     }
 
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String,String>> handleAllOtherExceptions(Exception e) {
+        LOG.error(e.getMessage() + " (status 500 / " + e.getClass().getSimpleName() + ")", e);
+        return status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(singletonMap("error_message", e.getMessage()));
+    }
 }

@@ -84,6 +84,10 @@ Set up some signing keys and pipe resulting keys.cql into cluster as well:
         ('testkey', {'/test', '/services'}, '$(cat src/test/resources/test-es384-secp384r1.pem)', 'ES384', $(date +"%s"));" > key.cql
     $ docker run -i --link dev-cassandra:cassandra --rm cassandra:2.1 cqlsh cassandra < key.cql
 
+Run the application against you local Cassandra:
+
+    $ java -jar target/planb-provider-1.0-SNAPSHOT.jar --cassandra.contactPoints="127.0.0.1"
+
 Setting up some example keys
 ============================
 
