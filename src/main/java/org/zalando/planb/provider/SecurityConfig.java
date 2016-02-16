@@ -39,7 +39,7 @@ public class SecurityConfig extends ResourceServerConfigurerAdapter {
     public void configure(ResourceServerSecurityConfigurer resources) throws Exception {
         // add support for #oauth2.hasRealm() expressions
         resources
-                .resourceId("plan-b")
+                .resourceId("planb")
                 .expressionHandler(new ExtendedOAuth2WebSecurityExpressionHandler());
     }
 
