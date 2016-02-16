@@ -79,6 +79,26 @@ public class ClientControllerIT extends AbstractSpringTest {
     }
 
     @Test
+    public void testDeleteUnauthorized() throws Exception {
+        try {
+            restTemplate.exchange(delete(URI.create(basePath() + "/clients/animals/1")).header(AUTHORIZATION, INVALID_ACCESS_TOKEN).build(), Void.class);
+            failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
+        } catch (HttpClientErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(UNAUTHORIZED);
+        }
+    }
+
+    @Test
+    public void testDeleteForbidden() throws Exception {
+        try {
+            restTemplate.exchange(delete(URI.create(basePath() + "/clients/animals/1")).header(AUTHORIZATION, INSUFFICIENT_SCOPES_ACCESS_TOKEN).build(), Void.class);
+            failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
+        } catch (HttpClientErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(FORBIDDEN);
+        }
+    }
+
+    @Test
     public void testDeleteServicesClient() throws Exception {
         // given an existing client
         session.execute(insertInto("client")

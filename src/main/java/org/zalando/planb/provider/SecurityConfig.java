@@ -2,6 +2,8 @@ package org.zalando.planb.provider;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.ResourceServerProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -19,7 +21,11 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @Configuration
 @EnableResourceServer
 @Order(ACCESS_OVERRIDE_ORDER)
+@EnableConfigurationProperties(SecurityConfig.ApiSecurityProperties.class)
 public class SecurityConfig extends ResourceServerConfigurerAdapter {
+
+    @Autowired
+    private ApiSecurityProperties apiSecurity;
 
     @Autowired
     private ResourceServerProperties resourceServerProperties;
@@ -32,7 +38,9 @@ public class SecurityConfig extends ResourceServerConfigurerAdapter {
     @Override
     public void configure(ResourceServerSecurityConfigurer resources) throws Exception {
         // add support for #oauth2.hasRealm() expressions
-        resources.expressionHandler(new ExtendedOAuth2WebSecurityExpressionHandler());
+        resources
+                .resourceId("plan-b")
+                .expressionHandler(new ExtendedOAuth2WebSecurityExpressionHandler());
     }
 
     @Override
@@ -42,6 +50,21 @@ public class SecurityConfig extends ResourceServerConfigurerAdapter {
 
                 .and().authorizeRequests()
 
-                .antMatchers("/raw-sync/**").access("#oauth2.hasUidScopeAndAnyRealm('/services', '/employees')");
+                .antMatchers("/raw-sync/**").access(apiSecurity.getRawSyncExpr());
+    }
+
+
+    @ConfigurationProperties(prefix = "api.security")
+    static class ApiSecurityProperties {
+
+        private String rawSyncExpr = "#oauth2.hasScope('uid')";
+
+        public String getRawSyncExpr() {
+            return rawSyncExpr;
+        }
+
+        public void setRawSyncExpr(String rawSyncExpr) {
+            this.rawSyncExpr = rawSyncExpr;
+        }
     }
 }

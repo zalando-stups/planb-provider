@@ -33,7 +33,9 @@ import static org.assertj.core.api.StrictAssertions.failBecauseExceptionWasNotTh
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.RequestEntity.delete;
 import static org.springframework.http.RequestEntity.*;
+import static org.springframework.http.RequestEntity.put;
 
 @SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
@@ -94,6 +96,16 @@ public class UserControllerIT extends AbstractSpringTest {
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (HttpClientErrorException e) {
             Assertions.assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
+        }
+    }
+
+    @Test
+    public void testDeleteUnauthorized() throws Exception {
+        try {
+            restTemplate.exchange(delete(URI.create(basePath() + "/users/animals/1")).header(AUTHORIZATION, INVALID_ACCESS_TOKEN).build(), Void.class);
+            failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
+        } catch (HttpClientErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(UNAUTHORIZED);
         }
     }
 

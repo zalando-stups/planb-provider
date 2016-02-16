@@ -23,3 +23,7 @@ security:
     resource:
       # see AbstractSpringTest: WireMockRule wireMock = new WireMockRule(10080)
       token-info-uri: http://localhost:10080/tokeninfo
+
+api:
+  security:
+    raw-sync-expr: "#oauth2.hasScope('hello') && #oauth2.hasUidScopeAndAnyRealm('/services', '/employees')"
