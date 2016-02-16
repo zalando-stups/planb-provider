@@ -26,6 +26,7 @@ import java.util.Base64;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.StrictAssertions.fail;
+import static org.assertj.core.api.StrictAssertions.failBecauseExceptionWasNotThrown;
 
 @SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
@@ -148,6 +149,17 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
             fail("request should have failed");
         } catch (HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+            e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
+        }
+    }
+
+    @Test
+    public void testPublicClient() throws Exception {
+        try {
+            createToken("/services", "testpublicclient", "test", "testuser", "test", "uid");
+            failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
+        } catch (HttpClientErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
         }
     }

@@ -19,7 +19,7 @@ public interface ClientManagedRealm extends ClientRealm {
         final Client client = get(clientId)
                 .orElseThrow(() -> new RealmAuthenticationException(clientId, getName()));
 
-        // TODO hardcoded assumption, that ony Resource Owner Password Credentials is supported
+        // TODO hardcoded assumption, that only Resource Owner Password Credentials flow is supported
         if (!client.getIsConfidential()) {
             throw new RealmAuthenticationException(clientId, getName());
         }

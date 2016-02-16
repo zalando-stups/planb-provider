@@ -3,6 +3,10 @@ INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_co
     VALUES ('testclient', '/services', 'JDJiJDEyJHBiMDFDZ0NMRllqSlJ6TVNBTUovNE9rSkRpazlxaE9rZmtYQXpwb0JqOGZRVmQ5bGdPUXhX',
             {'uid', 'ascope', 'clientonly'}, true);
 
+INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential)
+    VALUES ('testpublicclient', '/services', 'JDJiJDEyJHBiMDFDZ0NMRllqSlJ6TVNBTUovNE9rSkRpazlxaE9rZmtYQXpwb0JqOGZRVmQ5bGdPUXhX',
+            {'uid', 'ascope', 'clientonly'}, false);
+
 INSERT INTO provider.user (username, realm, password_hashes, scopes)
     VALUES ('testuser', '/services', {'JDJiJDEyJHBiMDFDZ0NMRllqSlJ6TVNBTUovNE9rSkRpazlxaE9rZmtYQXpwb0JqOGZRVmQ5bGdPUXhX'},
             {'uid': 'uidval', 'ascope': 'ascopeval', 'useronly': 'useronlyval'});
