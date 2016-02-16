@@ -5,11 +5,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import static org.assertj.core.api.StrictAssertions.assertThat;
 
-/**
- * Created by hjacobs on 2/15/16.
- */
 public class RealmTest {
-
     @Test
     public void testCheckBCryptPassword() {
         final String password = "pass";

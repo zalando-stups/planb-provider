@@ -16,6 +16,7 @@ public class CustomerLoginResponse {
     protected String loginResult;
 
     @XmlAnyElement(lax = true)
+    @SuppressWarnings("unused")
     private List<Object> ignoredElements;
 
     public String getCustomerNumber() {
@@ -27,7 +28,7 @@ public class CustomerLoginResponse {
         return loginResult;
     }
 
-
+    @SuppressWarnings("unused")
     public List<Object> getIgnoredElements() {
         return ignoredElements;
     }

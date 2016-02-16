@@ -1,7 +1,16 @@
+-- default users
+INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential)
+    VALUES ('testclient', '/services', 'JDJiJDEyJHBiMDFDZ0NMRllqSlJ6TVNBTUovNE9rSkRpazlxaE9rZmtYQXpwb0JqOGZRVmQ5bGdPUXhX',
+            {'uid', 'ascope', 'clientonly'}, true);
+
+INSERT INTO provider.user (username, realm, password_hashes, scopes)
+    VALUES ('testuser', '/services', {'JDJiJDEyJHBiMDFDZ0NMRllqSlJ6TVNBTUovNE9rSkRpazlxaE9rZmtYQXpwb0JqOGZRVmQ5bGdPUXhX'},
+            {'uid': 'uidval', 'ascope': 'ascopeval', 'useronly': 'useronlyval'});
+
 -- default keys
 
 INSERT INTO provider.keypair (kid, realms, private_key_pem, algorithm, valid_from)
-    VALUES ('test-rs256', {'/test', '/services', '/customers'}, '-----BEGIN RSA PRIVATE KEY-----
+    VALUES ('test-rs256', {'/services', '/customers'}, '-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA3dEMoTXmK7/+WJJpnyjR6hzcG4fKhLfQ0i5VOyT7wny2yw0P
 oP+lxaYQ/M+khkECcPoCElCfu2n2iRzrLkM2VoCNybScqFoAiClgEXUqC8x8P7VR
 1rKkR3/7egDbS5H+lVtBtiYczXHqapQvA8S7tp/SozDfod6mqHXhMilXvPGU+81K
@@ -30,7 +39,7 @@ ZJleYgmy4L+qZ9SWZixHBxVZba+XLXQ4sdba7FwQ0CumHTbzuElKfg==
 -----END RSA PRIVATE KEY-----
 ', 'RS256', 1000);
 INSERT INTO provider.keypair (kid, realms, private_key_pem, algorithm, valid_from)
-    VALUES ('test-rs384', {'/test', '/services', '/customers'}, '-----BEGIN RSA PRIVATE KEY-----
+    VALUES ('test-rs384', {'/services', '/customers'}, '-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA3dEMoTXmK7/+WJJpnyjR6hzcG4fKhLfQ0i5VOyT7wny2yw0P
 oP+lxaYQ/M+khkECcPoCElCfu2n2iRzrLkM2VoCNybScqFoAiClgEXUqC8x8P7VR
 1rKkR3/7egDbS5H+lVtBtiYczXHqapQvA8S7tp/SozDfod6mqHXhMilXvPGU+81K
@@ -59,7 +68,7 @@ ZJleYgmy4L+qZ9SWZixHBxVZba+XLXQ4sdba7FwQ0CumHTbzuElKfg==
 -----END RSA PRIVATE KEY-----
 ', 'RS384', 2000);
 INSERT INTO provider.keypair (kid, realms, private_key_pem, algorithm, valid_from)
-    VALUES ('test-rs512', {'/test', '/services', '/customers'}, '-----BEGIN RSA PRIVATE KEY-----
+    VALUES ('test-rs512', {'/services', '/customers'}, '-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA3dEMoTXmK7/+WJJpnyjR6hzcG4fKhLfQ0i5VOyT7wny2yw0P
 oP+lxaYQ/M+khkECcPoCElCfu2n2iRzrLkM2VoCNybScqFoAiClgEXUqC8x8P7VR
 1rKkR3/7egDbS5H+lVtBtiYczXHqapQvA8S7tp/SozDfod6mqHXhMilXvPGU+81K
@@ -89,7 +98,7 @@ ZJleYgmy4L+qZ9SWZixHBxVZba+XLXQ4sdba7FwQ0CumHTbzuElKfg==
 ', 'RS512', 3000);
 
 INSERT INTO provider.keypair (kid, realms, private_key_pem, algorithm, valid_from)
-    VALUES ('test-ps256', {'/test', '/services', '/customers'}, '-----BEGIN RSA PRIVATE KEY-----
+    VALUES ('test-ps256', {'/services', '/customers'}, '-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA3dEMoTXmK7/+WJJpnyjR6hzcG4fKhLfQ0i5VOyT7wny2yw0P
 oP+lxaYQ/M+khkECcPoCElCfu2n2iRzrLkM2VoCNybScqFoAiClgEXUqC8x8P7VR
 1rKkR3/7egDbS5H+lVtBtiYczXHqapQvA8S7tp/SozDfod6mqHXhMilXvPGU+81K
@@ -118,7 +127,7 @@ ZJleYgmy4L+qZ9SWZixHBxVZba+XLXQ4sdba7FwQ0CumHTbzuElKfg==
 -----END RSA PRIVATE KEY-----
 ', 'PS256', 4000);
 INSERT INTO provider.keypair (kid, realms, private_key_pem, algorithm, valid_from)
-    VALUES ('test-ps384', {'/test', '/services', '/customers'}, '-----BEGIN RSA PRIVATE KEY-----
+    VALUES ('test-ps384', {'/services', '/customers'}, '-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA3dEMoTXmK7/+WJJpnyjR6hzcG4fKhLfQ0i5VOyT7wny2yw0P
 oP+lxaYQ/M+khkECcPoCElCfu2n2iRzrLkM2VoCNybScqFoAiClgEXUqC8x8P7VR
 1rKkR3/7egDbS5H+lVtBtiYczXHqapQvA8S7tp/SozDfod6mqHXhMilXvPGU+81K
@@ -147,7 +156,7 @@ ZJleYgmy4L+qZ9SWZixHBxVZba+XLXQ4sdba7FwQ0CumHTbzuElKfg==
 -----END RSA PRIVATE KEY-----
 ', 'PS384', 5000);
 INSERT INTO provider.keypair (kid, realms, private_key_pem, algorithm, valid_from)
-    VALUES ('test-ps512', {'/test', '/services', '/customers'}, '-----BEGIN RSA PRIVATE KEY-----
+    VALUES ('test-ps512', {'/services', '/customers'}, '-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA3dEMoTXmK7/+WJJpnyjR6hzcG4fKhLfQ0i5VOyT7wny2yw0P
 oP+lxaYQ/M+khkECcPoCElCfu2n2iRzrLkM2VoCNybScqFoAiClgEXUqC8x8P7VR
 1rKkR3/7egDbS5H+lVtBtiYczXHqapQvA8S7tp/SozDfod6mqHXhMilXvPGU+81K
@@ -177,7 +186,7 @@ ZJleYgmy4L+qZ9SWZixHBxVZba+XLXQ4sdba7FwQ0CumHTbzuElKfg==
 ', 'PS512', 6000);
 
 INSERT INTO provider.keypair (kid, realms, private_key_pem, algorithm, valid_from)
-    VALUES ('test-es256', {'/test', '/customers'}, '-----BEGIN EC PARAMETERS-----
+    VALUES ('test-es256', {'/customers'}, '-----BEGIN EC PARAMETERS-----
 BggqhkjOPQMBBw==
 -----END EC PARAMETERS-----
 -----BEGIN EC PRIVATE KEY-----
@@ -187,7 +196,7 @@ FzSC+JUx7p/2D5NRdkIciJbGuqToQiRg1w==
 -----END EC PRIVATE KEY-----
 ', 'ES256', 7000);
 INSERT INTO provider.keypair (kid, realms, private_key_pem, algorithm, valid_from)
-    VALUES ('test-es384', {'/test'}, '-----BEGIN EC PARAMETERS-----
+    VALUES ('test-es384', {'/services'}, '-----BEGIN EC PARAMETERS-----
 BgUrgQQAIg==
 -----END EC PARAMETERS-----
 -----BEGIN EC PRIVATE KEY-----
@@ -198,7 +207,7 @@ ydwZ0xPNbC2rbjHKQ6zI+uGCz/Ph2Zs=
 -----END EC PRIVATE KEY-----
 ', 'ES384', 8000);  -- should be the active
 INSERT INTO provider.keypair (kid, realms, private_key_pem, algorithm, valid_from)
-    VALUES ('test-es512', {'/test', '/services', '/customers'}, '-----BEGIN EC PARAMETERS-----
+    VALUES ('test-es512', {'/services', '/customers'}, '-----BEGIN EC PARAMETERS-----
 BgUrgQQAIw==
 -----END EC PARAMETERS-----
 -----BEGIN EC PRIVATE KEY-----

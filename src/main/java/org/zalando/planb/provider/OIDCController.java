@@ -44,14 +44,14 @@ public class OIDCController {
                 .map(bytes -> new String(bytes, UTF_8))
                 .map(string -> string.split(":"))
                 .filter(array -> array.length == 2)
-                .orElseThrow(() -> new RealmAuthenticationException("Malformed or missing Authorization header"));
+                .orElseThrow(() -> new InvalidInputException("Malformed or missing Authorization header."));
         return clientCredentials;
     }
 
     /**
      * https://bitbucket.org/b_c/jose4j/wiki/JWT%20Examples
      */
-    @RequestMapping(value = "/oauth2/access_token", method = RequestMethod.POST)
+    @RequestMapping(value = {"/oauth2/access_token", "/z/oauth2/access_token"}, method = RequestMethod.POST)
     @ResponseBody
     OIDCCreateTokenResponse createToken(@RequestParam(value = "realm", required = true) String realmName,
                                         @RequestParam(value = "grant_type", required = true) String grantType,
@@ -63,18 +63,18 @@ public class OIDCController {
 
         // check for supported grant types
         if (!"password".equals(grantType)) {
-            throw new UnsupportedOperationException("unsupported grant type");
+            throw new InvalidInputException("Unsupported grant type: " + grantType);
         }
 
         // retrieve realms for the given realm
         ClientRealm clientRealm = realms.getClientRealm(realmName);
         if (clientRealm == null) {
-            throw new UnsupportedOperationException("realm unknown (client)");
+            throw new RealmNotFoundException(realmName);
         }
 
         UserRealm userRealm = realms.getUserRealm(realmName);
         if (userRealm == null) {
-            throw new UnsupportedOperationException("realm unknown (user)");
+            throw new RealmNotFoundException(realmName);
         }
 
         // parse requested scopes
