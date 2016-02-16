@@ -146,7 +146,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     @Test
     public void unknownUser() {
         try {
-            createToken("/services", "wrong", "test", "testuser", "test", "uid ascope");
+            createToken("/services", "testclient", "test", "wrong", "test", "uid ascope");
             fail("request should have failed");
         } catch (HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
