@@ -13,6 +13,12 @@ tokens:
           scopes:
               - customer_service.all
 
+security:
+  oauth2:
+    resource:
+      # Get environment variable
+      token-info-uri: ${TOKENINFO_URL}
+
 logging:
   level:
     root: INFO
