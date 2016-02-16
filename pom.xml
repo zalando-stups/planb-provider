@@ -171,6 +171,7 @@
                                 <portName>cassandra.storagePort</portName>
                                 <portName>cassandra.stopPort</portName>
                                 <portName>cassandra.nativeTransportPort</portName>
+                                <portName>wiremock.port</portName>
                             </portNames>
                         </configuration>
                     </execution>
@@ -189,6 +190,7 @@
                             <systemPropertyVariables>
                                 <cassandra.listenAddress>127.0.0.1</cassandra.listenAddress>
                                 <cassandra.port>${cassandra.nativeTransportPort}</cassandra.port>
+                                <wiremock.tokeninfo.port>${wiremock.port}</wiremock.tokeninfo.port>
                             </systemPropertyVariables>
                         </configuration>
                     </execution>

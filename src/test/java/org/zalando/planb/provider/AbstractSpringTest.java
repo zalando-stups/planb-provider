@@ -49,7 +49,7 @@ public abstract class AbstractSpringTest {
             "    \"error_description\": \"Access Token not valid\"\n" +
             "}";
     @Rule
-    public WireMockRule wireMock = new WireMockRule(10080);
+    public WireMockRule wireMock = new WireMockRule(Integer.valueOf(System.getProperty("wiremock.port", "10080")));
 
     @Rule
     public SpringMethodRule springMethodRule = new SpringMethodRule();

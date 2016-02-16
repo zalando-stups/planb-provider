@@ -16,8 +16,7 @@ cassandra:
 security:
   oauth2:
     resource:
-      # see AbstractSpringTest: WireMockRule wireMock = new WireMockRule(10080)
-      token-info-uri: http://localhost:10080/tokeninfo
+      token-info-uri: http://localhost:${wiremock.port:10080}/tokeninfo
 
 api:
   security:
