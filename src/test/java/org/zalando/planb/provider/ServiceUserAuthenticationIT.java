@@ -26,6 +26,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.RequestEntity.post;
 import static org.springframework.http.RequestEntity.put;
@@ -54,16 +55,18 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
         client.setIsConfidential(true);
         client.setSecretHash(hashAndEncodePassword(clientSecret));
         client.setScopes(singletonList(scope));
-        http.exchange(put(URI.create("http://localhost:" + port + "/clients" + realm + "/" + clientId))
+        http.exchange(put(URI.create("http://localhost:" + port + "/raw-sync/clients" + realm + "/" + clientId))
                 .contentType(APPLICATION_JSON)
+                .header(AUTHORIZATION, VALID_ACCESS_TOKEN)
                 .body(client), Void.class);
 
         // Create the user
         final User user = new User();
         user.setPasswordHashes(singletonList(hashAndEncodePassword(userPassword)));
         user.setScopes(singletonMap(scope, "test-service"));
-        http.exchange(put(URI.create("http://localhost:" + port + "/users" + realm + "/" + username))
+        http.exchange(put(URI.create("http://localhost:" + port + "/raw-sync/users" + realm + "/" + username))
                 .contentType(APPLICATION_JSON)
+                .header(AUTHORIZATION, VALID_ACCESS_TOKEN)
                 .body(user), Void.class);
 
         // Get an access token for the newly created user

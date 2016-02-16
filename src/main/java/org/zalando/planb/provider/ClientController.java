@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.zalando.planb.provider.api.Client;
 import org.zalando.planb.provider.api.ClientsApi;
@@ -15,6 +16,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 import static org.springframework.http.HttpStatus.OK;
 
 @RestController
+@RequestMapping(path = "/raw-sync")
 public class ClientController implements ClientsApi {
 
     private final Logger log = getLogger(getClass());

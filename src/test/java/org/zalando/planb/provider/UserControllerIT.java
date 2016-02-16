@@ -30,8 +30,10 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.StrictAssertions.allOf;
 import static org.assertj.core.api.StrictAssertions.failBecauseExceptionWasNotThrown;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.RequestEntity.delete;
 import static org.springframework.http.RequestEntity.*;
 import static org.springframework.http.RequestEntity.put;
 
@@ -49,10 +51,13 @@ public class UserControllerIT extends AbstractSpringTest {
     // use Apache HttpClient, because it supports the PATCH method
     private final RestTemplate restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
 
+    private String basePath() {
+        return "http://localhost:" + port + "/raw-sync";
+    }
 
     @Test
     public void testCreateAndReplaceUser() throws Exception {
-        final URI uri = URI.create("http://localhost:" + port + "/users/services/4711");
+        final URI uri = URI.create(basePath() + "/users/services/4711");
 
         // check that client doesn't exist before
         assertThat(fetchUser("4711", "/services")).isNull();
@@ -64,7 +69,7 @@ public class UserControllerIT extends AbstractSpringTest {
                 "write_all", "true"));
 
         // create the user
-        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).body(body1), Void.class)
+        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body1), Void.class)
                 .getStatusCode())
                 .isEqualTo(OK);
 
@@ -75,7 +80,7 @@ public class UserControllerIT extends AbstractSpringTest {
         body2.setScopes(singletonMap("write_all", "false"));
 
         // update the user. modify all (non-key) columns
-        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).body(body2), Void.class)
+        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body2), Void.class)
                 .getStatusCode())
                 .isEqualTo(OK);
 
@@ -86,10 +91,21 @@ public class UserControllerIT extends AbstractSpringTest {
     @Test
     public void testDeleteInNotManagedRealm() throws Exception {
         try {
-            restTemplate.delete(URI.create("http://localhost:" + port + "/users/animals/1"));
+            restTemplate.exchange(delete(URI.create(basePath() + "/users/animals/1"))
+                    .header(AUTHORIZATION, VALID_ACCESS_TOKEN).build(), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (HttpClientErrorException e) {
             Assertions.assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
+        }
+    }
+
+    @Test
+    public void testDeleteUnauthorized() throws Exception {
+        try {
+            restTemplate.exchange(delete(URI.create(basePath() + "/users/animals/1")).header(AUTHORIZATION, INVALID_ACCESS_TOKEN).build(), Void.class);
+            failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
+        } catch (HttpClientErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(UNAUTHORIZED);
         }
     }
 
@@ -103,7 +119,8 @@ public class UserControllerIT extends AbstractSpringTest {
                 .value("scopes", singletonMap("write", "true")));
         assertThat(fetchUser("0815", "/services")).isNotNull();
 
-        restTemplate.delete(URI.create("http://localhost:" + port + "/users/services/0815"));
+        restTemplate.exchange(delete(URI.create(basePath() + "/users/services/0815"))
+                .header(AUTHORIZATION, VALID_ACCESS_TOKEN).build(), Void.class);
 
         assertThat(fetchUser("0815", "/services")).isNull();
     }
@@ -111,7 +128,8 @@ public class UserControllerIT extends AbstractSpringTest {
     @Test
     public void testDeleteUsersNotFound() throws Exception {
         try {
-            restTemplate.delete(URI.create("http://localhost:" + port + "/users/services/not-found"));
+            restTemplate.exchange(delete(URI.create(basePath() + "/users/services/not-found"))
+                    .header(AUTHORIZATION, VALID_ACCESS_TOKEN).build(), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
             Assertions.assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
@@ -121,8 +139,8 @@ public class UserControllerIT extends AbstractSpringTest {
     @Test
     public void testUpdateUserNotFound() throws Exception {
         try {
-            final URI uri = URI.create("http://localhost:" + port + "/users/services/not-found");
-            restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(new User()), Void.class);
+            final URI uri = URI.create(basePath() + "/users/services/not-found");
+            restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(new User()), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
@@ -143,13 +161,13 @@ public class UserControllerIT extends AbstractSpringTest {
         service1234.setScopes(asList("foo", "bar"));
         service1234.setScopes(singletonMap("write", "true"));
 
-        final URI uri = URI.create("http://localhost:" + port + "/users/services/1234");
+        final URI uri = URI.create(basePath() + "/users/services/1234");
 
         // when the password_hashes is updated
         final List<String> newPasswordHashes = asList("bar", "hello", "world");
         final User body1 = new User();
         body1.setPasswordHashes(newPasswordHashes);
-        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(body1), Void.class);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body1), Void.class);
 
         // then changes only this change is reflected in data storage
         service1234.setPasswordHashes(newPasswordHashes);
@@ -161,7 +179,7 @@ public class UserControllerIT extends AbstractSpringTest {
                 "write_all", "true");
         final User body2 = new User();
         body2.setScopes(newScopes);
-        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).body(body2), Void.class);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body2), Void.class);
 
         // then this change is also reflected in data storage
         service1234.setScopes(newScopes);
@@ -177,10 +195,10 @@ public class UserControllerIT extends AbstractSpringTest {
                 .value("password_hashes", singleton("foo"))
                 .value("scopes", singletonMap("write", "true")));
 
-        final URI uri = URI.create("http://localhost:" + port + "/users/services/9876/password");
+        final URI uri = URI.create(basePath() + "/users/services/9876/password");
         final Password body = new Password();
         body.setPasswordHash("bar");
-        assertThat(restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).body(body), Void.class)
+        assertThat(restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body), Void.class)
                 .getStatusCode())
                 .isEqualTo(CREATED);
         assertThat(fetchUser("9876", "/services").getSet("password_hashes", String.class)).containsOnly("foo", "bar");
