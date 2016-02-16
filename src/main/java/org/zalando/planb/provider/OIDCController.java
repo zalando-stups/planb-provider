@@ -98,7 +98,7 @@ public class OIDCController {
         JWTClaimsSet claims = claimsBuilder.build();
 
         // sign JWT
-        SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.ES384), claims);
+        SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.ES384, null, null, null, null, null, null, null, null, null, "testkey", null, null), claims);
         jwt.sign(keyHolder.getCurrentSigner());
 
         // done

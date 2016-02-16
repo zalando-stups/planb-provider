@@ -107,8 +107,10 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         // verify JWT
         JwtContext context = jwtConsumer.process(jwt);
         assertThat(context.getJwtClaims().getSubject()).isEqualTo("klaus");
-        assertThat("uid").isIn((Iterable<String>)context.getJwtClaims().getClaimValue("scope"));
+        assertThat("uid").isIn((Iterable<String>) context.getJwtClaims().getClaimValue("scope"));
         assertThat("name").isIn((Iterable<String>)context.getJwtClaims().getClaimValue("scope"));
+        //
+        assertThat(context.getJoseObjects().get(0).getKeyIdHeaderValue()).isNotEmpty();
     }
 
     // TODO 401 on bad client, 401 on bad user, 400 on bad input, 403 on bad scopes in client, 403 on bad scopes in user
