@@ -126,7 +126,7 @@ public class OIDCKeyHolder {
             final Set<String> realms = storedKey.getSet("realms", String.class);
             final String rawPrivateKeyPem = storedKey.getString("private_key_pem");
             final String rawAlgorithm = storedKey.getString("algorithm");
-            final long rawValidFrom = storedKey.getLong("valid_from");
+            final int rawValidFrom = storedKey.getInt("valid_from");
 
             final JWSAlgorithm algorithm = JWSAlgorithm.parse(rawAlgorithm);
 
@@ -183,7 +183,7 @@ public class OIDCKeyHolder {
 
         // find youngest valid private key for each realm
         final Map<String,Signer> newSigners = new HashMap<>();
-        final long now = System.currentTimeMillis() / 1000; // TODO is this UTC??!! probably not, fix asap!
+        final int now = (int)(System.currentTimeMillis() / 1000);
         for (String realm : realmKeys.keySet()) {
             final Collection<Key> keys = realmKeys.get(realm);
             final Optional<Key> key = keys.stream()
@@ -268,9 +268,9 @@ public class OIDCKeyHolder {
         private final String kid;
         private final KeyPair keyPair;
         private final JWSAlgorithm algorithm;
-        private final long validFrom;
+        private final int validFrom;
 
-        private Key(String kid, KeyPair keyPair, JWSAlgorithm algorithm, long validFrom) {
+        private Key(String kid, KeyPair keyPair, JWSAlgorithm algorithm, int validFrom) {
             this.kid = kid;
             this.keyPair = keyPair;
             this.algorithm = algorithm;
@@ -296,7 +296,7 @@ public class OIDCKeyHolder {
         @Override
         public int compareTo(final Key key) {
             // youngest first
-            return (int)(key.validFrom - validFrom);
+            return key.validFrom - validFrom;
         }
     }
 }
