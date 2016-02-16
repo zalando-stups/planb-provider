@@ -240,7 +240,7 @@
             <plugin>
                 <groupId>org.zalando.maven.plugins</groupId>
                 <artifactId>swagger-codegen-maven-plugin</artifactId>
-                <version>0.4.20</version>
+                <version>0.4.22</version>
                 <configuration>
                     <apiFile>${project.basedir}/src/main/resources/api/plan-b-api.yml</apiFile>
                     <language>springinterfacesResponseEntityNoSwaggerAnnotations</language>
@@ -260,7 +260,7 @@
                     <dependency>
                         <groupId>org.zalando.stups</groupId>
                         <artifactId>swagger-codegen-template-spring-interfaces</artifactId>
-                        <version>0.4.20</version>
+                        <version>0.4.22</version>
                     </dependency>
                 </dependencies>
             </plugin>
@@ -286,6 +286,27 @@
                                         <versionRange>[0.4.20,)</versionRange>
                                         <goals>
                                             <goal>codegen</goal>
+                                        </goals>
+                                    </pluginExecutionFilter>
+                                    <action>
+                                        <ignore></ignore>
+                                    </action>
+                                </pluginExecution>
+                                <pluginExecution>
+                                    <pluginExecutionFilter>
+                                        <groupId>
+                                            org.codehaus.mojo
+                                        </groupId>
+                                        <artifactId>
+                                            build-helper-maven-plugin
+                                        </artifactId>
+                                        <versionRange>
+                                            [1.8,)
+                                        </versionRange>
+                                        <goals>
+                                            <goal>
+                                                reserve-network-port
+                                            </goal>
                                         </goals>
                                     </pluginExecutionFilter>
                                     <action>
