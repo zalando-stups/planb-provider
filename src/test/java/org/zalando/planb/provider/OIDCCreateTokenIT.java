@@ -1,9 +1,6 @@
 package org.zalando.planb.provider;
 
-import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
 import org.jose4j.jwk.HttpsJwks;
 import org.jose4j.jwt.MalformedClaimException;
 import org.jose4j.jwt.consumer.InvalidJwtException;
@@ -24,11 +21,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import javax.annotation.PostConstruct;
 import java.net.URI;
 import java.util.Base64;
 
-import static com.google.common.collect.Sets.newHashSet;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,17 +39,6 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
     RestTemplate rest = new RestTemplate();
 
-    @PostConstruct
-    public void prepareUser() {
-        final Statement insert =
-                QueryBuilder.insertInto("user")
-                        .value("username", "foo")
-                        .value("realm", "/planb")
-                        .value("password_hashes", newHashSet("bar"))
-                        .setConsistencyLevel(ConsistencyLevel.ONE);
-        session.execute(insert);
-    }
-
     @Test
     public void createToken() {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<String, Object>();
@@ -66,7 +50,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
-                .header("Authorization", Base64.getEncoder().encodeToString(("foobar" + ':' + "test").getBytes(UTF_8)))
+                .header("Authorization", "Basic " + Base64.getEncoder().encodeToString(("foobar" + ':' + "test").getBytes(UTF_8)))
                 .body(requestParameters);
 
         ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
@@ -91,7 +75,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
-                .header("Authorization", Base64.getEncoder().encodeToString(("foobar" + ':' + "test").getBytes(UTF_8)))
+                .header("Authorization",  "Basic " + Base64.getEncoder().encodeToString(("foobar" + ':' + "test").getBytes(UTF_8)))
                 .body(requestParameters);
 
         ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
@@ -107,8 +91,9 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         // verify JWT
         JwtContext context = jwtConsumer.process(jwt);
         assertThat(context.getJwtClaims().getSubject()).isEqualTo("klaus");
-        assertThat("uid").isIn((Iterable<String>)context.getJwtClaims().getClaimValue("scope"));
+        assertThat("uid").isIn((Iterable<String>) context.getJwtClaims().getClaimValue("scope"));
         assertThat("name").isIn((Iterable<String>)context.getJwtClaims().getClaimValue("scope"));
+        assertThat(context.getJoseObjects().get(0).getKeyIdHeaderValue()).isNotEmpty();
     }
 
     // TODO 401 on bad client, 401 on bad user, 400 on bad input, 403 on bad scopes in client, 403 on bad scopes in user

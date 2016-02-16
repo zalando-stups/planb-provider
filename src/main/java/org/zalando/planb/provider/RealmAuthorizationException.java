@@ -3,9 +3,9 @@ package org.zalando.planb.provider;
 /**
  * If scopes are not allowed.
  */
-public class RealmAuthorizationException extends Exception {
+public class RealmAuthorizationException extends RestException {
 
     public RealmAuthorizationException(String message) {
-        super(message);
+        super(403, message);
     }
 }

@@ -1,5 +1,8 @@
 package org.zalando.planb.provider;
 
+import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTParser;
+import org.assertj.core.api.Condition;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
@@ -17,6 +20,7 @@ import org.zalando.planb.provider.api.User;
 
 import java.net.URI;
 import java.util.Base64;
+import java.util.function.Predicate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
@@ -75,7 +79,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
 
         final ResponseEntity<OIDCCreateTokenResponse> response = http.exchange(
                 post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
-                        .header("Authorization", Base64.getEncoder().encodeToString((clientId + ':' + clientSecret).getBytes(UTF_8)))
+                        .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((clientId + ':' + clientSecret).getBytes(UTF_8)))
                         .body(requestParameters),
                 OIDCCreateTokenResponse.class);
 
@@ -86,8 +90,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
         assertThat(tokenResponse.getRealm()).isEqualTo("/services");
         assertThat(tokenResponse.getAccessToken()).isNotEmpty();
         assertThat(tokenResponse.getAccessToken()).isEqualTo(tokenResponse.getIdToken());
-
-        System.out.println(tokenResponse.getAccessToken());
+        assertThat(tokenResponse.getAccessToken().split("\\.")).hasSize(3);
     }
 
     private String hashAndEncodePassword(String clientSecret) {

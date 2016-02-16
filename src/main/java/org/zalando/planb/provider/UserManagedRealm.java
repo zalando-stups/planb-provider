@@ -1,6 +1,5 @@
 package org.zalando.planb.provider;
 
-import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.zalando.planb.provider.api.Password;
 import org.zalando.planb.provider.api.User;
 
@@ -26,7 +25,7 @@ public interface UserManagedRealm extends UserRealm {
         if (!user.getPasswordHashes().stream()
                 .map(base64Decoder::decode)
                 .map(bytes -> new String(bytes, UTF_8))
-                .anyMatch(passwordHash -> BCrypt.checkpw(password, passwordHash))) {
+                .anyMatch(passwordHash -> Realm.checkBCryptPassword(password, passwordHash))) {
             throw new RealmAuthenticationException(format("Invalid password for user %s in realm %s", username, getName()));
         }
 

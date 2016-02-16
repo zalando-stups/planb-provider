@@ -1,6 +1,5 @@
 package org.zalando.planb.provider;
 
-import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.zalando.planb.provider.api.Client;
 
 import java.util.Base64;
@@ -26,7 +25,7 @@ public interface ClientManagedRealm extends ClientRealm {
         }
 
         final String decodedSecretHash = new String(Base64.getDecoder().decode(client.getSecretHash()), UTF_8);
-        if (!BCrypt.checkpw(clientSecret, decodedSecretHash)) {
+        if (!Realm.checkBCryptPassword(clientSecret, decodedSecretHash)) {
             throw new RealmAuthenticationException(format("Invalid secret supplied for client %s in realm %s", clientId, getName()));
         }
 

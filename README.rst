@@ -11,6 +11,7 @@ Plan B Provider
 This is a minimalistic OpenID Connect provider that currently only supports the Resource Owner Password Credentials
 Grant to create JWTs.
 
+
 Building
 ========
 
@@ -36,11 +37,13 @@ Find the executable jar in the target directory. Building a Docker image with th
     $ scm-source
     $ docker build -t planb-provider .
 
+
 Code generation
 ===============
 
 Java interfaces and classes for some REST APIs are auto-generated on build by swagger-codegen-maven-plugin. Find the
 generated sources in target/generated-sources/swagger-codegen/.
+
 
 Testing internal endpoints
 ==========================
@@ -54,6 +57,37 @@ Testing internal endpoints
     $ ./mvnw verify -Pinternal
 
 
+Setting up local dev environment
+================================
+
+Run a development Cassandra node:
+
+.. code-block:: bash
+
+    $ docker run --name dev-cassandra -d -p 9042:9042 cassandra:2.1
+
+Insert schema:
+
+.. code-block:: bash
+
+    $ docker run -i --link dev-cassandra:cassandra --rm cassandra:2.1 cqlsh cassandra < schema.cql
+
+General cqlsh access to your dev instance:
+
+    $ docker run -it --link dev-cassandra:cassandra --rm cassandra:2.1 cqlsh cassandra
+
+Set up some signing keys and pipe resulting keys.cql into cluster as well:
+
+    $ echo "INSERT INTO provider.keypair
+        (kid, realms, private_key_pem, algorithm, valid_from)
+      VALUES
+        ('testkey', {'/test', '/services'}, '$(cat src/test/resources/test-es384-secp384r1.pem)', 'ES384', $(date +"%s"));" > key.cql
+    $ docker run -i --link dev-cassandra:cassandra --rm cassandra:2.1 cqlsh cassandra < key.cql
+
+Run the application against you local Cassandra:
+
+    $ java -jar target/planb-provider-1.0-SNAPSHOT.jar --cassandra.contactPoints="127.0.0.1"
+
 Setting up some example keys
 ============================
 
@@ -63,6 +97,7 @@ Setting up some example keys
     $ openssl ecparam -genkey -out test-es256-prime256v1.pem -name prime256v1
     $ openssl ecparam -genkey -out test-es384-secp384r1.pem -name secp384r1
     $ openssl ecparam -genkey -out test-es512-secp521r1.pem -name secp521r1
+
 
 Testing the endpoints
 =====================

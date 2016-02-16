@@ -3,9 +3,9 @@ package org.zalando.planb.provider;
 /**
  * If identity doesn't exist or secret is wrong
  */
-public class RealmAuthenticationException extends Exception {
+public class RealmAuthenticationException extends RestException {
 
     public RealmAuthenticationException(String message) {
-        super(message);
+        super(401, message);
     }
 }
