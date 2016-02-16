@@ -2,7 +2,7 @@ package org.zalando.planb.provider;
 
 import com.google.common.base.Joiner;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -98,12 +98,19 @@ public class OIDCController {
         JWTClaimsSet claims = claimsBuilder.build();
 
         // sign JWT
-        SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.ES384, null, null, null, null, null, null, null, null, null, "testkey", null, null), claims);
-        jwt.sign(keyHolder.getCurrentSigner());
+        Optional<OIDCKeyHolder.Signer> signer = keyHolder.getCurrentSigner(realmName);
+        if (signer.isPresent()) {
+            SignedJWT jwt = new SignedJWT(new JWSHeader(signer.get().getAlgorithm(), JOSEObjectType.JWT, null, null,
+                    null, null, null, null, null, null, signer.get().getKid(), null, null), claims);
+            jwt.sign(signer.get().getJWSSigner());
 
-        // done
-        String rawJWT = jwt.serialize();
-        return new OIDCCreateTokenResponse(rawJWT, rawJWT, EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME), scope.orElse(""), realmName);
+            // done
+            String rawJWT = jwt.serialize();
+            return new OIDCCreateTokenResponse(rawJWT, rawJWT, EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME),
+                    scope.orElse(""), realmName);
+        } else {
+            throw new UnsupportedOperationException("No key found for signing requests of realm " + realmName);
+        }
     }
 
     @RequestMapping("/.well-known/openid-configuration")
@@ -119,7 +126,7 @@ public class OIDCController {
 
     @RequestMapping("/oauth2/v3/certs")
     String getSigningKeys() {
-        List<String> jwks = keyHolder.getPublicJwks().stream()
+        List<String> jwks = keyHolder.getCurrentPublicKeys().stream()
                 .map(JWK::toJSONString)
                 .collect(Collectors.toList());
 

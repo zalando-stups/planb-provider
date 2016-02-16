@@ -1,9 +1,6 @@
 package org.zalando.planb.provider;
 
-import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
 import org.jose4j.jwk.HttpsJwks;
 import org.jose4j.jwt.MalformedClaimException;
 import org.jose4j.jwt.consumer.InvalidJwtException;
@@ -24,11 +21,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import javax.annotation.PostConstruct;
 import java.net.URI;
 import java.util.Base64;
 
-import static com.google.common.collect.Sets.newHashSet;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,17 +38,6 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     private Session session;
 
     RestTemplate rest = new RestTemplate();
-
-    @PostConstruct
-    public void prepareUser() {
-        final Statement insert =
-                QueryBuilder.insertInto("user")
-                        .value("username", "foo")
-                        .value("realm", "/planb")
-                        .value("password_hashes", newHashSet("bar"))
-                        .setConsistencyLevel(ConsistencyLevel.ONE);
-        session.execute(insert);
-    }
 
     @Test
     public void createToken() {
@@ -109,7 +93,6 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(context.getJwtClaims().getSubject()).isEqualTo("klaus");
         assertThat("uid").isIn((Iterable<String>) context.getJwtClaims().getClaimValue("scope"));
         assertThat("name").isIn((Iterable<String>)context.getJwtClaims().getClaimValue("scope"));
-        //
         assertThat(context.getJoseObjects().get(0).getKeyIdHeaderValue()).isNotEmpty();
     }
 

@@ -23,5 +23,5 @@ CREATE TABLE provider.keypair (
     realms SET<TEXT>,           -- for which realms to use this key, allows to tune the system for speed vs. size
     private_key_pem TEXT,       -- private key in PEM format
     algorithm TEXT,             -- JWK algorithm according to RFC 7518 3.1 https://tools.ietf.org/html/rfc7518#section-3.1
-    valid_from INT              -- start date of key validity in seconds since epoch
+    valid_from BIGINT           -- start date of key validity in seconds since epoch
 );
