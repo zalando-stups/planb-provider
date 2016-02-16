@@ -132,6 +132,28 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     }
 
     @Test
+    public void unknownClient() {
+        try {
+            createToken("/services", "wrong", "test", "testuser", "test", "uid ascope");
+            fail("request should have failed");
+        } catch (HttpClientErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
+        }
+    }
+
+    @Test
+    public void unknownUser() {
+        try {
+            createToken("/services", "wrong", "test", "testuser", "test", "uid ascope");
+            fail("request should have failed");
+        } catch (HttpClientErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
+        }
+    }
+
+    @Test
     public void unauthorizedClientScopes() {
         try {
             createToken("/services", "testclient", "test", "testuser", "test", "useronly");
