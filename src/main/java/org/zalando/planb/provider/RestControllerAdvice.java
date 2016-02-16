@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
@@ -14,7 +15,7 @@ import static java.util.Collections.singletonMap;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.ResponseEntity.status;
 
-@ControllerAdvice
+@ControllerAdvice(annotations = {RestController.class})
 public class RestControllerAdvice {
     private static final Logger LOG = LoggerFactory.getLogger(RestControllerAdvice.class);
 

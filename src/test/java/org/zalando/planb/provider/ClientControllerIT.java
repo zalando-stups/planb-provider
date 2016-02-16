@@ -8,8 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
-import org.springframework.http.RequestEntity;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
@@ -50,21 +48,6 @@ public class ClientControllerIT extends AbstractSpringTest {
 
     private String basePath() {
         return "http://localhost:" + port + "/raw-sync";
-    }
-
-    @Test
-    public void invoke() {
-        final Client body = new Client();
-        body.setScopes(asList("one", "two"));
-        body.setSecretHash("secret_hash");
-
-        final RequestEntity<?> request = put(URI.create(basePath() + "/clients/test/13"))
-                .contentType(APPLICATION_JSON)
-                .header(AUTHORIZATION, VALID_ACCESS_TOKEN)
-                .body(body);
-
-        final ResponseEntity<Void> response = restTemplate.exchange(request, Void.class);
-        assertThat(response.getStatusCode()).isEqualTo(OK);
     }
 
     @Test

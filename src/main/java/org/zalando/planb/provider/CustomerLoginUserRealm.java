@@ -71,7 +71,7 @@ public class CustomerLoginUserRealm implements UserRealm {
         Optional<CustomerLoginResponse> response = ofNullable(customerLoginWebService.authenticate(APP_DOMAIN_ID, user, password));
 
         if (!response.isPresent() || !"SUCCESS".equals(response.get().getLoginResult())) {
-            throw new RealmAuthenticationException("User not authenticated: " + user);
+            throw new RealmAuthenticationException(user, realmName);
         }
 
         return new HashMap<String, Object>() {{

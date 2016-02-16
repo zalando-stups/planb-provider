@@ -36,7 +36,6 @@ public class RealmConfig implements BeanFactoryAware {
 
     @PostConstruct
     void setup() {
-        newRealm("/test", InMemoryClientRealm.class, InMemoryUserRealm.class);
         newRealm("/services", CassandraClientRealm.class, CassandraUserRealm.class);
         newRealm("/customers", CassandraClientRealm.class, CustomerLoginUserRealm.class);
     }
