@@ -10,8 +10,8 @@ def wsdl():
     with open('wsdl') as fd:
         contents = fd.read()
     host = flask.request.headers['Host']
-    is_local = host == 'localhost'
-    location = '{}://{}{}/ws/customerService'.format('http' if is_local else 'https', host, ':8080' if is_local else '')
+    is_local = host.split(':')[0] == 'localhost'
+    location = '{}://{}/ws/customerService'.format('http' if is_local else 'https', host)
     return contents.replace('{{location}}', location)
 
 
