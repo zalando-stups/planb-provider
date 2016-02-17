@@ -5,8 +5,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.cassandra.CassandraAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cloud.netflix.hystrix.EnableHystrix;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 import java.security.Security;
 
@@ -16,6 +18,8 @@ import java.security.Security;
 })
 @ComponentScan // for IntelliJ
 @EnableConfigurationProperties(CustomerRealmProperties.class)
+@EnableHystrix
+@EnableAspectJAutoProxy
 public class Main {
 
     static {
