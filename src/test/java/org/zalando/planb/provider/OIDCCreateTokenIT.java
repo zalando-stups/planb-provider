@@ -1,5 +1,6 @@
 package org.zalando.planb.provider;
 
+import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
 import org.jose4j.jwk.HttpsJwks;
 import org.jose4j.jwt.MalformedClaimException;
 import org.jose4j.jwt.consumer.InvalidJwtException;
@@ -24,10 +25,13 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URI;
 import java.util.Base64;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.StrictAssertions.fail;
 import static org.assertj.core.api.StrictAssertions.failBecauseExceptionWasNotThrown;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.MediaType.TEXT_XML_VALUE;
 
 @SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
@@ -57,7 +61,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     }
 
     @Test
-    public void createSimpleToken() {
+    public void createServiceUserToken() {
         ResponseEntity<OIDCCreateTokenResponse> response = createToken("/services",
                 "testclient", "test", "testuser", "test", "uid ascope");
 
@@ -97,6 +101,32 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
         // kid set in header for precise key matching
         assertThat(context.getJoseObjects().get(0).getKeyIdHeaderValue()).isNotEmpty();
+    }
+
+    @Test
+    public void testCreateCustomerToken() throws Exception {
+        stubFor(post(urlEqualTo("/ws/customerService?wsdl"))
+                .willReturn(aResponse()
+                        .withStatus(OK.value())
+                        .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
+                        .withBody("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
+                                "    <soap:Body>\n" +
+                                "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\">\n" +
+                                "            <return>\n" +
+                                "                <customerNumber>123456789</customerNumber>\n" +
+                                "                <loginResult>SUCCESS</loginResult>\n" +
+                                "            </return>\n" +
+                                "        </ns2:authenticateResponse>\n" +
+                                "    </soap:Body>\n" +
+                                "</soap:Envelope>")));
+
+        final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "uid");
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getScope()).isEqualTo("uid");
+        assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
+        assertThat(response.getBody().getRealm()).isEqualTo("/customers");
+        assertThat(response.getBody().getAccessToken()).isNotEmpty();
+        assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
     }
 
     @Test
