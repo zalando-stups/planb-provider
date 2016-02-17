@@ -66,7 +66,7 @@ General cqlsh access to your dev instance:
 
     $ docker run -it --link dev-cassandra:cassandra --rm cassandra:2.1 cqlsh cassandra
 
-Set up some signing keys and pipe resulting keys.cql into cluster as well:
+Set up some signing keys and pipe resulting ``key.cql`` into cluster as well:
 
 .. code-block:: bash
 
