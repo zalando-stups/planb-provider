@@ -74,9 +74,13 @@ Insert schema:
 
 General cqlsh access to your dev instance:
 
+.. code-block:: bash
+
     $ docker run -it --link dev-cassandra:cassandra --rm cassandra:2.1 cqlsh cassandra
 
 Set up some signing keys and pipe resulting keys.cql into cluster as well:
+
+.. code-block:: bash
 
     $ echo "INSERT INTO provider.keypair
         (kid, realms, private_key_pem, algorithm, valid_from)
@@ -85,6 +89,8 @@ Set up some signing keys and pipe resulting keys.cql into cluster as well:
     $ docker run -i --link dev-cassandra:cassandra --rm cassandra:2.1 cqlsh cassandra < key.cql
 
 Run the application against you local Cassandra:
+
+.. code-block:: bash
 
     $ java -jar target/planb-provider-1.0-SNAPSHOT.jar --cassandra.contactPoints="127.0.0.1"
 
