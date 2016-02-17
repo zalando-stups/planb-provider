@@ -19,10 +19,23 @@ def wsdl():
 def authenticate():
     '''<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body><ns2:authenticate xmlns:ns2="http://service.webservice.user.zalando.de/"><email>jdoe@example.org</email><password>foo</pas
     sword></ns2:authenticate></soap:Body></soap:Envelope>'''
+
+    if b'goodpass' in flask.request.data:
+        number = hash(flask.request.data)
+        result = 'SUCCESS'
+    else:
+        number = '123'
+        result = 'FAIL'
+
     response = '''<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
     <soap:Body><ns2:authenticateResponse xmlns:ns2="http://service.webservice.customer.zalando.de/" xmlns:ns3="http://ws.zalando.de/bm/shop">
-    <return><appDomainId>1</appDomainId><customerNumber>123</customerNumber><firstname>John</firstname>
-    <gender>MALE</gender><lastname>Doe</lastname><loginResult>SUCCESS</loginResult></return></ns2:authenticateResponse></soap:Body></soap:Envelope>'''
+    <return>
+    <appDomainId>1</appDomainId>
+    <customerNumber>{number}</customerNumber>
+    <firstname>John</firstname>
+    <gender>MALE</gender>
+    <lastname>Doe</lastname>
+    <loginResult>{result}</loginResult></return></ns2:authenticateResponse></soap:Body></soap:Envelope>'''.format(number=number, result=result)
     resp = flask.Response(response)
     resp.headers['Content-Type'] = 'text/xml'
     return resp
