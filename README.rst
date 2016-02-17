@@ -45,18 +45,6 @@ Java interfaces and classes for some REST APIs are auto-generated on build by sw
 generated sources in target/generated-sources/swagger-codegen/.
 
 
-Testing internal endpoints
-==========================
-
-.. code-block:: bash
-
-    $ export CUSTOMER_LOGIN_REALM_URL="http://example.com/ws/customerService?wsdl"
-    $ export CUSTOMER_LOGIN_TEST_USER="test"
-    $ export CUSTOMER_LOGIN_TEST_PASSWORD="test"
-    $ export CUSTOMER_LOGIN_TEST_CUSTOMER_NUMBER=12345
-    $ ./mvnw verify -Pinternal
-
-
 Setting up local dev environment
 ================================
 
