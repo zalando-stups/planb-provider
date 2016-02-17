@@ -73,7 +73,7 @@ Set up some signing keys and pipe resulting ``key.cql`` into cluster as well:
     $ echo "INSERT INTO provider.keypair
         (kid, realms, private_key_pem, algorithm, valid_from)
       VALUES
-        ('testkey', {'/test', '/services'}, '$(cat src/test/resources/test-es384-secp384r1.pem)', 'ES384', $(date +"%s"));" > key.cql
+        ('testkey', {'/services', '/customers'}, '$(cat src/test/resources/test-es384-secp384r1.pem)', 'ES384', $(date +"%s"));" > key.cql
     $ docker run -i --link dev-cassandra:cassandra --rm cassandra:2.1 cqlsh cassandra < key.cql
 
 Run the application against you local Cassandra:
@@ -115,6 +115,24 @@ Retrieving all public keys (`set of JWKs`_) for verification:
 .. code-block:: bash
 
     $ curl --silent http://localhost:8080/oauth2/v3/certs | jq .
+
+
+Configuration
+=============
+
+``TOKENINFO_URL``
+    OAuth2 token info URL (can point to Plan B Token Info).
+``CUSTOMER_REALM_SERVICE_URL``
+    Optional URL to Zalando customer service WSDL.
+``ACCESS_TOKEN_URI``
+    OAuth2 access token URL.
+``CASSANDRA_CONTACT_POINTS``
+    Comma separated list of Cassandra cluster IPs.
+``CASSANDRA_CLUSTER_NAME``
+    Cassandra cluster name.
+``API_SECURITY_RAW_SYNC_EXPR``
+    Spring security expression, e.g. "#oauth2.hasScope('application.write_all_sensitive')"
+
 
 .. _OpenID Connect configuration discovery document: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 .. _set of JWKs: https://tools.ietf.org/html/rfc7517#section-5

@@ -23,7 +23,9 @@ def authenticate():
     <soap:Body><ns2:authenticateResponse xmlns:ns2="http://service.webservice.customer.zalando.de/" xmlns:ns3="http://ws.zalando.de/bm/shop">
     <return><appDomainId>1</appDomainId><customerNumber>123</customerNumber><firstname>John</firstname>
     <gender>MALE</gender><lastname>Doe</lastname><loginResult>SUCCESS</loginResult></return></ns2:authenticateResponse></soap:Body></soap:Envelope>'''
-    return response
+    resp = flask.Response(response)
+    resp.headers['Content-Type'] = 'text/xml'
+    return resp
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=39600, debug=True)
