@@ -1,5 +1,6 @@
 package org.zalando.planb.provider;
 
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,7 @@ public class CustomerUserRealm implements UserRealm {
     }
 
     @Override
+    @HystrixCommand( ignoreExceptions = {RealmAuthenticationException.class})
     public Map<String, Object> authenticate(String user, String password, String[] scopes) throws RealmAuthenticationException {
         final CustomerResponse response = ofNullable(customerRealmWebService.authenticate(APP_DOMAIN_ID, user, password))
                 .filter(r -> SUCCESS_STATUS.equals(r.getLoginResult()))

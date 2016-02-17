@@ -1,5 +1,6 @@
 package org.zalando.planb.provider;
 
+import com.netflix.hystrix.exception.HystrixRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,13 @@ public class RestControllerAdvice {
         LOG.warn("{} (status {} / {})", e.getMessage(), e.getStatusCode(), e.getClass().getSimpleName());
         return status(e.getStatusCode())
                 .body(singletonMap("error_message", e.getMessage()));
+    }
+
+    @ExceptionHandler(HystrixRuntimeException.class)
+    public ResponseEntity<Map<String,String>> handleHystrixExceptions(HystrixRuntimeException e) {
+        LOG.warn("Ups something went wrong:", e);
+        return status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(singletonMap("error_message", "Dependency unavailable"));
     }
 
     @ExceptionHandler(Exception.class)

@@ -15,9 +15,9 @@ import java.security.Security;
 @EnableAutoConfiguration(exclude = {
         CassandraAutoConfiguration.class // TODO Disabled for now, because we have our own. Let's figure out, if Spring's config would also fit for us
 })
-@ComponentScan // for IntelliJ
+@ComponentScan
 @EnableHystrix
-@EnableAspectJAutoProxy
+@EnableAspectJAutoProxy(proxyTargetClass = true)
 public class Main {
 
     static {
