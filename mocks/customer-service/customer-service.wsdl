@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8'?><wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://service.webservice.customer.zalando.de/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:ns1="http://schemas.xmlsoap.org/soap/http" name="CustomerWebServiceService" targetNamespace="http://service.webservice.customer.zalando.de/">
+  <wsdl:types>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://ws.zalando.de/bm/shop" targetNamespace="http://ws.zalando.de/bm/shop" version="1.0">
+<xs:element name="ServiceException" type="tns:ServiceException"/>
+</xs:schema>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://service.webservice.customer.zalando.de/" xmlns:ns2="http://ws.zalando.de/bm/shop" xmlns:ns1="http://order.zeos.domain.backend.customer.zalando.de/" attributeFormDefault="unqualified" elementFormDefault="unqualified" targetNamespace="http://service.webservice.customer.zalando.de/">
+  <xs:import namespace="http://order.zeos.domain.backend.customer.zalando.de/"/>
+  <xs:import namespace="http://ws.zalando.de/bm/shop"/>
+  <xs:element name="authenticate" type="tns:authenticate"/>
+  <xs:element name="authenticateResponse" type="tns:authenticateResponse"/>
+  <xs:complexType name="authenticateResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:authenticationResult"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="authenticationResult">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="appDomainId" type="xs:int"/>
+      <xs:element minOccurs="0" name="customerNumber" type="xs:string"/>
+      <xs:element minOccurs="0" name="firstname" type="xs:string"/>
+      <xs:element minOccurs="0" name="gender" type="tns:gender"/>
+      <xs:element minOccurs="0" name="lastname" type="xs:string"/>
+      <xs:element minOccurs="0" name="loginResult" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>
+  </wsdl:types>
+  <wsdl:message name="authenticate">
+    <wsdl:part element="tns:authenticate" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="CustomerWebService">
+    <wsdl:operation name="authenticate">
+      <wsdl:input message="tns:authenticate" name="authenticate">
+    </wsdl:input>
+      <wsdl:output message="tns:authenticateResponse" name="authenticateResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:ServiceException" name="ServiceException">
+    </wsdl:fault>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="CustomerWebServiceServiceSoapBinding" type="tns:CustomerWebService">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+    <wsdl:operation name="authenticate">
+      <soap:operation soapAction="" style="document"/>
+      <wsdl:input name="authenticate">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="authenticateResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="ServiceException">
+        <soap:fault name="ServiceException" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="CustomerWebServiceService">
+    <wsdl:port binding="tns:CustomerWebServiceServiceSoapBinding" name="CustomerWebServicePort">
+      <soap:address location="{{location}}"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

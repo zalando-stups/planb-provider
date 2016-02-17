@@ -6,11 +6,11 @@ import javax.jws.WebService;
 import javax.xml.ws.ResponseWrapper;
 
 @WebService(targetNamespace = "http://service.webservice.customer.zalando.de/", name = "CustomerLoginWebService")
-public interface CustomerLoginWebService {
+public interface CustomerRealmWebService {
 
     @WebMethod(operationName = "authenticate")
     @ResponseWrapper(localName = "authenticateResponse")
-    CustomerLoginResponse authenticate(
+    CustomerResponse authenticate(
             @WebParam(name = "appDomainId")
             int appDomainId,
             @WebParam(name = "email")
