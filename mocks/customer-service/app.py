@@ -7,7 +7,7 @@ app = flask.Flask(__name__)
 
 @app.route('/ws/customerService', methods=['GET'])
 def wsdl():
-    with open('wsdl') as fd:
+    with open('customer-service.wsdl') as fd:
         contents = fd.read()
     host = flask.request.headers['Host']
     is_local = host.split(':')[0] == 'localhost'
@@ -41,4 +41,4 @@ def authenticate():
     return resp
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=39600, debug=True)
+    app.run(host='0.0.0.0', port=8080)
