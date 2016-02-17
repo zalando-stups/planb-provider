@@ -23,7 +23,7 @@ public class CustomerLoginUserRealmInternal extends AbstractSpringTest {
     public static final String UID = "uid";
 
     @Autowired
-    private CustomerLoginUserRealm customerLoginRealm;
+    private CustomerUserRealm customerLoginRealm;
 
     @Value("${customerLoginRealm.testUser}")
     private String customerLoginTestUser;

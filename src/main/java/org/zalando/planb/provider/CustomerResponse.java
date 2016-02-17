@@ -7,7 +7,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlRootElement
-public class CustomerLoginResponse {
+public class CustomerResponse {
 
     @XmlElement(name = "customerNumber")
     protected String customerNumber;

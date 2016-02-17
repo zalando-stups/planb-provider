@@ -3,6 +3,9 @@ customerLoginRealm:
   testPassword:  ${CUSTOMER_LOGIN_TEST_PASSWORD:test}
   testCustomerNumber:  ${CUSTOMER_LOGIN_TEST_CUSTOMER_NUMBER:12345}
 
+customerRealm:
+  service-url:
+
 tokens:
     test-tokens: customerLogin=1234567889
     accessTokenUri: http://localhost:44332

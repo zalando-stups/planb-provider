@@ -3,10 +3,7 @@ package org.zalando.planb.provider;
 import org.apache.cxf.interceptor.LoggingInInterceptor;
 import org.apache.cxf.interceptor.LoggingOutInterceptor;
 import org.apache.cxf.jaxws.JaxWsProxyFactoryBean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -22,33 +19,30 @@ import static java.util.Optional.ofNullable;
 
 @Component
 @Scope("prototype")
-public class CustomerLoginUserRealm implements UserRealm {
-
-    private static final Logger log = LoggerFactory.getLogger(CustomerLoginUserRealm.class);
-
+public class CustomerUserRealm implements UserRealm {
+    
     public static final int APP_DOMAIN_ID = 1;
     public static final String SERVICE_ID = "customerLogin";
 
-    @Value("${customerLoginRealm.url}")
-    private String customerLoginRealmUrl;
-
     private final Environment environment;
     private final AccessTokens accessTokens;
+    private final CustomerRealmProperties customerRealmProperties;
     private String realmName;
 
     @Autowired
-    public CustomerLoginUserRealm(Environment environment, AccessTokens accessTokens) {
+    public CustomerUserRealm(Environment environment, AccessTokens accessTokens, CustomerRealmProperties customerRealmProperties) {
         this.environment = environment;
         this.accessTokens = accessTokens;
+        this.customerRealmProperties = customerRealmProperties;
     }
 
-    private CustomerLoginWebService customerLoginWebService;
+    private CustomerRealmWebService customerRealmWebService;
 
     @PostConstruct
     void initialize() {
         JaxWsProxyFactoryBean factory = new JaxWsProxyFactoryBean();
-        factory.setAddress(customerLoginRealmUrl);
-        factory.setServiceClass(CustomerLoginWebService.class);
+        factory.setAddress(customerRealmProperties.getServiceUrl());
+        factory.setServiceClass(CustomerRealmWebService.class);
         OAuth2TokenInterceptor oAuth2TokenInterceptor = new OAuth2TokenInterceptor(accessTokens, SERVICE_ID);
         factory.getOutInterceptors().add(oAuth2TokenInterceptor);
 
@@ -61,14 +55,14 @@ public class CustomerLoginUserRealm implements UserRealm {
             factory.getOutInterceptors().add(loggingOutInterceptor);
         }
 
-        customerLoginWebService = (CustomerLoginWebService) factory.create();
+        customerRealmWebService = (CustomerRealmWebService) factory.create();
 
     }
 
     @Override
     public Map<String, Object> authenticate(String user, String password, String[] scopes) throws RealmAuthenticationException {
 
-        Optional<CustomerLoginResponse> response = ofNullable(customerLoginWebService.authenticate(APP_DOMAIN_ID, user, password));
+        Optional<CustomerResponse> response = ofNullable(customerRealmWebService.authenticate(APP_DOMAIN_ID, user, password));
 
         if (!response.isPresent() || !"SUCCESS".equals(response.get().getLoginResult())) {
             throw new RealmAuthenticationException(user, realmName);
