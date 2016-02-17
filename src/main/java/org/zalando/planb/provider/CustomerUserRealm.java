@@ -11,18 +11,19 @@ import org.zalando.stups.oauth2.jaxws.cxf.interceptors.OAuth2TokenInterceptor;
 import org.zalando.stups.tokens.AccessTokens;
 
 import javax.annotation.PostConstruct;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
+import static java.util.Collections.singletonMap;
 import static java.util.Optional.ofNullable;
 
 @Component
 @Scope("prototype")
 public class CustomerUserRealm implements UserRealm {
-    
+
     public static final int APP_DOMAIN_ID = 1;
     public static final String SERVICE_ID = "customerLogin";
+    public static final String SUCCESS_STATUS = "SUCCESS";
+    public static final String UID = "uid";
 
     private final Environment environment;
     private final AccessTokens accessTokens;
@@ -61,16 +62,11 @@ public class CustomerUserRealm implements UserRealm {
 
     @Override
     public Map<String, Object> authenticate(String user, String password, String[] scopes) throws RealmAuthenticationException {
+        final CustomerResponse response = ofNullable(customerRealmWebService.authenticate(APP_DOMAIN_ID, user, password))
+                .filter(r -> SUCCESS_STATUS.equals(r.getLoginResult()))
+                .orElseThrow(() -> new RealmAuthenticationException(user, realmName));
 
-        Optional<CustomerResponse> response = ofNullable(customerRealmWebService.authenticate(APP_DOMAIN_ID, user, password));
-
-        if (!response.isPresent() || !"SUCCESS".equals(response.get().getLoginResult())) {
-            throw new RealmAuthenticationException(user, realmName);
-        }
-
-        return new HashMap<String, Object>() {{
-            put("uid", response.get().getCustomerNumber());
-        }};
+        return singletonMap(UID, response.getCustomerNumber());
     }
 
 
