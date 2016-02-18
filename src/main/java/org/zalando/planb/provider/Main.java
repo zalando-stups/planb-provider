@@ -6,10 +6,11 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.cassandra.CassandraAutoConfiguration;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
 import org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainerFactory;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cloud.netflix.hystrix.EnableHystrix;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 import java.security.Security;
 
@@ -17,8 +18,9 @@ import java.security.Security;
 @EnableAutoConfiguration(exclude = {
         CassandraAutoConfiguration.class // TODO Disabled for now, because we have our own. Let's figure out, if Spring's config would also fit for us
 })
-@ComponentScan // for IntelliJ
-@EnableConfigurationProperties(CustomerRealmProperties.class)
+@ComponentScan
+@EnableHystrix
+@EnableAspectJAutoProxy(proxyTargetClass = true)
 public class Main {
 
     static {
