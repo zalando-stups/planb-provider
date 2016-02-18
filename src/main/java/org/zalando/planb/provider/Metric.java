@@ -4,8 +4,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import org.slf4j.Logger;
 
-import java.util.function.Supplier;
-
+import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -25,14 +24,14 @@ public class Metric {
         this.start = System.currentTimeMillis();
     }
 
-    public void finish(Supplier<String> keySupplier) {
+    public void finish(String key) {
         if (started()) {
             try {
                 final long end = System.currentTimeMillis();
-                final Timer timer = metricRegistry.timer(keySupplier.get());
+                final Timer timer = metricRegistry.timer(key);
                 timer.update(end - start, MILLISECONDS);
             } catch (Exception e) {
-                LOG.warn("Unable to submit timer metric", e);
+                LOG.warn(format("Unable to submit timer metric '%s'", key), e);
             }
         }
     }

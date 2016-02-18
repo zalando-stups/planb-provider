@@ -127,10 +127,10 @@ public class OIDCController {
                     // done
                     rawJWT = jwt.serialize();
                 } finally {
-                    signingMetric.finish(() -> "planb.provider.jwt.signing." + algorithm.getName());
+                    signingMetric.finish("planb.provider.jwt.signing." + algorithm.getName());
                 }
 
-                metric.finish(() -> "planb.provider.access_token." + trimSlash(realmName) + ".success");
+                metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
 
                 return new OIDCCreateTokenResponse(rawJWT, rawJWT, EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME),
                         scope.orElse(""), realmName);
@@ -143,7 +143,7 @@ public class OIDCController {
                     .map(e -> (RestException) e)
                     .flatMap(RestException::getErrorType)
                     .orElse("other");
-            metric.finish(() -> "planb.provider.access_token." + trimSlash(realmName) + ".error." + errorType);
+            metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".error." + errorType);
             throw t;
         }
     }
