@@ -64,7 +64,7 @@ public class CustomerUserRealm implements UserRealm {
     public Map<String, Object> authenticate(String user, String password, String[] scopes) throws RealmAuthenticationException {
         final CustomerResponse response = ofNullable(customerRealmWebService.authenticate(APP_DOMAIN_ID, user, password))
                 .filter(r -> SUCCESS_STATUS.equals(r.getLoginResult()))
-                .orElseThrow(() -> new RealmAuthenticationException(user, realmName));
+                .orElseThrow(() -> new UserRealmAuthenticationException(user, realmName));
 
         return singletonMap(UID, response.getCustomerNumber());
     }
