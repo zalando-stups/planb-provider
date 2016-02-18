@@ -28,15 +28,10 @@ public class CustomerUserRealm implements UserRealm {
 
     @Override
     @HystrixCommand(ignoreExceptions = {RealmAuthenticationException.class})
-    public Map<String, Object> authenticate(String user, String password, String[] scopes) throws RealmAuthenticationException {
-
-        if (user == null || password == null || user.trim().isEmpty() || password.trim().isEmpty()) {
-            throw new RealmAuthenticationException(user, realmName);
-        }
-
-        final CustomerResponse response = ofNullable(customerRealmWebService.authenticate(APP_DOMAIN_ID, user, password))
+    public Map<String, Object> authenticate(String username, String password, String[] scopes) throws RealmAuthenticationException {
+        final CustomerResponse response = ofNullable(customerRealmWebService.authenticate(APP_DOMAIN_ID, username, password))
                 .filter(r -> SUCCESS_STATUS.equals(r.getLoginResult()))
-                .orElseThrow(() -> new RealmAuthenticationException(user, realmName));
+                .orElseThrow(() -> new RealmAuthenticationException(username, realmName));
 
         return singletonMap(UID, response.getCustomerNumber());
     }
