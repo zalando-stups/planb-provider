@@ -5,6 +5,7 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSSigner;
@@ -95,24 +96,8 @@ public class OIDCKeyHolder {
     }
 
     private void loadKeys() throws JOSEException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, IOException {
-        final List<JWK> currentPublicKeys = this.currentPublicKeys.get();
-
         // fetch list from cassandra
         final List<Row> storedKeys = session.execute(fetchKeys.bind()).all();
-
-        // figure out if we actually have changes (different set of keys)
-        final Set<String> currentPublicKeyNames = currentPublicKeys.stream()
-                .map(JWK::getKeyID)
-                .collect(Collectors.toSet());
-        final Set<String> storedKeyNames = storedKeys.stream()
-                .map(row -> row.getString("kid"))
-                .collect(Collectors.toSet());
-
-        if (currentPublicKeyNames.containsAll(storedKeyNames) && storedKeyNames.containsAll(currentPublicKeyNames)) {
-            // in memory list of JWK IDs matches database, nothing to do
-            // TODO also consider row changes (check last modified?)
-            return;
-        }
 
         // transform results into proper JWKs
         // http://connect2id.com/products/nimbus-jose-jwt/openssl-key-generation
@@ -208,20 +193,43 @@ public class OIDCKeyHolder {
             }
         }
 
-        // swap the current information, forget about all other private keys
-        LOG.info("New key configuration:");
+        // log what changed
+        final Map<String,Signer> currentSigners = this.currentSigner.get();
         for (Map.Entry<String,Signer> signer: newSigners.entrySet()) {
-            LOG.info("Signing key for realm {}: {} ({}).", signer.getKey(), signer.getValue().getKid(),
-                    signer.getValue().getAlgorithm().getName());
-        }
-        for (JWK jwk: newPublicKeys) {
-            LOG.info("Public key {} ({}) available.", jwk.getKeyID(), jwk.getAlgorithm().getName());
+            if (!currentSigners.containsKey(signer.getKey())) {
+                LOG.info("New signing key for new realm {}: {} ({})", signer.getKey(), signer.getValue().getKid(),
+                        signer.getValue().getAlgorithm().getName());
+                continue;
+            }
+
+            Signer currentSigner = currentSigners.get(signer.getKey());
+            if (!currentSigner.getKid().equals(signer.getValue().getKid())) {
+                LOG.info("New signing key for existing realm {}: {} ({}).", signer.getKey(), signer.getValue().getKid(),
+                        signer.getValue().getAlgorithm().getName());
+            }
         }
 
+        // unfortunately, JWKs have no proper equals methods, so only work with their names
+        final Set<String> currentPublicKeyNames = this.currentPublicKeys.get().stream()
+                .map(JWK::getKeyID)
+                .collect(Collectors.toSet());
+        final Set<String> newPublicKeyNames = newPublicKeys.stream()
+                .map(JWK::getKeyID)
+                .collect(Collectors.toSet());
+
+        Sets.SetView<String> keysToBeRemoved = Sets.difference(currentPublicKeyNames, newPublicKeyNames);
+        Sets.SetView<String> keysToBeAdded = Sets.difference(newPublicKeyNames, currentPublicKeyNames);
+
+        for (String keyToBeRemoved: keysToBeRemoved) {
+            LOG.info("Removing public key {}.", keyToBeRemoved);
+        }
+        for (String keyToBeAdded: keysToBeAdded) {
+            LOG.info("Adding public key {}.", keyToBeAdded);
+        }
+
+        // swap the current information, forget about all other private keys
         this.currentPublicKeys.set(Collections.unmodifiableList(newPublicKeys));
         this.currentSigner.set(Collections.unmodifiableMap(newSigners));
-
-        LOG.info("Key configuration updated.");
     }
 
     private JWK createRSAJWK(final String kid, final PublicKey publicKey, final JWSAlgorithm algorithm) {
