@@ -1,6 +1,8 @@
 package org.zalando.planb.provider;
 
 import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
+import com.github.tomakehurst.wiremock.http.Fault;
+import com.netflix.hystrix.exception.HystrixRuntimeException;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,33 +29,38 @@ public class CustomerUserRealmIT extends AbstractSpringTest {
 
     public static final String SOAP_RESPONSE =
             "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
-            "    <soap:Body>\n" +
-            "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\">\n" +
-            "            <return>\n" +
-            "                <customerNumber>123456789</customerNumber>\n" +
-            "                <loginResult>SUCCESS</loginResult>\n" +
-            "            </return>\n" +
-            "        </ns2:authenticateResponse>\n" +
-            "    </soap:Body>\n" +
-            "</soap:Envelope>";
+                    "    <soap:Body>\n" +
+                    "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\">\n" +
+                    "            <return>\n" +
+                    "                <customerNumber>123456789</customerNumber>\n" +
+                    "                <loginResult>SUCCESS</loginResult>\n" +
+                    "            </return>\n" +
+                    "        </ns2:authenticateResponse>\n" +
+                    "    </soap:Body>\n" +
+                    "</soap:Envelope>";
 
     private static final String SOAP_EMPTY_RESPONSE =
             "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
-            "    <soap:Body>\n" +
-            "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\"/>\n" +
-            "    </soap:Body>\n" +
-            "</soap:Envelope>";
+                    "    <soap:Body>\n" +
+                    "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\"/>\n" +
+                    "    </soap:Body>\n" +
+                    "</soap:Envelope>";
 
     private static final String SOAP_FAILED_RESPONSE =
             "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
-            "    <soap:Body>\n" +
-            "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\">\n" +
-            "            <return>\n" +
-            "                <loginResult>FAILED</loginResult>\n" +
-            "            </return>\n" +
-            "        </ns2:authenticateResponse>\n" +
-            "    </soap:Body>\n" +
-            "</soap:Envelope>";
+                    "    <soap:Body>\n" +
+                    "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\">\n" +
+                    "            <return>\n" +
+                    "                <loginResult>FAILED</loginResult>\n" +
+                    "            </return>\n" +
+                    "        </ns2:authenticateResponse>\n" +
+                    "    </soap:Body>\n" +
+                    "</soap:Envelope>";
+
+    public static final String WS_CUSTOMER_SERVICE_URL = "/ws/customerService?wsdl";
+    public static final String CUSTOMER_NUMBER = "123456789";
+    public static final String EMAIL = "user@user.com";
+    public static final String PASSWORD = "pwd";
 
     @Autowired
     private CustomerUserRealm customerUserRealm;
@@ -61,37 +68,47 @@ public class CustomerUserRealmIT extends AbstractSpringTest {
     @Test
     public void testAuthenticate() throws RealmAuthenticationException {
 
-        stubFor(post(urlEqualTo("/ws/customerService?wsdl"))
+        stubFor(post(urlEqualTo(WS_CUSTOMER_SERVICE_URL))
                 .willReturn(aResponse()
                         .withStatus(OK.value())
                         .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
                         .withBody(SOAP_RESPONSE)));
 
-        Map<String, Object> authenticate = customerUserRealm.authenticate("user@user.com", "pwd", new String[]{UID});
-        assertThat(authenticate.get(UID)).isEqualTo("123456789");
+        Map<String, Object> authenticate = customerUserRealm.authenticate(EMAIL, PASSWORD, new String[]{UID});
+        assertThat(authenticate.get(UID)).isEqualTo(CUSTOMER_NUMBER);
     }
 
     @Test(expected = RealmAuthenticationException.class)
     public void testNotAuthenticate() throws RealmAuthenticationException {
 
-        stubFor(post(urlEqualTo("/ws/customerService?wsdl"))
+        stubFor(post(urlEqualTo(WS_CUSTOMER_SERVICE_URL))
                 .willReturn(aResponse()
                         .withStatus(OK.value())
                         .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
                         .withBody(SOAP_FAILED_RESPONSE)));
 
-        Map<String, Object> authenticate = customerUserRealm.authenticate("user@user.com", "pwd", new String[]{UID});
+        Map<String, Object> authenticate = customerUserRealm.authenticate(EMAIL, PASSWORD, new String[]{UID});
     }
 
     @Test(expected = RealmAuthenticationException.class)
     public void testNotAuthenticateWithEmptyResponse() throws RealmAuthenticationException {
 
-        stubFor(post(urlEqualTo("/ws/customerService?wsdl"))
+        stubFor(post(urlEqualTo(WS_CUSTOMER_SERVICE_URL))
                 .willReturn(aResponse()
                         .withStatus(OK.value())
                         .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
                         .withBody(SOAP_EMPTY_RESPONSE)));
 
-        Map<String, Object> authenticate = customerUserRealm.authenticate("user@user.com", "pwd", new String[]{UID});
+        Map<String, Object> authenticate = customerUserRealm.authenticate(EMAIL, PASSWORD, new String[]{UID});
+    }
+
+    @Test(expected = HystrixRuntimeException.class)
+    public void testDependencyUnavailable() throws RealmAuthenticationException {
+
+        stubFor(post(urlEqualTo(WS_CUSTOMER_SERVICE_URL))
+                .willReturn(aResponse()
+                        .withFault(Fault.EMPTY_RESPONSE)));
+
+        Map<String, Object> authenticate = customerUserRealm.authenticate(EMAIL, PASSWORD, new String[]{UID});
     }
 }
