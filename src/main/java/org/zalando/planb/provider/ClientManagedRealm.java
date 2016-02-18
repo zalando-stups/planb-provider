@@ -15,18 +15,18 @@ public interface ClientManagedRealm extends ClientRealm {
 
     @Override
     default void authenticate(String clientId, String clientSecret, String[] scopes)
-            throws RealmAuthenticationException, RealmAuthorizationException {
+            throws ClientRealmAuthenticationException, ClientRealmAuthorizationException {
         final Client client = get(clientId)
-                .orElseThrow(() -> new RealmAuthenticationException(clientId, getName()));
+                .orElseThrow(() -> new ClientRealmAuthenticationException(clientId, getName()));
 
         // TODO hardcoded assumption, that only Resource Owner Password Credentials flow is supported
         if (!client.getIsConfidential()) {
-            throw new RealmAuthenticationException(clientId, getName());
+            throw new ClientRealmAuthenticationException(clientId, getName());
         }
 
         final String decodedSecretHash = new String(Base64.getDecoder().decode(client.getSecretHash()), UTF_8);
         if (!Realm.checkBCryptPassword(clientSecret, decodedSecretHash)) {
-            throw new RealmAuthenticationException(clientId, getName());
+            throw new ClientRealmAuthenticationException(clientId, getName());
         }
 
         final Set<String> missingScopes = Stream.of(scopes)
@@ -34,7 +34,7 @@ public interface ClientManagedRealm extends ClientRealm {
                 .collect(toSet());
 
         if (!missingScopes.isEmpty()) {
-            throw new RealmAuthorizationException(clientId, getName(), scopes);
+            throw new ClientRealmAuthorizationException(clientId, getName(), scopes);
         }
     }
 

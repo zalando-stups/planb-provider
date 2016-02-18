@@ -1,8 +1,10 @@
 package org.zalando.planb.provider;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Joiner;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -15,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.zalando.planb.provider.Metric.trimSlash;
 
 @RestController
 public class OIDCController {
@@ -33,11 +36,14 @@ public class OIDCController {
     @Autowired
     private OIDCKeyHolder keyHolder;
 
+    @Autowired
+    private MetricRegistry metricRegistry;
+
     /**
      * Get client_id and client_secret from HTTP Basic Auth
      */
     public static String[] getClientCredentials(Optional<String> authorization) throws RealmAuthenticationException {
-        final String[] clientCredentials = authorization
+        return authorization
                 .filter(string -> string.toUpperCase().startsWith(BASIC_AUTH_PREFIX.toUpperCase()))
                 .map(string -> string.substring(BASIC_AUTH_PREFIX.length()))
                 .map(BASE_64_DECODER::decode)
@@ -45,7 +51,6 @@ public class OIDCController {
                 .map(string -> string.split(":"))
                 .filter(array -> array.length == 2)
                 .orElseThrow(() -> new InvalidInputException("Malformed or missing Authorization header."));
-        return clientCredentials;
     }
 
     /**
@@ -60,60 +65,86 @@ public class OIDCController {
                                         @RequestParam(value = "scope") Optional<String> scope,
                                         @RequestHeader(name = "Authorization") Optional<String> authorization)
             throws RealmAuthenticationException, RealmAuthorizationException, JOSEException {
+        final Metric metric = new Metric(metricRegistry);
+        metric.start();
 
-        if (username.trim().isEmpty() || password.trim().isEmpty()) {
-            throw new InvalidInputException("Username and password should be provided.");
-        }
+        try {
+            if (username.trim().isEmpty() || password.trim().isEmpty()) {
+                throw new InvalidInputException("Username and password should be provided.");
+            }
 
-        // check for supported grant types
-        if (!"password".equals(grantType)) {
-            throw new InvalidInputException("Unsupported grant type: " + grantType);
-        }
+            // check for supported grant types
+            if (!"password".equals(grantType)) {
+                throw new InvalidInputException("Unsupported grant type: " + grantType);
+            }
 
-        // retrieve realms for the given realm
-        ClientRealm clientRealm = realms.getClientRealm(realmName);
-        if (clientRealm == null) {
-            throw new RealmNotFoundException(realmName);
-        }
+            // retrieve realms for the given realm
+            ClientRealm clientRealm = realms.getClientRealm(realmName);
+            if (clientRealm == null) {
+                throw new RealmNotFoundException(realmName);
+            }
 
-        UserRealm userRealm = realms.getUserRealm(realmName);
-        if (userRealm == null) {
-            throw new RealmNotFoundException(realmName);
-        }
+            UserRealm userRealm = realms.getUserRealm(realmName);
+            if (userRealm == null) {
+                throw new RealmNotFoundException(realmName);
+            }
 
-        // parse requested scopes
-        String[] scopes = scope.map(string -> string.split(" ")).orElse(new String[]{});
+            // parse requested scopes
+            String[] scopes = scope.map(string -> string.split(" ")).orElse(new String[]{});
 
-        // do the authentication
-        final String[] clientCredentials = getClientCredentials(authorization);
+            // do the authentication
+            final String[] clientCredentials = getClientCredentials(authorization);
 
-        clientRealm.authenticate(clientCredentials[0], clientCredentials[1], scopes);
-        Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes);
+            clientRealm.authenticate(clientCredentials[0], clientCredentials[1], scopes);
+            Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes);
 
-        // request authorized, create JWT
-        JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
-                .issuer("PlanB")
-                .expirationTime(new Date(System.currentTimeMillis() + EXPIRATION_TIME_UNIT.toMillis(EXPIRATION_TIME)))
-                .issueTime(new Date())
-                .subject(username)
-                .claim("realm", realmName)
-                .claim("scope", scopes);
-        extraClaims.forEach(claimsBuilder::claim);
-        JWTClaimsSet claims = claimsBuilder.build();
+            // request authorized, create JWT
+            JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
+                    .issuer("PlanB")
+                    .expirationTime(new Date(System.currentTimeMillis() + EXPIRATION_TIME_UNIT.toMillis(EXPIRATION_TIME)))
+                    .issueTime(new Date())
+                    .subject(username)
+                    .claim("realm", realmName)
+                    .claim("scope", scopes);
+            extraClaims.forEach(claimsBuilder::claim);
+            JWTClaimsSet claims = claimsBuilder.build();
 
-        // sign JWT
-        Optional<OIDCKeyHolder.Signer> signer = keyHolder.getCurrentSigner(realmName);
-        if (signer.isPresent()) {
-            SignedJWT jwt = new SignedJWT(new JWSHeader(signer.get().getAlgorithm(), JOSEObjectType.JWT, null, null,
-                    null, null, null, null, null, null, signer.get().getKid(), null, null), claims);
-            jwt.sign(signer.get().getJWSSigner());
+            // sign JWT
+            Optional<OIDCKeyHolder.Signer> optionalSigner = keyHolder.getCurrentSigner(realmName);
+            if (optionalSigner.isPresent()) {
+                final OIDCKeyHolder.Signer signer = optionalSigner.get();
+                final JWSAlgorithm algorithm = signer.getAlgorithm();
 
-            // done
-            String rawJWT = jwt.serialize();
-            return new OIDCCreateTokenResponse(rawJWT, rawJWT, EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME),
-                    scope.orElse(""), realmName);
-        } else {
-            throw new UnsupportedOperationException("No key found for signing requests of realm " + realmName);
+                final Metric signingMetric = new Metric(metricRegistry);
+                signingMetric.start();
+
+                String rawJWT;
+                try {
+                    SignedJWT jwt = new SignedJWT(new JWSHeader(algorithm, JOSEObjectType.JWT, null, null,
+                            null, null, null, null, null, null, signer.getKid(), null, null), claims);
+                    jwt.sign(signer.getJWSSigner());
+
+                    // done
+                    rawJWT = jwt.serialize();
+                } finally {
+                    signingMetric.finish("planb.provider.jwt.signing." + algorithm.getName());
+                }
+
+                metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
+
+                return new OIDCCreateTokenResponse(rawJWT, rawJWT, EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME),
+                        scope.orElse(""), realmName);
+            } else {
+                throw new UnsupportedOperationException("No key found for signing requests of realm " + realmName);
+            }
+        } catch (Throwable t) {
+            final String errorType = Optional.of(t)
+                    .filter(e -> e instanceof RestException)
+                    .map(e -> (RestException) e)
+                    .flatMap(RestException::getErrorType)
+                    .orElse("other");
+            metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".error." + errorType);
+            throw t;
         }
     }
 

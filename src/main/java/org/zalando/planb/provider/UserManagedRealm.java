@@ -17,15 +17,15 @@ import static java.util.stream.Collectors.toSet;
 public interface UserManagedRealm extends UserRealm {
 
     default Map<String, Object> authenticate(String username, String password, String[] scopes)
-            throws RealmAuthenticationException, RealmAuthorizationException {
-        final User user = get(username).orElseThrow(() -> new RealmAuthenticationException(username, getName()));
+            throws UserRealmAuthenticationException, UserRealmAuthorizationException {
+        final User user = get(username).orElseThrow(() -> new UserRealmAuthenticationException(username, getName()));
 
         final Base64.Decoder base64Decoder = Base64.getDecoder();
         if (!user.getPasswordHashes().stream()
                 .map(base64Decoder::decode)
                 .map(bytes -> new String(bytes, UTF_8))
                 .anyMatch(passwordHash -> Realm.checkBCryptPassword(password, passwordHash))) {
-            throw new RealmAuthenticationException(username, getName());
+            throw new UserRealmAuthenticationException(username, getName());
         }
 
         final Set userScopes = ((Map) user.getScopes()).keySet();
@@ -34,7 +34,7 @@ public interface UserManagedRealm extends UserRealm {
                 .collect(toSet());
 
         if (!missingScopes.isEmpty()) {
-            throw new RealmAuthorizationException(username, getName(), scopes);
+            throw new UserRealmAuthorizationException(username, getName(), scopes);
         }
 
         return singletonMap("sub", username);

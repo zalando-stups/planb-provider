@@ -1,12 +1,10 @@
 package org.zalando.planb.provider;
 
-import com.nimbusds.jwt.JWT;
-import com.nimbusds.jwt.JWTParser;
-import org.assertj.core.api.Condition;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -21,7 +19,7 @@ import org.zalando.planb.provider.api.User;
 
 import java.net.URI;
 import java.util.Base64;
-import java.util.function.Predicate;
+import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
@@ -29,16 +27,20 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.http.RequestEntity.post;
-import static org.springframework.http.RequestEntity.put;
+import static org.springframework.http.RequestEntity.*;
 
 @SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
 @ActiveProfiles("it")
 public class ServiceUserAuthenticationIT extends AbstractSpringTest {
 
+    private static final ParameterizedTypeReference<Map<String, Object>> METRICS_TYPE = new ParameterizedTypeReference<Map<String, Object>>() {
+    };
     @Value("${local.server.port}")
     private int port;
+
+    @Value("${local.management.port}")
+    private int mgmtPort;
 
     private final RestOperations http = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
 
@@ -71,7 +73,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
                 .body(user), Void.class);
 
         // Get an access token for the newly created user
-        final MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<String, Object>();
+        final MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("realm", realm);
         requestParameters.add("grant_type", "password");
         requestParameters.add("username", username);
@@ -92,6 +94,11 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
         assertThat(tokenResponse.getAccessToken()).isNotEmpty();
         assertThat(tokenResponse.getAccessToken()).isEqualTo(tokenResponse.getIdToken());
         assertThat(tokenResponse.getAccessToken().split("\\.")).hasSize(3);
+
+        // check metrics
+        final URI metricsUrl = URI.create("http://localhost:" + mgmtPort + "/metrics");
+        final Map<String, Object> metrics = http.exchange(get(metricsUrl).accept(APPLICATION_JSON).build(), METRICS_TYPE).getBody();
+        assertThat(metrics).containsKeys("planb.provider.access_token.services.success.count");
     }
 
     private String hashAndEncodePassword(String clientSecret) {
