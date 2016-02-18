@@ -4,6 +4,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Joiner;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -105,14 +106,25 @@ public class OIDCController {
             JWTClaimsSet claims = claimsBuilder.build();
 
             // sign JWT
-            Optional<OIDCKeyHolder.Signer> signer = keyHolder.getCurrentSigner(realmName);
-            if (signer.isPresent()) {
-                SignedJWT jwt = new SignedJWT(new JWSHeader(signer.get().getAlgorithm(), JOSEObjectType.JWT, null, null,
-                        null, null, null, null, null, null, signer.get().getKid(), null, null), claims);
-                jwt.sign(signer.get().getJWSSigner());
+            Optional<OIDCKeyHolder.Signer> optionalSigner = keyHolder.getCurrentSigner(realmName);
+            if (optionalSigner.isPresent()) {
+                final OIDCKeyHolder.Signer signer = optionalSigner.get();
+                final JWSAlgorithm algorithm = signer.getAlgorithm();
 
-                // done
-                String rawJWT = jwt.serialize();
+                final Metric signingMetric = new Metric(metricRegistry);
+                signingMetric.start();
+
+                String rawJWT;
+                try {
+                    SignedJWT jwt = new SignedJWT(new JWSHeader(algorithm, JOSEObjectType.JWT, null, null,
+                            null, null, null, null, null, null, signer.getKid(), null, null), claims);
+                    jwt.sign(signer.getJWSSigner());
+
+                    // done
+                    rawJWT = jwt.serialize();
+                } finally {
+                    signingMetric.finish(() -> "planb.provider.jwt.signing." + algorithm.getName());
+                }
 
                 metric.finish(() -> "planb.provider.access_token." + trimSlash(realmName) + ".success");
 
