@@ -13,19 +13,23 @@ check_call('openssl ecparam -genkey -out test-es512-secp521r1.pem -name secp521r
 with open('test-es512-secp521r1.pem') as fd:
     es512 = fd.read()
 
-now = str(int(time.time()))
+check_call('openssl ecparam -genkey -out test-es256-prime256v1.pem -name prime256v1', shell=True)
+with open('test-es256-prime256v1.pem') as fd:
+    es256 = fd.read()
+
+now = int(time.time())
 print('''
 INSERT INTO provider.keypair
         (kid, realms, private_key_pem, algorithm, valid_from)
               VALUES
-                      ('testkey-services', {'/services'}, ''' + "'" + rs256 + "', 'RS256', " + now + ");")
+                      ('testkey-services', {'/services'}, ''' + "'" + rs256 + "', 'RS256', " + str(now) + ");")
 
 
 print('''
 INSERT INTO provider.keypair
         (kid, realms, private_key_pem, algorithm, valid_from)
               VALUES
-                      ('testkey-customers', {'/customers'}, ''' + "'" + es512 + "', 'ES512', " + now + ");")
+                      ('testkey-es256', {'/customers', '/services'}, ''' + "'" + es256 + "', 'ES256', " + str(now + 120) + ");")
 
 for i in range(2048):
     uid = 'test{}'.format(i)
