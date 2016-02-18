@@ -69,6 +69,10 @@ public class OIDCController {
         metric.start();
 
         try {
+            if (username.trim().isEmpty() || password.trim().isEmpty()) {
+                throw new InvalidInputException("Username and password should be provided.");
+            }
+
             // check for supported grant types
             if (!"password".equals(grantType)) {
                 throw new InvalidInputException("Unsupported grant type: " + grantType);
