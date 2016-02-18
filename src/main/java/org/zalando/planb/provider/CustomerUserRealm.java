@@ -29,6 +29,11 @@ public class CustomerUserRealm implements UserRealm {
     @Override
     @HystrixCommand(ignoreExceptions = {RealmAuthenticationException.class})
     public Map<String, Object> authenticate(String user, String password, String[] scopes) throws RealmAuthenticationException {
+
+        if (user == null || password == null || user.trim().isEmpty() || password.trim().isEmpty()) {
+            throw new RealmAuthenticationException(user, realmName);
+        }
+
         final CustomerResponse response = ofNullable(customerRealmWebService.authenticate(APP_DOMAIN_ID, user, password))
                 .filter(r -> SUCCESS_STATUS.equals(r.getLoginResult()))
                 .orElseThrow(() -> new RealmAuthenticationException(user, realmName));
