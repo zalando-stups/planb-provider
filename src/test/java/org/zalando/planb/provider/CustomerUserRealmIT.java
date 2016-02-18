@@ -19,7 +19,7 @@ import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.TEXT_XML_VALUE;
 
 @SpringApplicationConfiguration(classes = {Main.class})
-@WebIntegrationTest(value = {"debug=true"}, randomPort = true)
+@WebIntegrationTest(randomPort = true)
 @ActiveProfiles({"it"})
 public class CustomerUserRealmIT extends AbstractSpringTest {
 
