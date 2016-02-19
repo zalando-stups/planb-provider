@@ -4,6 +4,8 @@ import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.ProtocolOptions;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.Optional;
+
 import static com.datastax.driver.core.ConsistencyLevel.ONE;
 
 @ConfigurationProperties(prefix = "cassandra")
@@ -17,6 +19,8 @@ public class CassandraProperties {
     private int port = ProtocolOptions.DEFAULT_PORT;
     private ConsistencyLevel writeConsistencyLevel = ONE; // TODO what is a sane default?
     private ConsistencyLevel readConsistencyLevel = ONE; // TODO what is a sane default?
+    private Optional<String> username = Optional.empty();
+    private Optional<String> password = Optional.empty();
 
     public String getKeyspace() {
         return keyspace;
@@ -64,5 +68,21 @@ public class CassandraProperties {
 
     public void setReadConsistencyLevel(ConsistencyLevel readConsistencyLevel) {
         this.readConsistencyLevel = readConsistencyLevel;
+    }
+
+    public Optional<String> getUsername() {
+        return username;
+    }
+
+    public void setUsername(Optional<String> username) {
+        this.username = username;
+    }
+
+    public Optional<String> getPassword() {
+        return password;
+    }
+
+    public void setPassword(Optional<String> password) {
+        this.password = password;
     }
 }
