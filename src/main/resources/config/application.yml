@@ -29,3 +29,23 @@ management:
   port: 7979
   security:
     enabled: false
+
+hystrix:
+  # https://github.com/Netflix/Hystrix/wiki/Configuration#ThreadPool
+  threadpool:
+    default:
+      coreSize: 10
+      maxQueueSize: 32
+      queueSizeRejectionThreshold: 32
+  command:
+    default:
+      # https://github.com/Netflix/Hystrix/wiki/Configuration#CommandExecution
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 2000
+      # https://github.com/Netflix/Hystrix/wiki/Configuration#circuit-breaker
+      circuitBreaker:
+        requestVolumeThreshold: 20
+        sleepWindowInMilliseconds: 4000
+        errorThresholdPercentage: 50
