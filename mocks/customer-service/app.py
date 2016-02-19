@@ -2,7 +2,11 @@
 
 import flask
 import gevent.wsgi
+import logging
 import time
+
+from gevent import monkey
+monkey.patch_all()
 
 app = flask.Flask(__name__)
 
@@ -50,5 +54,8 @@ def authenticate():
     return resp
 
 if __name__ == "__main__":
-    http_server = gevent.wsgi.WSGIServer(('', 8080), app)
+    logging.basicConfig(level=logging.INFO)
+    port = 8080
+    http_server = gevent.wsgi.WSGIServer(('', port), app)
+    logging.info('Starting server on port {}..'.format(port))
     http_server.serve_forever()
