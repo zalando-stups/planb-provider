@@ -22,8 +22,6 @@ public interface UserManagedRealm extends UserRealm {
 
         final Base64.Decoder base64Decoder = Base64.getDecoder();
         if (!user.getPasswordHashes().stream()
-                .map(base64Decoder::decode)
-                .map(bytes -> new String(bytes, UTF_8))
                 .anyMatch(passwordHash -> Realm.checkBCryptPassword(password, passwordHash))) {
             throw new UserRealmAuthenticationException(username, getName());
         }

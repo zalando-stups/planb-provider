@@ -24,8 +24,8 @@ public interface ClientManagedRealm extends ClientRealm {
             throw new ClientRealmAuthenticationException(clientId, getName());
         }
 
-        final String decodedSecretHash = new String(Base64.getDecoder().decode(client.getSecretHash()), UTF_8);
-        if (!Realm.checkBCryptPassword(clientSecret, decodedSecretHash)) {
+
+        if (!Realm.checkBCryptPassword(clientSecret, client.getSecretHash())) {
             throw new ClientRealmAuthenticationException(clientId, getName());
         }
 
