@@ -33,7 +33,7 @@ INSERT INTO provider.keypair
 
 for i in range(2048):
     uid = 'test{}'.format(i)
-    pw = base64.b64encode(bcrypt.hashpw(uid.encode('utf-8'), bcrypt.gensalt(8))).decode('utf-8')
+    pw = base64.b64encode(bcrypt.hashpw(uid.encode('utf-8'), bcrypt.gensalt(4))).decode('utf-8')
     print("INSERT INTO provider.client (client_id, realm, client_secret_hash, is_confidential, scopes) VALUES ('" + uid + "', '/services', '" + pw + "', true, {'uid'});")
     print("INSERT INTO provider.client (client_id, realm, client_secret_hash, is_confidential, scopes) VALUES ('" + uid + "', '/customers', '" + pw + "', true, {'uid'});")
     print("INSERT INTO provider.user (username, realm, password_hashes, scopes) VALUES ('" + uid + "', '/services', {'" + pw + "'}, {'uid': 'true'});")
