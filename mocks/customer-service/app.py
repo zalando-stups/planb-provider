@@ -2,6 +2,7 @@
 
 import flask
 import gevent.wsgi
+import time
 
 app = flask.Flask(__name__)
 
@@ -44,6 +45,8 @@ def authenticate():
     <loginResult>{result}</loginResult></return></ns2:authenticateResponse></soap:Body></soap:Envelope>'''.format(number=number, result=result)
     resp = flask.Response(response)
     resp.headers['Content-Type'] = 'text/xml'
+    # simulate 300ms delay
+    time.sleep(0.3)
     return resp
 
 if __name__ == "__main__":
