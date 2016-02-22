@@ -82,7 +82,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         String jwt = response.getBody().getIdToken();
 
         // fetch JWK
-        HttpsJwks httpsJkws = new HttpsJwks("http://localhost:" + port + "/oauth2/v3/certs");
+        HttpsJwks httpsJkws = new HttpsJwks("http://localhost:" + port + "/oauth2/connect/keys");
         HttpsJwksVerificationKeyResolver httpsJwksKeyResolver = new HttpsJwksVerificationKeyResolver(httpsJkws);
         JwtConsumer jwtConsumer = new JwtConsumerBuilder()
                 .setVerificationKeyResolver(httpsJwksKeyResolver)

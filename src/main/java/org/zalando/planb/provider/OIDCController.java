@@ -10,6 +10,7 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -159,7 +160,7 @@ public class OIDCController {
         return new OIDCDiscoveryInformationResponse(proto, hostname);
     }
 
-    @RequestMapping("/oauth2/v3/certs")
+    @RequestMapping(value = OIDCDiscoveryInformationResponse.KEYS_PATH, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     String getSigningKeys() {
         List<String> jwks = keyHolder.getCurrentPublicKeys().stream()
                 .map(JWK::toJSONString)

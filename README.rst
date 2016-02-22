@@ -114,7 +114,7 @@ Retrieving all public keys (`set of JWKs`_) for verification:
 
 .. code-block:: bash
 
-    $ curl --silent http://localhost:8080/oauth2/v3/certs | jq .
+    $ curl --silent http://localhost:8080/oauth2/connect/keys | jq .
 
 
 Configuration

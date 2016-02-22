@@ -3,6 +3,9 @@ package org.zalando.planb.provider;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class OIDCDiscoveryInformationResponse {
+
+    public static final String KEYS_PATH = "/oauth2/connect/keys";
+
     private final String issuer = "PlanB";
 
     @JsonProperty("jwks_uri")
@@ -12,7 +15,7 @@ public class OIDCDiscoveryInformationResponse {
     }
 
     public OIDCDiscoveryInformationResponse(String proto, String hostname) {
-        jwksUri = proto + "://" + hostname + "/oauth2/v3/certs";
+        jwksUri = proto + "://" + hostname + KEYS_PATH;
     }
 
     public String getIssuer() {

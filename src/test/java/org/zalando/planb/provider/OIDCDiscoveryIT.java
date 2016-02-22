@@ -41,7 +41,7 @@ public class OIDCDiscoveryIT extends AbstractSpringTest {
                         URI.create("http://localhost:" + port + "/.well-known/openid-configuration"),
                         OIDCDiscoveryInformationResponse.class);
 
-        assertThat(response.getBody().getJwksUri()).isEqualTo("http://localhost:" + port + "/oauth2/v3/certs");
+        assertThat(response.getBody().getJwksUri()).isEqualTo("http://localhost:" + port + "/oauth2/connect/keys");
     }
 
     @Test
@@ -53,7 +53,7 @@ public class OIDCDiscoveryIT extends AbstractSpringTest {
         ResponseEntity<OIDCDiscoveryInformationResponse> response = rest
                 .exchange(request, OIDCDiscoveryInformationResponse.class);
 
-        assertThat(response.getBody().getJwksUri()).isEqualTo("https://localhost:" + port + "/oauth2/v3/certs");
+        assertThat(response.getBody().getJwksUri()).isEqualTo("https://localhost:" + port + "/oauth2/connect/keys");
     }
 
 }
