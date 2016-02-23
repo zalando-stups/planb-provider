@@ -218,7 +218,7 @@
             <plugin>
                 <groupId>org.zalando</groupId>
                 <artifactId>cassandra-maven-plugin</artifactId>
-                <version>2.1.7-z3</version>
+                <version>2.1.7-z4</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.slf4j</groupId>
@@ -252,9 +252,9 @@
                             <cqlVersion>3.0.0</cqlVersion>
                             <script>schema.cql</script>
                             <cqlScript>src/test/resources/testdata.cql</cqlScript>
-                            <!--<yaml>authenticator: PasswordAuthenticator</yaml>-->
-                            <!--<username>cassandra</username>-->
-                            <!--<password>cassandra</password>-->
+                            <yaml>authenticator: PasswordAuthenticator</yaml>
+                            <username>cassandra</username>
+                            <password>cassandra</password>
                         </configuration>
                     </execution>
                     <execution>
