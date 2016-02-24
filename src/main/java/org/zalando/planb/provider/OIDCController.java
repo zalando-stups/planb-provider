@@ -18,7 +18,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.joining;
 import static org.zalando.planb.provider.Metric.trimSlash;
+import static org.zalando.planb.provider.ScopeProperties.SPACE;
 
 @RestController
 public class OIDCController {
@@ -39,6 +41,9 @@ public class OIDCController {
 
     @Autowired
     private MetricRegistry metricRegistry;
+
+    @Autowired
+    private ScopeProperties scopeProperties;
 
     /**
      * Get client_id and client_secret from HTTP Basic Auth
@@ -91,13 +96,16 @@ public class OIDCController {
             }
 
             // parse requested scopes
-            String[] scopes = scope.map(string -> string.split(" ")).orElse(new String[]{});
+            final Set<String> scopes = ScopeProperties.split(scope);
+            final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);
+            final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
 
             // do the authentication
             final String[] clientCredentials = getClientCredentials(authorization);
 
-            clientRealm.authenticate(clientCredentials[0], clientCredentials[1], scopes);
-            Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes);
+            clientRealm.authenticate(clientCredentials[0], clientCredentials[1], scopes, defaultScopes);
+            Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
+
 
             // request authorized, create JWT
             JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
@@ -106,7 +114,7 @@ public class OIDCController {
                     .issueTime(new Date())
                     .subject(username)
                     .claim("realm", realmName)
-                    .claim("scope", scopes);
+                    .claim("scope", finalScopes);
             extraClaims.forEach(claimsBuilder::claim);
             JWTClaimsSet claims = claimsBuilder.build();
 
@@ -133,8 +141,12 @@ public class OIDCController {
 
                 metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
 
-                return new OIDCCreateTokenResponse(rawJWT, rawJWT, EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME),
-                        scope.orElse(""), realmName);
+                return new OIDCCreateTokenResponse(
+                        rawJWT,
+                        rawJWT,
+                        EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME),
+                        finalScopes.stream().collect(joining(SPACE)),
+                        realmName);
             } else {
                 throw new UnsupportedOperationException("No key found for signing requests of realm " + realmName);
             }

@@ -21,3 +21,7 @@ security:
 api:
   security:
     raw-sync-expr: "#oauth2.hasScope('hello') && #oauth2.hasUidScopeAndAnyRealm('/services', '/employees')"
+
+scope:
+  defaults:
+    services: "hello world"

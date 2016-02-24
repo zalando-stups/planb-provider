@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,7 +37,7 @@ public class CustomerUserRealm implements UserRealm {
 
     @Override
     @HystrixCommand(ignoreExceptions = {RealmAuthenticationException.class})
-    public Map<String, Object> authenticate(String username, String password, String[] scopes) throws RealmAuthenticationException {
+    public Map<String, Object> authenticate(String username, String password, Set<String> scopes, Set<String> defaultScopes) throws UserRealmAuthenticationException, UserRealmAuthorizationException {
         final CustomerResponse response = ofNullable(customerRealmWebService.authenticate(APP_DOMAIN_ID, username, password))
                 .filter(r -> SUCCESS_STATUS.equals(r.getLoginResult()))
                 .orElseThrow(() -> new UserRealmAuthenticationException(maskUsername(username), realmName));
