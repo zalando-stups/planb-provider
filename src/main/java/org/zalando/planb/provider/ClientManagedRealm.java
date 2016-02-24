@@ -2,19 +2,16 @@ package org.zalando.planb.provider;
 
 import org.zalando.planb.provider.api.Client;
 
-import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import static java.lang.String.format;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toSet;
 
 public interface ClientManagedRealm extends ClientRealm {
 
     @Override
-    default void authenticate(String clientId, String clientSecret, String[] scopes)
+    default void authenticate(String clientId, String clientSecret, Set<String> scopes, Set<String> defaultScopes)
             throws ClientRealmAuthenticationException, ClientRealmAuthorizationException {
         final Client client = get(clientId)
                 .orElseThrow(() -> new ClientRealmAuthenticationException(clientId, getName()));
@@ -29,12 +26,13 @@ public interface ClientManagedRealm extends ClientRealm {
             throw new ClientRealmAuthenticationException(clientId, getName());
         }
 
-        final Set<String> missingScopes = Stream.of(scopes)
+        final Set<String> missingScopes = scopes.stream()
+                .filter(scope -> !defaultScopes.contains(scope))
                 .filter(scope -> !client.getScopes().contains(scope))
                 .collect(toSet());
 
         if (!missingScopes.isEmpty()) {
-            throw new ClientRealmAuthorizationException(clientId, getName(), scopes);
+            throw new ClientRealmAuthorizationException(clientId, getName(), missingScopes);
         }
     }
 

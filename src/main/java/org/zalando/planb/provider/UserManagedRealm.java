@@ -3,31 +3,29 @@ package org.zalando.planb.provider;
 import org.zalando.planb.provider.api.Password;
 import org.zalando.planb.provider.api.User;
 
-import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import static java.lang.String.format;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toSet;
 
 public interface UserManagedRealm extends UserRealm {
 
-    default Map<String, Object> authenticate(String username, String password, String[] scopes)
+    @Override
+    default Map<String, Object> authenticate(String username, String password, Set<String> scopes, Set<String> defaultScopes)
             throws UserRealmAuthenticationException, UserRealmAuthorizationException {
         final User user = get(username).orElseThrow(() -> new UserRealmAuthenticationException(username, getName()));
 
-        final Base64.Decoder base64Decoder = Base64.getDecoder();
         if (!user.getPasswordHashes().stream()
                 .anyMatch(passwordHash -> Realm.checkBCryptPassword(password, passwordHash))) {
             throw new UserRealmAuthenticationException(username, getName());
         }
 
         final Set userScopes = ((Map) user.getScopes()).keySet();
-        final Set<String> missingScopes = Stream.of(scopes)
+        final Set<String> missingScopes = scopes.stream()
+                .filter(scope -> !defaultScopes.contains(scope))
                 .filter(scope -> !userScopes.contains(scope))
                 .collect(toSet());
 

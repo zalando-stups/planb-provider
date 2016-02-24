@@ -1,0 +1,5 @@
+scope:
+  defaults:
+    foo: "bar name"
+    customers: "email"
+    services: "name"

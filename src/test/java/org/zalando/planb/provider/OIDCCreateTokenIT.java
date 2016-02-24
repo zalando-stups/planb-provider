@@ -49,7 +49,9 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         requestParameters.add("grant_type", "password");
         requestParameters.add("username", username);
         requestParameters.add("password", password);
-        requestParameters.add("scope", scope);
+        if (scope != null) {
+            requestParameters.add("scope", scope);
+        }
         String basicAuth = Base64.getEncoder().encodeToString((clientId + ':' + clientSecret).getBytes(UTF_8));
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
@@ -72,6 +74,15 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
         assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
+    }
+
+    @Test
+    public void createServiceUserTokenWithDefaultScopes() {
+        ResponseEntity<OIDCCreateTokenResponse> response = createToken("/services",
+                "testclient", "test", "testuser", "test", null);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getScope()).isEqualTo("hello world");
     }
 
     @Test
