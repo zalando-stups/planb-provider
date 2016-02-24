@@ -26,6 +26,9 @@ public class CustomerUserRealmTest {
 
         assertThat(masked3).startsWith("x@***ld");
 
-        assertThat(maskUsername("not-an-email")).startsWith("no***il");
+        assertThat(maskUsername("not-an-email")).startsWith("no***il (");
+
+        // too short usernames (<4 chars) are not masked
+        assertThat(maskUsername("123")).isEqualTo("123");
     }
 }
