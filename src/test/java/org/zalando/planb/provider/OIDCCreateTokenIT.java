@@ -77,12 +77,22 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     }
 
     @Test
-    public void createServiceUserTokenWithDefaultScopes() {
+    public void createServiceUserTokenUsingDefaultScopes() {
         ResponseEntity<OIDCCreateTokenResponse> response = createToken("/services",
                 "testclient", "test", "testuser", "test", null);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getScope()).isEqualTo("hello world");
+    }
+
+    @Test
+    public void createServiceUserTokenExplicitlyRequestingDefaultScopes() {
+        // default scopes should be granted even though they have not been configured for this certain user / client
+        ResponseEntity<OIDCCreateTokenResponse> response = createToken("/services",
+                "testclient", "test", "testuser", "test", "hello world uid");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getScope()).isEqualTo("hello world uid");
     }
 
     @Test
@@ -138,6 +148,35 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(response.getBody().getRealm()).isEqualTo("/customers");
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
         assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
+    }
+
+    @Test
+    public void testCreateCustomerTokenNoScope() throws Exception {
+        stubFor(post(urlEqualTo("/ws/customerService?wsdl"))
+                .willReturn(aResponse()
+                        .withStatus(OK.value())
+                        .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
+                        .withBody("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
+                                "    <soap:Body>\n" +
+                                "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\">\n" +
+                                "            <return>\n" +
+                                "                <customerNumber>123456789</customerNumber>\n" +
+                                "                <loginResult>SUCCESS</loginResult>\n" +
+                                "            </return>\n" +
+                                "        </ns2:authenticateResponse>\n" +
+                                "    </soap:Body>\n" +
+                                "</soap:Envelope>")));
+
+        final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", null);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        final OIDCCreateTokenResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.getScope()).isEmpty();
+        final String accessToken = body.getAccessToken();
+        assertThat(body.getTokenType()).isEqualTo("Bearer");
+        assertThat(body.getRealm()).isEqualTo("/customers");
+        assertThat(accessToken).isNotEmpty();
+        assertThat(accessToken).isEqualTo(body.getIdToken());
     }
 
     @Test

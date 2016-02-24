@@ -31,11 +31,6 @@ public class ScopeProperties {
         return defaults;
     }
 
-    @SuppressWarnings("unused")
-    public void setDefaults(Map<String, String> defaults) {
-        this.defaults = defaults;
-    }
-
     public static Set<String> split(Optional<String> scope) {
         return scope
                 .map(String::trim)
