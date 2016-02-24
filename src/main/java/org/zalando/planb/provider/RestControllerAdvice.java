@@ -34,7 +34,7 @@ public class RestControllerAdvice {
 
     @ExceptionHandler(HystrixRuntimeException.class)
     public ResponseEntity<Map<String, String>> handleHystrixExceptions(HystrixRuntimeException e) {
-        LOG.warn("Ups something went wrong:", e);
+        LOG.warn("Dependency unavailable:", e);
         return status(SERVICE_UNAVAILABLE)
                 .body(singletonMap("error_message", "Dependency unavailable"));
     }
