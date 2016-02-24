@@ -40,6 +40,7 @@ public class ScopePropertiesTest {
     public void testDefaultScopes() throws Exception {
         assertThat(scopeProperties.getDefaultScopes("unknown-realm")).isEmpty();
         assertThat(scopeProperties.getDefaultScopes("foo")).containsOnly("bar", "name");
+        assertThat(scopeProperties.getDefaultScopes("hello")).isEmpty();
         assertThat(scopeProperties.getDefaultScopes("/customers")).containsOnly("email");
         assertThat(scopeProperties.getDefaultScopes("customers")).containsOnly("email");
         assertThat(scopeProperties.getDefaultScopes("services")).containsOnly("id", "team");

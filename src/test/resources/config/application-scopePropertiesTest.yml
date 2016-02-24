@@ -3,3 +3,4 @@ scope:
     foo: "bar name"
     customers: "email"
     services: "name"
+    hello: ""
