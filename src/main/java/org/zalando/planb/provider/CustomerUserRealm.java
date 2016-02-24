@@ -23,8 +23,8 @@ public class CustomerUserRealm implements UserRealm {
     public static final String SUCCESS_STATUS = "SUCCESS";
     public static final String UID = "uid";
 
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("\\b(\\w\\w?)[^@]*@\\S+(\\.[^\\s.]+)");
-    private static final String EMAIL_MASK = "$1***@***$2";
+    private static final Pattern USERNAME_PATTERN = Pattern.compile("^(..).*(..)$");
+    private static final String USERNAME_MASK = "$1***$2";
 
     private CustomerRealmWebService customerRealmWebService;
     private String realmName;
@@ -39,7 +39,7 @@ public class CustomerUserRealm implements UserRealm {
     public Map<String, Object> authenticate(String username, String password, String[] scopes) throws RealmAuthenticationException {
         final CustomerResponse response = ofNullable(customerRealmWebService.authenticate(APP_DOMAIN_ID, username, password))
                 .filter(r -> SUCCESS_STATUS.equals(r.getLoginResult()))
-                .orElseThrow(() -> new UserRealmAuthenticationException(maskEmail(username), realmName));
+                .orElseThrow(() -> new UserRealmAuthenticationException(maskUsername(username), realmName));
 
         return singletonMap(UID, response.getCustomerNumber());
     }
@@ -55,12 +55,12 @@ public class CustomerUserRealm implements UserRealm {
     }
 
     @VisibleForTesting
-    static String maskEmail(String username) {
-        final Matcher matcher = EMAIL_PATTERN.matcher(username);
+    static String maskUsername(String username) {
+        final Matcher matcher = USERNAME_PATTERN.matcher(username);
         if (matcher.matches()) {
             final SHA256.Digest digest = new SHA256.Digest();
             digest.update(username.getBytes());
-            return matcher.replaceAll(EMAIL_MASK) + " (" + toHexString(digest.digest()) + ")";
+            return matcher.replaceAll(USERNAME_MASK) + " (" + toHexString(digest.digest()).substring(0, 8) + ")";
         } else {
             return username;
         }

@@ -3,29 +3,29 @@ package org.zalando.planb.provider;
 import org.junit.Test;
 
 import static org.assertj.core.api.StrictAssertions.assertThat;
-import static org.zalando.planb.provider.CustomerUserRealm.maskEmail;
+import static org.zalando.planb.provider.CustomerUserRealm.maskUsername;
 
 public class CustomerUserRealmTest {
 
     @Test
-    public void testMaskEmail() throws Exception {
-        final String masked1 = maskEmail("foo.bar@zalando.de");
+    public void testMaskUsername() throws Exception {
+        final String masked1 = maskUsername("foo.bar@zalando.de");
         System.out.println(masked1);
-        final String masked2 = maskEmail("foo.bar@zalando.de");
+        final String masked2 = maskUsername("foo.bar@zalando.de");
         System.out.println(masked2);
-        final String masked3 = maskEmail("x@hello.world");
+        final String masked3 = maskUsername("x@hello.world");
         System.out.println(masked3);
+        final String masked4 = maskUsername("");
+        System.out.println(masked4);
 
         // long emails will contain the first two letters in plaintext
-        assertThat(masked1).startsWith("fo***@***.de");
+        assertThat(masked1).isEqualTo("fo***de (0e37cadb)");
 
         // the hash should be constant for same input (helps on debugging)
         assertThat(masked1).isEqualTo(masked2);
 
-        // short emails will only contain the first letter in plaintext
-        assertThat(masked3).startsWith("x***@***.world");
+        assertThat(masked3).startsWith("x@***ld");
 
-        // no email -> no masking
-        assertThat(maskEmail("not-an-email")).isEqualTo("not-an-email");
+        assertThat(maskUsername("not-an-email")).startsWith("no***il");
     }
 }
