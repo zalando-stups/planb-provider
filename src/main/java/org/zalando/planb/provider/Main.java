@@ -14,7 +14,7 @@ import java.security.Security;
 
 @Configuration
 @EnableAutoConfiguration(exclude = {
-        CassandraAutoConfiguration.class // TODO Disabled for now, because we have our own. Let's figure out, if Spring's config would also fit for us
+        CassandraAutoConfiguration.class // TODO Disabled because we have our own config
 })
 @ComponentScan
 @EnableHystrix

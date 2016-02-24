@@ -16,12 +16,17 @@ public class CassandraConfig {
 
     @Bean
     Session initializeCassandra() {
-        Cluster cluster = Cluster.builder()
-                .addContactPoints(cassandra.getContactPoints().split(","))
-                .withClusterName(cassandra.getClusterName())
-                .withPort(cassandra.getPort())
-                .build();
+        final Cluster.Builder builder = Cluster.builder();
 
-        return cluster.connect(cassandra.getKeyspace());
+        builder.addContactPoints(cassandra.getContactPoints().split(","));
+        builder.withClusterName(cassandra.getClusterName());
+        builder.withPort(cassandra.getPort());
+        builder.build();
+
+        if (cassandra.getUsername().isPresent() && cassandra.getPassword().isPresent()) {
+            builder.withCredentials(cassandra.getUsername().get(), cassandra.getPassword().get());
+        }
+
+        return builder.build().connect(cassandra.getKeyspace());
     }
 }
