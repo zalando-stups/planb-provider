@@ -1,22 +1,34 @@
 package org.zalando.planb.provider;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import javax.validation.constraints.NotNull;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 @Component
 public class RealmConfig implements BeanFactoryAware {
-    private final Map<String,ClientRealm> clientRealms = new HashMap<>();
-    private final Map<String,UserRealm> userRealms = new HashMap<>();
+    private final Map<String, ClientRealm> clientRealms = new HashMap<>();
+    private final Map<String, UserRealm> userRealms = new HashMap<>();
     private BeanFactory beanFactory;
+
+    private static final Pattern HOST_WORD_BOUNDARY = Pattern.compile("[.-]");
 
     public static String ensureLeadingSlash(String realmName) {
         return realmName.startsWith("/") ? realmName : "/" + realmName;
+    }
+
+    public static String stripLeadingSlash(String realm) {
+        return realm.startsWith("/") ? realm.substring(1) : realm;
     }
 
     @Override
@@ -38,6 +50,19 @@ public class RealmConfig implements BeanFactoryAware {
     void setup() {
         newRealm("/services", CassandraClientRealm.class, CassandraUserRealm.class);
         newRealm("/customers", CassandraClientRealm.class, CustomerUserRealm.class);
+    }
+
+    static Optional<String> findRealmNameInHost(@NotNull final Set<String> realmNames, @NotNull final String host) {
+        Set<String> hostParts = ImmutableSet.copyOf(HOST_WORD_BOUNDARY.split(host));
+        Optional<String> realmFromHost = realmNames.stream()
+                .filter(realm -> hostParts.contains(stripLeadingSlash(realm)))
+                .sorted()
+                .findFirst();
+        return realmFromHost;
+    }
+
+    Optional<String> findRealmNameInHost(@NotNull final String host) {
+        return findRealmNameInHost(clientRealms.keySet(), host);
     }
 
     UserRealm getUserRealm(String name) {
