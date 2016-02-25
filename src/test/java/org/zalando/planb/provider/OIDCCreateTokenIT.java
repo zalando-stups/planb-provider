@@ -77,6 +77,47 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     }
 
     @Test
+    public void createServiceUserTokenUsingHostHeader() {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("grant_type", "password");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        String basicAuth = Base64.getEncoder().encodeToString(("testclient" + ':' + "test").getBytes(UTF_8));
+
+        RequestEntity<MultiValueMap<String, Object>> request;
+        ResponseEntity<OIDCCreateTokenResponse> response;
+
+        // wrong Host header (not mapping to any realm)
+        request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .header("Authorization", "Basic " + basicAuth)
+                .header("Host", "token.servicesX.example.org")
+                .body(requestParameters);
+
+        try {
+            rest.exchange(request, OIDCCreateTokenResponse.class);
+            fail("Request with invalid Host header should have failed.");
+        } catch (HttpClientErrorException ex) {
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getResponseBodyAsString()).contains("No matching realm found for token.servicesX.example.org");
+        }
+
+        // Host header contains a valid realm name
+        request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .header("Authorization", "Basic " + basicAuth)
+                .header("Host", "token.services.example.org")
+                .body(requestParameters);
+        response = rest.exchange(request, OIDCCreateTokenResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getRealm()).isEqualTo("/services");
+
+        assertThat(response.getBody().getAccessToken()).isNotEmpty();
+        assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
+    }
+
+    @Test
     public void createServiceUserTokenUsingDefaultScopes() {
         ResponseEntity<OIDCCreateTokenResponse> response = createToken("/services",
                 "testclient", "test", "testuser", "test", null);

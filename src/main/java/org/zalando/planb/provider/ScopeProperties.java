@@ -22,7 +22,7 @@ public class ScopeProperties {
 
     public Set<String> getDefaultScopes(String realm) {
         return split(Optional.ofNullable(realm)
-                .map(ScopeProperties::stripLeadingSlash)
+                .map(RealmConfig::stripLeadingSlash)
                 .map(defaults::get));
     }
 
@@ -37,10 +37,6 @@ public class ScopeProperties {
                 .filter(s -> !s.isEmpty())
                 .map(ScopeProperties::splitScope)
                 .orElseGet(Collections::emptySet);
-    }
-
-    private static String stripLeadingSlash(String realm) {
-        return realm.startsWith("/") ? realm.substring(1) : realm;
     }
 
     private static Set<String> splitScope(String scope) {
