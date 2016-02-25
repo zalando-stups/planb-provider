@@ -67,15 +67,20 @@ public class OIDCController {
      */
     @RequestMapping(value = {"/oauth2/access_token", "/z/oauth2/access_token"}, method = RequestMethod.POST)
     @ResponseBody
-    OIDCCreateTokenResponse createToken(@RequestParam(value = "realm", required = true) String realmName,
+    OIDCCreateTokenResponse createToken(@RequestParam(value = "realm") Optional<String> realmNameParam,
                                         @RequestParam(value = "grant_type", required = true) String grantType,
                                         @RequestParam(value = "username", required = true) String username,
                                         @RequestParam(value = "password", required = true) String password,
                                         @RequestParam(value = "scope") Optional<String> scope,
-                                        @RequestHeader(name = "Authorization") Optional<String> authorization)
+                                        @RequestHeader(name = "Authorization") Optional<String> authorization,
+                                        @RequestHeader(name = "Host") Optional<String> hostHeader)
             throws RealmAuthenticationException, RealmAuthorizationException, JOSEException {
         final Metric metric = new Metric(metricRegistry);
         metric.start();
+
+        final String realmName = realmNameParam.orElseGet(() -> realms.findRealmNameInHost(hostHeader
+                .orElseThrow(() -> new InvalidInputException("Missing realm parameter and no Host header.")))
+                .orElseThrow(() -> new InvalidInputException("No matching realm found for " + hostHeader.get())));
 
         try {
             if (username.trim().isEmpty() || password.trim().isEmpty()) {
