@@ -1,5 +1,7 @@
 package org.zalando.planb.provider;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
 import org.jose4j.jwk.HttpsJwks;
 import org.jose4j.jwt.MalformedClaimException;
@@ -20,17 +22,21 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.Base64;
+import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.StrictAssertions.fail;
 import static org.assertj.core.api.StrictAssertions.failBecauseExceptionWasNotThrown;
-import static org.springframework.http.HttpStatus.OK;
+import static org.assertj.core.data.MapEntry.entry;
+import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.TEXT_XML_VALUE;
 
 @SpringApplicationConfiguration(classes = {Main.class})
@@ -77,7 +83,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     }
 
     @Test
-    public void createServiceUserTokenUsingWrongHostHeader() {
+    public void createServiceUserTokenUsingWrongHostHeader() throws IOException {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("grant_type", "password");
         requestParameters.add("username", "testuser");
@@ -96,9 +102,10 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
             fail("Request with invalid Host header should have failed.");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(ex.getResponseBodyAsString()).contains("No matching realm found for token.servicesX.example.org");
+            final Map<String, String> response = getErrorResponseMap(ex);
+            assertThat(response).contains(entry("error", "realm_not_found"));
+            assertThat(response).contains(entry("error_description", "token.servicesX.example.org not found"));
         }
-
     }
 
     @Test
@@ -228,101 +235,101 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     }
 
     @Test
-    public void unknownRealm() {
+    public void unknownRealm() throws IOException {
         try {
             createToken("/wrong", "testclient", "test", "testuser", "wrong", "uid ascope");
             fail("request should have failed");
         } catch (HttpClientErrorException e) {
-            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
+            assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
+            assertThat(getErrorResponseMap(e)).contains(entry("error", "realm_not_found"));
         }
     }
 
     @Test
-    public void unauthenticatedClient() {
+    public void unauthenticatedClient() throws IOException {
         try {
             createToken("/services", "testclient", "wrong", "testuser", "test", "uid ascope");
             fail("request should have failed");
         } catch (HttpClientErrorException e) {
-            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-            e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
+            assertThat(e.getStatusCode()).isEqualTo(UNAUTHORIZED);
+            assertThat(getErrorResponseMap(e)).contains(entry("error", "invalid_client"));
         }
     }
 
     @Test
-    public void unauthenticatedUser() {
+    public void unauthenticatedUser() throws IOException {
         try {
             createToken("/services", "testclient", "test", "testuser", "wrong", "uid ascope");
             fail("request should have failed");
         } catch (HttpClientErrorException e) {
-            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-            e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
+            assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
+            assertThat(getErrorResponseMap(e)).contains(entry("error", "invalid_grant"));
         }
     }
 
     @Test
-    public void unknownClient() {
+    public void unknownClient() throws IOException {
         try {
             createToken("/services", "wrong", "test", "testuser", "test", "uid ascope");
             fail("request should have failed");
         } catch (HttpClientErrorException e) {
-            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-            e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
+            assertThat(e.getStatusCode()).isEqualTo(UNAUTHORIZED);
+            assertThat(getErrorResponseMap(e)).contains(entry("error", "invalid_client"));
         }
     }
 
     @Test
-    public void unknownUser() {
+    public void unknownUser() throws IOException {
         try {
             createToken("/services", "testclient", "test", "wrong", "test", "uid ascope");
             fail("request should have failed");
         } catch (HttpClientErrorException e) {
-            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-            e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
+            assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
+            assertThat(getErrorResponseMap(e)).contains(entry("error", "invalid_grant"));
         }
     }
 
     @Test
-    public void unauthorizedClientScopes() {
+    public void unauthorizedClientScopes() throws IOException {
         try {
             createToken("/services", "testclient", "test", "testuser", "test", "useronly");
             fail("request should have failed");
         } catch (HttpClientErrorException e) {
-            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-            e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
+            assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
+            assertThat(getErrorResponseMap(e)).contains(entry("error", "invalid_scope"));
         }
     }
 
     @Test
-    public void unauthorizedUserScopes() {
+    public void unauthorizedUserScopes() throws Exception {
         try {
             createToken("/services", "testclient", "test", "testuser", "test", "clientonly");
             fail("request should have failed");
         } catch (HttpClientErrorException e) {
-            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-            e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
+            assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
+            assertThat(getErrorResponseMap(e)).contains(entry("error", "invalid_scope"));
         }
     }
 
     @Test
-    public void emptyUsername() {
+    public void emptyUsername() throws Exception {
         try {
             createToken("/services", "testclient", "test", " ", "test", "clientonly");
             fail("request should have failed");
         } catch (HttpClientErrorException e) {
-            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
+            assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
+            assertThat(getErrorResponseMap(e)).contains(entry("error", "invalid_grant"));
         }
     }
 
     @Test
-    public void emptyPassword() {
+    public void emptyPassword() throws Exception {
         try {
             createToken("/services", "testclient", "test", "testuser", " ", "clientonly");
             fail("request should have failed");
         } catch (HttpClientErrorException e) {
-            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
+            assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
+            assertThat(getErrorResponseMap(e)).contains(entry("error", "invalid_grant"));
         }
     }
 
@@ -332,8 +339,13 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
             createToken("/services", "testpublicclient", "test", "testuser", "test", "uid");
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (HttpClientErrorException e) {
-            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-            e.getResponseBodyAsString(); // for preventing broken pipe loggings for now
+            assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
+            assertThat(getErrorResponseMap(e)).contains(entry("error", "unauthorized_client"));
         }
+    }
+
+    private static Map<String, String> getErrorResponseMap(HttpStatusCodeException e) throws IOException {
+        return new ObjectMapper().readValue(e.getResponseBodyAsByteArray(), new TypeReference<Map<String, String>>() {
+        });
     }
 }

@@ -5,7 +5,7 @@ package org.zalando.planb.provider;
  */
 public class RealmAuthenticationException extends RestException {
 
-    public RealmAuthenticationException(String identity, String realm, String errorType) {
-        super(401, "Identity " + identity + " in realm " + realm + " could not be authenticated.", errorType);
+    public RealmAuthenticationException(int statusCode, String message, String errorLocation, String errorType, String errorDescription) {
+        super(statusCode, message, errorLocation, errorType, errorDescription);
     }
 }
