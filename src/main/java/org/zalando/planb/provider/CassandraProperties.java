@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.Optional;
 
+import static com.datastax.driver.core.ConsistencyLevel.LOCAL_QUORUM;
 import static com.datastax.driver.core.ConsistencyLevel.ONE;
 
 @ConfigurationProperties(prefix = "cassandra")
@@ -17,8 +18,8 @@ public class CassandraProperties {
     private String contactPoints = "localhost";
     private String clusterName;
     private int port = ProtocolOptions.DEFAULT_PORT;
-    private ConsistencyLevel writeConsistencyLevel = ONE; // TODO what is a sane default?
-    private ConsistencyLevel readConsistencyLevel = ONE; // TODO what is a sane default?
+    private ConsistencyLevel writeConsistencyLevel = LOCAL_QUORUM;
+    private ConsistencyLevel readConsistencyLevel = ONE;
     private Optional<String> username = Optional.empty();
     private Optional<String> password = Optional.empty();
 
