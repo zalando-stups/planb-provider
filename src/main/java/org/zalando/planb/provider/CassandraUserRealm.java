@@ -3,6 +3,8 @@ package org.zalando.planb.provider;
 import com.datastax.driver.core.*;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.schemabuilder.UDTType;
+import com.datastax.driver.mapping.MappingManager;
+import com.datastax.driver.mapping.UDTMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -10,8 +12,11 @@ import org.springframework.util.Assert;
 import org.zalando.planb.provider.api.Password;
 import org.zalando.planb.provider.api.User;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 import static com.google.common.collect.Lists.newArrayList;
@@ -35,6 +40,8 @@ public class CassandraUserRealm implements UserManagedRealm {
 
     @Autowired
     private Session session;
+
+    private UDTMapper<UserPasswordHash> mapper;
 
     private String realmName;
 
@@ -75,12 +82,12 @@ public class CassandraUserRealm implements UserManagedRealm {
         Assert.hasText(realmName, "realmName must not be blank");
         this.realmName = realmName;
 
-        prepareStatements();
-
         // On UDTs:
         // http://www.datastax.com/dev/blog/cql-in-2-1
         // https://docs.datastax.com/en/developer/java-driver/2.1/java-driver/reference/mappingUdts.html
+        this.mapper = new MappingManager(session).udtMapper(UserPasswordHash.class);
 
+        prepareStatements();
     }
 
     @Override
@@ -96,9 +103,13 @@ public class CassandraUserRealm implements UserManagedRealm {
 
     @Override
     public void createOrReplace(String username, User user) {
+        Set<UDTValue> udtValues = user.getPasswordHashes().stream()
+                .map(hash -> new UserPasswordHash(hash, "todo"))
+                .map(mapper::toUDT).collect(Collectors.toSet());
+
         session.execute(upsert.bind()
                 .setString(USERNAME, username)
-                .setSet(PASSWORD_HASHES, newHashSet(user.getPasswordHashes()))
+                .setSet(PASSWORD_HASHES, udtValues)
                 .setMap(SCOPES, scopesMap(user)));
     }
 
@@ -115,7 +126,7 @@ public class CassandraUserRealm implements UserManagedRealm {
         assertExists(username);
         session.execute(addPassword.bind()
                 .setString(USERNAME, username)
-                .setSet(PASSWORD_HASHES, singleton(password.getPasswordHash())));
+                .setSet(PASSWORD_HASHES, singleton(mapper.toUDT(new UserPasswordHash(password.getPasswordHash(), "todo")))));
     }
 
     @Override
@@ -132,7 +143,11 @@ public class CassandraUserRealm implements UserManagedRealm {
 
     private User toUser(Row row) {
         final User user = new User();
-        user.setPasswordHashes(newArrayList(row.getSet(PASSWORD_HASHES, String.class)));
+        List<String> passwordHashes = row.getSet(PASSWORD_HASHES, UDTValue.class).stream()
+                .map(mapper::fromUDT)
+                .map(UserPasswordHash::getPasswordHash)
+                .collect(Collectors.toList());
+        user.setPasswordHashes(passwordHashes);
         user.setScopes(row.getMap(SCOPES, String.class, String.class));
         return user;
     }
