@@ -102,6 +102,6 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
     }
 
     private String hashAndEncodePassword(String clientSecret) {
-        return BCrypt.hashpw(clientSecret, BCrypt.gensalt());
+        return BCrypt.hashpw(clientSecret, BCrypt.gensalt(4));
     }
 }

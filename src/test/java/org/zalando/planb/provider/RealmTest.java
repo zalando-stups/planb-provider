@@ -9,7 +9,7 @@ public class RealmTest {
     @Test
     public void testCheckBCryptPassword() {
         final String password = "pass";
-        final String pwHash = BCrypt.hashpw(password, BCrypt.gensalt());
+        final String pwHash = BCrypt.hashpw(password, BCrypt.gensalt(4));
         assertThat(Realm.checkBCryptPassword(password, pwHash)).isTrue();
         assertThat(Realm.checkBCryptPassword("wrongpass", pwHash)).isFalse();
 
