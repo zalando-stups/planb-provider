@@ -22,8 +22,11 @@ public class ScopeProperties {
 
     public Set<String> getDefaultScopes(String realm) {
         return split(Optional.ofNullable(realm)
-                .map(ScopeProperties::stripLeadingSlash)
-                .map(defaults::get));
+                .map(RealmConfig::stripLeadingSlash)
+                .map(String::toLowerCase)
+                // we try to find the key with both lower and uppercase
+                // to support using an env var like "SCOPE_DEFAULTS_MYREALM=uid"
+                .map(key -> defaults.getOrDefault(key, defaults.get(key.toUpperCase()))));
     }
 
     @SuppressWarnings("unused")
@@ -37,10 +40,6 @@ public class ScopeProperties {
                 .filter(s -> !s.isEmpty())
                 .map(ScopeProperties::splitScope)
                 .orElseGet(Collections::emptySet);
-    }
-
-    private static String stripLeadingSlash(String realm) {
-        return realm.startsWith("/") ? realm.substring(1) : realm;
     }
 
     private static Set<String> splitScope(String scope) {

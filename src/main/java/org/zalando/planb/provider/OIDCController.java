@@ -56,7 +56,10 @@ public class OIDCController {
                 .map(bytes -> new String(bytes, UTF_8))
                 .map(string -> string.split(":"))
                 .filter(array -> array.length == 2)
-                .orElseThrow(() -> new InvalidInputException("Malformed or missing Authorization header."));
+                .orElseThrow(() -> new BadRequestException(
+                        "Malformed or missing Authorization header.",
+                        "invalid_client",
+                        "Client authentication failed"));
     }
 
     /**
@@ -64,24 +67,35 @@ public class OIDCController {
      */
     @RequestMapping(value = {"/oauth2/access_token", "/z/oauth2/access_token"}, method = RequestMethod.POST)
     @ResponseBody
-    OIDCCreateTokenResponse createToken(@RequestParam(value = "realm", required = true) String realmName,
+    OIDCCreateTokenResponse createToken(@RequestParam(value = "realm") Optional<String> realmNameParam,
                                         @RequestParam(value = "grant_type", required = true) String grantType,
                                         @RequestParam(value = "username", required = true) String username,
                                         @RequestParam(value = "password", required = true) String password,
                                         @RequestParam(value = "scope") Optional<String> scope,
-                                        @RequestHeader(name = "Authorization") Optional<String> authorization)
+                                        @RequestHeader(name = "Authorization") Optional<String> authorization,
+                                        @RequestHeader(name = "Host") Optional<String> hostHeader)
             throws RealmAuthenticationException, RealmAuthorizationException, JOSEException {
         final Metric metric = new Metric(metricRegistry);
         metric.start();
 
+        final String realmName = realmNameParam.orElseGet(() -> realms.findRealmNameInHost(hostHeader
+                .orElseThrow(() -> new BadRequestException("Missing realm parameter and no Host header.", "missing_realm", "Missing realm parameter and no Host header.")))
+                .orElseThrow(() -> new RealmNotFoundException(hostHeader.get())));
+
         try {
             if (username.trim().isEmpty() || password.trim().isEmpty()) {
-                throw new InvalidInputException("Username and password should be provided.");
+                throw new BadRequestException(
+                        "Username and password should be provided.",
+                        "invalid_grant",
+                        "The provided access grant is invalid, expired, or revoked.");
             }
 
             // check for supported grant types
             if (!"password".equals(grantType)) {
-                throw new InvalidInputException("Unsupported grant type: " + grantType);
+                throw new BadRequestException(
+                        "Grant type is not supported: " + grantType,
+                        "unsupported_grant_type",
+                        "Grant type is not supported: " + grantType);
             }
 
             // retrieve realms for the given realm
@@ -154,7 +168,7 @@ public class OIDCController {
             final String errorType = Optional.of(t)
                     .filter(e -> e instanceof RestException)
                     .map(e -> (RestException) e)
-                    .flatMap(RestException::getErrorType)
+                    .flatMap(RestException::getErrorLocation)
                     .orElse("other");
             metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".error." + errorType);
             throw t;

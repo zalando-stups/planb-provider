@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.lang.String.format;
 import static java.util.Collections.singletonMap;
 import static java.util.Optional.ofNullable;
 import static org.bouncycastle.util.encoders.Hex.toHexString;
@@ -40,7 +41,7 @@ public class CustomerUserRealm implements UserRealm {
     public Map<String, Object> authenticate(String username, String password, Set<String> scopes, Set<String> defaultScopes) throws UserRealmAuthenticationException, UserRealmAuthorizationException {
         final CustomerResponse response = ofNullable(customerRealmWebService.authenticate(APP_DOMAIN_ID, username, password))
                 .filter(r -> SUCCESS_STATUS.equals(r.getLoginResult()))
-                .orElseThrow(() -> new UserRealmAuthenticationException(maskUsername(username), realmName));
+                .orElseThrow(() -> new UserRealmAuthenticationException(format("Customer %s login failed", maskUsername(username))));
 
         return singletonMap(UID, response.getCustomerNumber());
     }

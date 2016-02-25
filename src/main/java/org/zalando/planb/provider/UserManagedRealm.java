@@ -10,17 +10,19 @@ import java.util.Set;
 import static java.lang.String.format;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toSet;
+import static org.zalando.planb.provider.Realm.checkBCryptPassword;
+import static org.zalando.planb.provider.UserRealmAuthenticationException.userNotFound;
+import static org.zalando.planb.provider.UserRealmAuthenticationException.wrongUserSecret;
 
 public interface UserManagedRealm extends UserRealm {
 
     @Override
     default Map<String, Object> authenticate(String username, String password, Set<String> scopes, Set<String> defaultScopes)
             throws UserRealmAuthenticationException, UserRealmAuthorizationException {
-        final User user = get(username).orElseThrow(() -> new UserRealmAuthenticationException(username, getName()));
+        final User user = get(username).orElseThrow(() -> userNotFound(username, getName()));
 
-        if (!user.getPasswordHashes().stream()
-                .anyMatch(passwordHash -> Realm.checkBCryptPassword(password, passwordHash))) {
-            throw new UserRealmAuthenticationException(username, getName());
+        if (!user.getPasswordHashes().stream().anyMatch(passwordHash -> checkBCryptPassword(password, passwordHash))) {
+            throw wrongUserSecret(username, getName());
         }
 
         final Set userScopes = ((Map) user.getScopes()).keySet();
@@ -30,7 +32,7 @@ public interface UserManagedRealm extends UserRealm {
                 .collect(toSet());
 
         if (!missingScopes.isEmpty()) {
-            throw new UserRealmAuthorizationException(username, getName(), scopes);
+            throw new UserRealmAuthorizationException(username, getName(), missingScopes);
         }
 
         return singletonMap("sub", username);

@@ -29,6 +29,7 @@ public class ScopePropertiesTest {
     public static void setUpSystemProperties() {
         // override services realm with system property
         System.setProperty("scope.defaults.services", "id team");
+        System.setProperty("SCOPE_DEFAULTS_FOOBAR", "id team");
     }
 
     @AfterClass
@@ -44,6 +45,7 @@ public class ScopePropertiesTest {
         assertThat(scopeProperties.getDefaultScopes("/customers")).containsOnly("email");
         assertThat(scopeProperties.getDefaultScopes("customers")).containsOnly("email");
         assertThat(scopeProperties.getDefaultScopes("services")).containsOnly("id", "team");
+        assertThat(scopeProperties.getDefaultScopes("foobar")).containsOnly("id", "team");
     }
 
     @Configuration
