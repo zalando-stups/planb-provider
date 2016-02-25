@@ -21,6 +21,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 import static com.google.common.collect.Sets.newHashSet;
@@ -115,7 +116,7 @@ public class UserControllerIT extends AbstractSpringTest {
         session.execute(insertInto("user")
                 .value("username", "0815")
                 .value("realm", "/services")
-                .value("password_hashes", newHashSet("foo", "bar"))
+                .value("password_hashes", newHashSet(new UserPasswordHash("foo", "unknown"), new UserPasswordHash("bar", "unknown")))
                 .value("scopes", singletonMap("write", "true")));
         assertThat(fetchUser("0815", "/services")).isNotNull();
 
@@ -153,7 +154,7 @@ public class UserControllerIT extends AbstractSpringTest {
         session.execute(insertInto("user")
                 .value("username", "1234")
                 .value("realm", "/services")
-                .value("password_hashes", newHashSet("foo", "bar"))
+                .value("password_hashes", newHashSet(new UserPasswordHash("foo", "unknown"), new UserPasswordHash("bar", "unknown")))
                 .value("scopes", singletonMap("write", "true")));
 
         final User service1234 = new User();
@@ -192,7 +193,7 @@ public class UserControllerIT extends AbstractSpringTest {
         session.execute(insertInto("user")
                 .value("username", "9876")
                 .value("realm", "/services")
-                .value("password_hashes", singleton("foo"))
+                .value("password_hashes", singleton(new UserPasswordHash("foo", "test")))
                 .value("scopes", singletonMap("write", "true")));
 
         final URI uri = URI.create(basePath() + "/users/services/9876/password");
@@ -201,13 +202,15 @@ public class UserControllerIT extends AbstractSpringTest {
         assertThat(restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body), Void.class)
                 .getStatusCode())
                 .isEqualTo(CREATED);
-        assertThat(fetchUser("9876", "/services").getSet("password_hashes", String.class)).containsOnly("foo", "bar");
+        assertThat(fetchUser("9876", "/services").getSet("password_hashes", UserPasswordHash.class).stream()
+                .map(UserPasswordHash::getPasswordHash)
+                .collect(Collectors.toSet())).containsOnly("foo", "bar");
     }
 
     private Condition<? super Row> valuesEqualTo(User expected) {
         return allOf(
                 new Condition<>(
-                        r -> Objects.equals(r.getSet("password_hashes", String.class), newHashSet(expected.getPasswordHashes())),
+                        r -> Objects.equals(r.getSet("password_hashes", UserPasswordHash.class).stream().map(UserPasswordHash::getPasswordHash).collect(Collectors.toSet()), newHashSet(expected.getPasswordHashes())),
                         "password_hashes = %s",
                         expected.getPasswordHashes()),
                 new Condition<>(
