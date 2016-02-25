@@ -14,6 +14,9 @@ public class UserPasswordHash {
     @Field(name = "created_by")
     private String createdBy;
 
+    // default constructor for UDT mapping
+    public UserPasswordHash() {}
+
     public UserPasswordHash(String passwordHash, String createdBy) {
         this.passwordHash = passwordHash;
         this.created = (int) (System.currentTimeMillis() / 1000);

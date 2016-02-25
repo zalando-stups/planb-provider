@@ -24,7 +24,7 @@ CREATE TABLE provider.user (
     password_hashes SET<frozen<user_password_hash>>,  -- set of Bcrypt hashes
     scopes MAP<TEXT, TEXT>,                           -- scopes and values for this user
     created_by TEXT,                                  -- name of the user who created this entry
-    last_modified_by TEXT,                            -- name of the user did the last modification on this entry
+    last_modified_by TEXT,                            -- name of the user who did the last modification on this entry
     PRIMARY KEY ((username), realm)
 );
 
@@ -33,5 +33,7 @@ CREATE TABLE provider.keypair (
     realms SET<TEXT>,           -- for which realms to use this key, allows to tune the system for speed vs. size
     private_key_pem TEXT,       -- private key in PEM format
     algorithm TEXT,             -- JWK algorithm according to RFC 7518 3.1 https://tools.ietf.org/html/rfc7518#section-3.1
-    valid_from INT              -- start date of key validity in seconds since epoch
+    valid_from INT,             -- start date of key validity in seconds since epoch
+    created_by TEXT,            -- name of the user who created this entry
+    last_modified_by TEXT       -- name of the user who did the last modification on this entry
 );
