@@ -79,8 +79,8 @@ public class OIDCController {
         metric.start();
 
         final String realmName = realmNameParam.orElseGet(() -> realms.findRealmNameInHost(hostHeader
-                .orElseThrow(() -> new InvalidInputException("Missing realm parameter and no Host header.")))
-                .orElseThrow(() -> new InvalidInputException("No matching realm found for " + hostHeader.get())));
+                .orElseThrow(() -> new BadRequestException("Missing realm parameter and no Host header.", "missing_realm", "Missing realm parameter and no Host header.")))
+                .orElseThrow(() -> new RealmNotFoundException(hostHeader.get())));
 
         try {
             if (username.trim().isEmpty() || password.trim().isEmpty()) {

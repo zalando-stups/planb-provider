@@ -47,7 +47,7 @@ public class RestControllerAdvice {
     private static Map<String, String> errorBody(String errorType, String errorMessage) {
         final ImmutableMap.Builder<String, String> map = ImmutableMap.builder();
         Optional.ofNullable(errorType).ifPresent(error -> map.put("error", error));
-        Optional.ofNullable(errorMessage).ifPresent(message -> map.put("error_message", errorMessage));
+        Optional.ofNullable(errorMessage).ifPresent(message -> map.put("error_description", errorMessage));
         return map.build();
     }
 }

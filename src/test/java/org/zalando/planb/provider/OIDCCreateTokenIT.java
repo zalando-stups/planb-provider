@@ -83,7 +83,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     }
 
     @Test
-    public void createServiceUserTokenUsingWrongHostHeader() {
+    public void createServiceUserTokenUsingWrongHostHeader() throws IOException {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("grant_type", "password");
         requestParameters.add("username", "testuser");
@@ -102,9 +102,10 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
             fail("Request with invalid Host header should have failed.");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(ex.getResponseBodyAsString()).contains("No matching realm found for token.servicesX.example.org");
+            final Map<String, String> response = getErrorResponseMap(ex);
+            assertThat(response).contains(entry("error", "realm_not_found"));
+            assertThat(response).contains(entry("error_description", "token.servicesX.example.org not found"));
         }
-
     }
 
     @Test
