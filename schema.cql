@@ -4,17 +4,27 @@ CREATE SCHEMA provider
 CREATE TABLE provider.client (
     client_id TEXT,                  -- OAuth 2 client ID
     realm TEXT,                      -- Data pool this entity belongs to
-    client_secret_hash TEXT,         -- Base64-encoded Bcrypt hash of the client secret
+    client_secret_hash TEXT,         -- Bcrypt hash of the client secret
     scopes SET<TEXT>,                -- scopes this client is allowed to request
     is_confidential BOOLEAN,         -- whether the client is confidential or not (non-confidential clients should only be allowed to use the implicit flow)
+    created_by TEXT,                 -- name of the user who created this entry
+    last_modified_by TEXT,           -- name of the user did the last modification on this entry
     PRIMARY KEY ((client_id), realm)
 );
 
+CREATE TYPE provider.user_password_hash (
+    password_hash TEXT,
+    created INT,         -- seconds since epoch
+    created_by TEXT      -- user that created this password
+);
+
 CREATE TABLE provider.user (
-    username TEXT,              -- name of service user
-    realm TEXT,                 -- Data pool this entity belongs to
-    password_hashes SET<TEXT>,  -- set of Base64-encoded Bcrypt hashes
-    scopes MAP<TEXT, TEXT>,     -- scopes and values for this user
+    username TEXT,                                    -- name of service user
+    realm TEXT,                                       -- Data pool this entity belongs to
+    password_hashes SET<frozen<user_password_hash>>,  -- set of Bcrypt hashes
+    scopes MAP<TEXT, TEXT>,                           -- scopes and values for this user
+    created_by TEXT,                                  -- name of the user who created this entry
+    last_modified_by TEXT,                            -- name of the user did the last modification on this entry
     PRIMARY KEY ((username), realm)
 );
 

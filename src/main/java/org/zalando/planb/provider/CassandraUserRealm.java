@@ -1,10 +1,8 @@
 package org.zalando.planb.provider;
 
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
+import com.datastax.driver.core.*;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.driver.core.schemabuilder.UDTType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -12,10 +10,8 @@ import org.springframework.util.Assert;
 import org.zalando.planb.provider.api.Password;
 import org.zalando.planb.provider.api.User;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 import static com.google.common.collect.Lists.newArrayList;
@@ -42,19 +38,12 @@ public class CassandraUserRealm implements UserManagedRealm {
 
     private String realmName;
 
-    private PreparedStatement selectUser;
     private PreparedStatement findOne;
     private PreparedStatement deleteOne;
     private PreparedStatement upsert;
     private PreparedStatement addPassword;
 
-    void prepareStatements() {
-        selectUser = session.prepare(
-                select("password_hashes")
-                        .from(cassandraProperties.getKeyspace(), USER)
-                        // TODO also match with this.realmName
-                        .where(eq(USERNAME, bindMarker(USERNAME))));
-
+    private void prepareStatements() {
         findOne = session.prepare(select().all()
                 .from(USER)
                 .where(eq(USERNAME, bindMarker(USERNAME)))
@@ -85,7 +74,13 @@ public class CassandraUserRealm implements UserManagedRealm {
     public void initialize(String realmName) {
         Assert.hasText(realmName, "realmName must not be blank");
         this.realmName = realmName;
+
         prepareStatements();
+
+        // On UDTs:
+        // http://www.datastax.com/dev/blog/cql-in-2-1
+        // https://docs.datastax.com/en/developer/java-driver/2.1/java-driver/reference/mappingUdts.html
+
     }
 
     @Override
