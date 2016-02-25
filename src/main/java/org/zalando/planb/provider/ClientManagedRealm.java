@@ -7,23 +7,22 @@ import java.util.Set;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toSet;
+import static org.zalando.planb.provider.ClientRealmAuthenticationException.*;
 
 public interface ClientManagedRealm extends ClientRealm {
 
     @Override
     default void authenticate(String clientId, String clientSecret, Set<String> scopes, Set<String> defaultScopes)
             throws ClientRealmAuthenticationException, ClientRealmAuthorizationException {
-        final Client client = get(clientId)
-                .orElseThrow(() -> new ClientRealmAuthenticationException(clientId, getName()));
+        final Client client = get(clientId).orElseThrow(() -> clientNotFound(clientId, getName()));
 
         // TODO hardcoded assumption, that only Resource Owner Password Credentials flow is supported
         if (!client.getIsConfidential()) {
-            throw new ClientRealmAuthenticationException(clientId, getName());
+            throw clientIsPublic(clientId, getName());
         }
 
-
         if (!Realm.checkBCryptPassword(clientSecret, client.getSecretHash())) {
-            throw new ClientRealmAuthenticationException(clientId, getName());
+            throw wrongClientSecret(clientId, getName());
         }
 
         final Set<String> missingScopes = scopes.stream()
