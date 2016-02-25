@@ -28,12 +28,21 @@ public class ClientController implements ClientsApi {
         this.realms = realms;
     }
 
+    static void validateBCryptHash(String field, String hash) {
+        try {
+            Optional.ofNullable(hash).ifPresent(Realm::validateBCryptHash);
+        } catch (Exception e) {
+            throw new BadRequestException("Invalid " + field + " hash", "invalid_hash", "Invalid or unsupported BCrypt hash value");
+        }
+    }
+
     @Override
     public ResponseEntity<Void> clientsRealmIdPut(
             @PathVariable("realm") String realm,
             @PathVariable("id") String id,
             @RequestBody Client client) {
         log.info("Create or replace client /{}/{}: {}", realm, id, client);
+        validateBCryptHash("client secret", client.getSecretHash());
         getClientManagedRealm(realm).createOrReplace(id, client);
         return new ResponseEntity<>(OK);
     }
@@ -53,6 +62,7 @@ public class ClientController implements ClientsApi {
             @PathVariable("id") String id,
             @RequestBody Client client) {
         log.info("Update client /{}/{}: {}", realm, id, client);
+        validateBCryptHash("client secret", client.getSecretHash());
         getClientManagedRealm(realm).update(id, client);
         return new ResponseEntity<>(OK);
     }

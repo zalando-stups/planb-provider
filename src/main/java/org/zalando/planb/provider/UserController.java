@@ -16,6 +16,7 @@ import java.util.Optional;
 import static org.slf4j.LoggerFactory.getLogger;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.OK;
+import static org.zalando.planb.provider.ClientController.validateBCryptHash;
 
 @RestController
 @RequestMapping(path = "/raw-sync")
@@ -36,6 +37,7 @@ public class UserController implements UsersApi {
             @PathVariable("id") String id,
             @RequestBody User user) {
         log.info("Create or replace user /{}/{}: {}", realm, id, user);
+        user.getPasswordHashes().stream().forEach(x -> validateBCryptHash("user password", x));
         getUserManagedRealm(realm).createOrReplace(id, user);
         return new ResponseEntity<>(OK);
     }
@@ -55,6 +57,7 @@ public class UserController implements UsersApi {
             @PathVariable("id") String id,
             @RequestBody User user) {
         log.info("Update user /{}/{}: {}", realm, id, user);
+        user.getPasswordHashes().stream().forEach(x -> validateBCryptHash("user password", x));
         getUserManagedRealm(realm).update(id, user);
         return new ResponseEntity<>(OK);
     }
@@ -65,6 +68,7 @@ public class UserController implements UsersApi {
             @PathVariable("id") String id,
             @RequestBody Password password) {
         log.info("Add user password /{}/{}: {}", realm, id, password);
+        validateBCryptHash("user password", password.getPasswordHash());
         getUserManagedRealm(realm).addPassword(id, password);
         return new ResponseEntity<>(CREATED);
     }

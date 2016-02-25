@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import bcrypt
-import base64
 import time
 from subprocess import check_call
 
@@ -20,20 +19,20 @@ with open('test-es256-prime256v1.pem') as fd:
 now = int(time.time())
 print('''
 INSERT INTO provider.keypair
-        (kid, realms, private_key_pem, algorithm, valid_from)
+        (kid, realms, private_key_pem, algorithm, valid_from, created_by)
               VALUES
-                      ('testkey-services', {'/services'}, ''' + "'" + rs256 + "', 'RS256', " + str(now) + ");")
+                      ('testkey-services', {'/services'}, ''' + "'" + rs256 + "', 'RS256', " + str(now) + ", 'generate-load-test-data.py');")
 
 
 print('''
 INSERT INTO provider.keypair
-        (kid, realms, private_key_pem, algorithm, valid_from)
+        (kid, realms, private_key_pem, algorithm, valid_from, created_by)
               VALUES
-                      ('testkey-es256', {'/customers', '/services'}, ''' + "'" + es256 + "', 'ES256', " + str(now + 120) + ");")
+                      ('testkey-es256', {'/customers', '/services'}, ''' + "'" + es256 + "', 'ES256', " + str(now + 120) + ", 'generate-load-test-data.py');")
 
 for i in range(2048):
     uid = 'test{}'.format(i)
     pw = bcrypt.hashpw(uid.encode('utf-8'), bcrypt.gensalt(4)).decode('utf-8')
-    print("INSERT INTO provider.client (client_id, realm, client_secret_hash, is_confidential, scopes) VALUES ('" + uid + "', '/services', '" + pw + "', true, {'uid'});")
-    print("INSERT INTO provider.client (client_id, realm, client_secret_hash, is_confidential, scopes) VALUES ('" + uid + "', '/customers', '" + pw + "', true, {'uid'});")
-    print("INSERT INTO provider.user (username, realm, password_hashes, scopes) VALUES ('" + uid + "', '/services', {'" + pw + "'}, {'uid': 'true'});")
+    print("INSERT INTO provider.client (client_id, realm, client_secret_hash, is_confidential, scopes, created_by) VALUES ('" + uid + "', '/services', '" + pw + "', true, {'uid'}, 'generate-load-test-data.py');")
+    print("INSERT INTO provider.client (client_id, realm, client_secret_hash, is_confidential, scopes, created_by) VALUES ('" + uid + "', '/customers', '" + pw + "', true, {'uid'}, 'generate-load-test-data.py');")
+    print("INSERT INTO provider.user (username, realm, password_hashes, scopes, created_by) VALUES ('" + uid + "', '/services', { {password_hash: '" + pw + "', created: " + str(now) + ", created_by: 'generate-load-test-data.py'} }, {'uid': 'true'}, 'generate-load-test-data.py');")
