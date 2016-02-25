@@ -8,6 +8,7 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import javax.validation.constraints.NotNull;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -51,7 +52,7 @@ public class RealmConfig implements BeanFactoryAware {
         newRealm("/customers", CassandraClientRealm.class, CustomerUserRealm.class);
     }
 
-    static Optional<String> findRealmNameInHost(Set<String> realmNames, String host) {
+    static Optional<String> findRealmNameInHost(@NotNull final Set<String> realmNames, @NotNull final String host) {
         Set<String> hostParts = ImmutableSet.copyOf(HOST_WORD_BOUNDARY.split(host));
         Optional<String> realmFromHost = realmNames.stream()
                 .filter(realm -> hostParts.contains(stripLeadingSlash(realm)))
@@ -60,7 +61,7 @@ public class RealmConfig implements BeanFactoryAware {
         return realmFromHost;
     }
 
-    Optional<String> findRealmNameInHost(String host) {
+    Optional<String> findRealmNameInHost(@NotNull final String host) {
         return findRealmNameInHost(clientRealms.keySet(), host);
     }
 

@@ -77,18 +77,15 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     }
 
     @Test
-    public void createServiceUserTokenUsingHostHeader() {
+    public void createServiceUserTokenUsingWrongHostHeader() {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("grant_type", "password");
         requestParameters.add("username", "testuser");
         requestParameters.add("password", "test");
-        String basicAuth = Base64.getEncoder().encodeToString(("testclient" + ':' + "test").getBytes(UTF_8));
-
-        RequestEntity<MultiValueMap<String, Object>> request;
-        ResponseEntity<OIDCCreateTokenResponse> response;
+        String basicAuth = Base64.getEncoder().encodeToString(("testclient:test").getBytes(UTF_8));
 
         // wrong Host header (not mapping to any realm)
-        request = RequestEntity
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
                 .header("Authorization", "Basic " + basicAuth)
                 .header("Host", "token.servicesX.example.org")
@@ -102,13 +99,23 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
             assertThat(ex.getResponseBodyAsString()).contains("No matching realm found for token.servicesX.example.org");
         }
 
+    }
+
+    @Test
+    public void createServiceUserTokenUsingCorrectHostHeader() {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("grant_type", "password");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        String basicAuth = Base64.getEncoder().encodeToString(("testclient:test").getBytes(UTF_8));
+
         // Host header contains a valid realm name
-        request = RequestEntity
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
                 .header("Authorization", "Basic " + basicAuth)
                 .header("Host", "token.services.example.org")
                 .body(requestParameters);
-        response = rest.exchange(request, OIDCCreateTokenResponse.class);
+        ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getRealm()).isEqualTo("/services");
