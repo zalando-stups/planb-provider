@@ -8,8 +8,7 @@ Plan B Provider
 .. image:: https://codecov.io/github/zalando/planb-provider/coverage.svg?branch=master
     :target: https://codecov.io/github/zalando/planb-provider?branch=master
 
-This is a minimalistic OpenID Connect provider that currently only supports the Resource Owner Password Credentials
-Grant to create JWTs.
+This is a minimalistic `OpenID Connect Provider`_ that currently only supports the `Resource Owner Password Credentials Grant`_ to issue JWTs_.
 
 
 Building
@@ -134,5 +133,8 @@ Configuration
     Spring security expression, e.g. "#oauth2.hasScope('application.write_all_sensitive')"
 
 
+.. _OpenID Connect Provider: https://openid.net/specs/openid-connect-core-1_0.html
+.. _Resource Owner Password Credentials Grant: https://tools.ietf.org/html/rfc6749#section-4.3
+.. _JWTs: https://tools.ietf.org/html/rfc7519
 .. _OpenID Connect configuration discovery document: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 .. _set of JWKs: https://tools.ietf.org/html/rfc7517#section-5
