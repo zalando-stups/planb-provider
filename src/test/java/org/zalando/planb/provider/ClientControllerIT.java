@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -24,6 +25,7 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.StrictAssertions.allOf;
 import static org.assertj.core.api.StrictAssertions.failBecauseExceptionWasNotThrown;
+import static org.junit.Assert.fail;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -48,6 +50,10 @@ public class ClientControllerIT extends AbstractSpringTest {
 
     private String basePath() {
         return "http://localhost:" + port + "/raw-sync";
+    }
+
+    private static String genHash(String pass) {
+        return BCrypt.hashpw(pass, BCrypt.gensalt(4));
     }
 
     @Test
@@ -110,14 +116,36 @@ public class ClientControllerIT extends AbstractSpringTest {
     }
 
     @Test
+    public void testCreateAndReplaceClientWrongHash() throws Exception {
+        final URI uri = URI.create(basePath() + "/clients/customers/4710");
+
+        // check that client doesn't exist before
+        assertThat(fetchClient("4710", "/customers")).isNull();
+
+        final Client body1 = new Client();
+        body1.setSecretHash("wrong hash");
+        body1.setScopes(asList("read_foo", "read_bar"));
+        body1.setIsConfidential(true);
+
+        try {
+            restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body1), Void.class);
+            fail("wrong BCrypt hash should fail with Bad Request");
+        } catch (HttpClientErrorException ex) {
+            assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
+        }
+    }
+
+    @Test
     public void testCreateAndReplaceClient() throws Exception {
         final URI uri = URI.create(basePath() + "/clients/customers/4711");
 
         // check that client doesn't exist before
         assertThat(fetchClient("4711", "/customers")).isNull();
 
+        final String hash = genHash("foo");
+
         final Client body1 = new Client();
-        body1.setSecretHash("abc");
+        body1.setSecretHash(hash);
         body1.setScopes(asList("read_foo", "read_bar"));
         body1.setIsConfidential(true);
 
@@ -129,7 +157,7 @@ public class ClientControllerIT extends AbstractSpringTest {
         assertThat(fetchClient("4711", "/customers")).isNotNull().has(valuesEqualTo(body1));
 
         final Client body2 = new Client();
-        body2.setSecretHash("xyz");
+        body2.setSecretHash(hash);
         body2.setScopes(asList("read_team", "write_hello", "write_world"));
         body2.setIsConfidential(false);
 
@@ -154,23 +182,25 @@ public class ClientControllerIT extends AbstractSpringTest {
 
     @Test
     public void testUpdateClient() throws Exception {
+        final String hash = genHash("qwertz");
+
         // given an existing client
         session.execute(insertInto("client")
                 .value("client_id", "1234")
                 .value("realm", "/services")
-                .value("client_secret_hash", "qwertz")
+                .value("client_secret_hash", hash)
                 .value("scopes", newHashSet("foo", "bar"))
                 .value("is_confidential", true));
 
         final Client service1234 = new Client();
-        service1234.setSecretHash("qwertz");
+        service1234.setSecretHash(hash);
         service1234.setScopes(asList("foo", "bar"));
         service1234.setIsConfidential(true);
 
         final URI uri = URI.create(basePath() + "/clients/services/1234");
 
         // when the secretHash is updated
-        final String newSecretHash = "llsdflhsdhjdjoj345";
+        final String newSecretHash = genHash("lolz");
         final Client body1 = new Client();
         body1.setSecretHash(newSecretHash);
         restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body1), Void.class);

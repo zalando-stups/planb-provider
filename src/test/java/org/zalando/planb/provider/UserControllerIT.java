@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -31,6 +32,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.StrictAssertions.allOf;
 import static org.assertj.core.api.StrictAssertions.failBecauseExceptionWasNotThrown;
+import static org.junit.Assert.fail;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -56,6 +58,10 @@ public class UserControllerIT extends AbstractSpringTest {
         return "http://localhost:" + port + "/raw-sync";
     }
 
+    private static String genHash(String pass) {
+        return BCrypt.hashpw(pass, BCrypt.gensalt(4));
+    }
+
     @Test
     public void testCreateAndReplaceUser() throws Exception {
         final URI uri = URI.create(basePath() + "/users/services/4711");
@@ -64,7 +70,7 @@ public class UserControllerIT extends AbstractSpringTest {
         assertThat(fetchUser("4711", "/services")).isNull();
 
         final User body1 = new User();
-        body1.setPasswordHashes(asList("abc", "def"));
+        body1.setPasswordHashes(asList(genHash("abc"), genHash("def")));
         body1.setScopes(ImmutableMap.of(
                 "uid", "4711",
                 "write_all", "true"));
@@ -77,7 +83,7 @@ public class UserControllerIT extends AbstractSpringTest {
         assertThat(fetchUser("4711", "/services")).isNotNull().has(valuesEqualTo(body1));
 
         final User body2 = new User();
-        body2.setPasswordHashes(asList("hello", "world"));
+        body2.setPasswordHashes(asList(genHash("hello"), genHash("world")));
         body2.setScopes(singletonMap("write_all", "false"));
 
         // update the user. modify all (non-key) columns
@@ -158,14 +164,14 @@ public class UserControllerIT extends AbstractSpringTest {
                 .value("scopes", singletonMap("write", "true")));
 
         final User service1234 = new User();
-        service1234.setPasswordHashes(asList("foo", "bar"));
+        service1234.setPasswordHashes(asList(genHash("foo"), genHash("bar")));
         service1234.setScopes(asList("foo", "bar"));
         service1234.setScopes(singletonMap("write", "true"));
 
         final URI uri = URI.create(basePath() + "/users/services/1234");
 
         // when the password_hashes is updated
-        final List<String> newPasswordHashes = asList("bar", "hello", "world");
+        final List<String> newPasswordHashes = asList(genHash("bar"), genHash("hello"), genHash("world"));
         final User body1 = new User();
         body1.setPasswordHashes(newPasswordHashes);
         restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body1), Void.class);
@@ -188,6 +194,30 @@ public class UserControllerIT extends AbstractSpringTest {
     }
 
     @Test
+    public void testAddPasswordWrongHash() throws Exception {
+        // given an existing user
+        session.execute(insertInto("user")
+                .value("username", "testAddPasswordWrongHash")
+                .value("realm", "/services")
+                .value("password_hashes", singleton(new UserPasswordHash("foo", "test")))
+                .value("scopes", singletonMap("write", "true")));
+
+        final URI uri = URI.create(basePath() + "/users/services/testAddPasswordWrongHash/password");
+        final Password body = new Password();
+        body.setPasswordHash("not a valid hash");
+        try {
+            restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body), Void.class);
+            fail("wrong BCrypt hash should fail with Bad Request");
+        } catch (HttpClientErrorException ex) {
+            assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
+        }
+
+        assertThat(fetchUser("testAddPasswordWrongHash", "/services").getSet("password_hashes", UserPasswordHash.class).stream()
+                .map(UserPasswordHash::getPasswordHash)
+                .collect(Collectors.toSet())).containsOnly("foo");
+    }
+
+    @Test
     public void testAddPassword() throws Exception {
         // given an existing user
         session.execute(insertInto("user")
@@ -198,13 +228,14 @@ public class UserControllerIT extends AbstractSpringTest {
 
         final URI uri = URI.create(basePath() + "/users/services/9876/password");
         final Password body = new Password();
-        body.setPasswordHash("bar");
+        String hash = genHash("bar");
+        body.setPasswordHash(hash);
         assertThat(restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body), Void.class)
                 .getStatusCode())
                 .isEqualTo(CREATED);
         assertThat(fetchUser("9876", "/services").getSet("password_hashes", UserPasswordHash.class).stream()
                 .map(UserPasswordHash::getPasswordHash)
-                .collect(Collectors.toSet())).containsOnly("foo", "bar");
+                .collect(Collectors.toSet())).containsOnly("foo", hash);
     }
 
     private Condition<? super Row> valuesEqualTo(User expected) {

@@ -32,6 +32,9 @@ public interface Realm {
         return BCrypt.checkpw(password, supportedHash);
     }
 
+    static void validateBCryptHash(final String passwordHash) {
+        checkBCryptPassword("notused", passwordHash);
+    }
 
     void initialize(String realmName);
 
