@@ -1,18 +1,19 @@
 -- default users
+-- hash is print(bcrypt.hashpw(b'test', bcrypt.gensalt(4)))
 INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential)
-    VALUES ('testclient', '/services', 'JDJiJDEyJHBiMDFDZ0NMRllqSlJ6TVNBTUovNE9rSkRpazlxaE9rZmtYQXpwb0JqOGZRVmQ5bGdPUXhX',
+    VALUES ('testclient', '/services', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
             {'uid', 'ascope', 'clientonly'}, true);
 
 INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential)
-    VALUES ('testpublicclient', '/services', 'JDJiJDEyJHBiMDFDZ0NMRllqSlJ6TVNBTUovNE9rSkRpazlxaE9rZmtYQXpwb0JqOGZRVmQ5bGdPUXhX',
+    VALUES ('testpublicclient', '/services', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
             {'uid', 'ascope', 'clientonly'}, false);
 
 INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential)
-    VALUES ('testclient', '/customers', 'JDJiJDEyJHBiMDFDZ0NMRllqSlJ6TVNBTUovNE9rSkRpazlxaE9rZmtYQXpwb0JqOGZRVmQ5bGdPUXhX',
+    VALUES ('testclient', '/customers', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
             {'uid', 'ascope', 'clientonly'}, true);
 
 INSERT INTO provider.user (username, realm, password_hashes, scopes)
-    VALUES ('testuser', '/services', {'JDJiJDEyJHBiMDFDZ0NMRllqSlJ6TVNBTUovNE9rSkRpazlxaE9rZmtYQXpwb0JqOGZRVmQ5bGdPUXhX'},
+    VALUES ('testuser', '/services', { {password_hash: '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K', created_by: 'testdata.cql'} },
             {'uid': 'uidval', 'ascope': 'ascopeval', 'useronly': 'useronlyval'});
 
 -- default keys
