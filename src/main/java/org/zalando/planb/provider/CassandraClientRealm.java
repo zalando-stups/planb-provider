@@ -84,14 +84,13 @@ public class CassandraClientRealm implements ClientManagedRealm {
     public void update(String clientId, ClientData data) throws NotFoundException {
         final ClientData existing = get(clientId).orElseThrow(() -> new NotFoundException(format("Could not find client %s in realm %s", clientId, getName())));
 
-        final ClientData update = new ClientData(
-                Optional.ofNullable(data.getClientSecretHash()).orElseGet(existing::getClientSecretHash),
-                Optional.ofNullable(data.getScopes()).filter(set -> !set.isEmpty()).orElseGet(existing::getScopes),
-                Optional.ofNullable(data.isConfidential()).orElseGet(existing::isConfidential),
-                existing.getCreatedBy(),
-                currentUser.get());
-
-        createOrReplace(clientId, update);
+        session.execute(upsert.bind()
+                .setString(CLIENT_ID, clientId)
+                .setString(CLIENT_SECRET_HASH, Optional.ofNullable(data.getClientSecretHash()).orElseGet(existing::getClientSecretHash))
+                .setSet(SCOPES, Optional.ofNullable(data.getScopes()).filter(set -> !set.isEmpty()).orElseGet(existing::getScopes))
+                .setBool(IS_CONFIDENTIAL, Optional.ofNullable(data.isConfidential()).orElseGet(existing::isConfidential))
+                .setString(CREATED_BY, existing.getCreatedBy())
+                .setString(LAST_MODIFIED_BY, currentUser.get()));
     }
 
     @Override

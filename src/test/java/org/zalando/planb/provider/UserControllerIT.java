@@ -123,7 +123,9 @@ public class UserControllerIT extends AbstractSpringTest {
                 .value("username", "0815")
                 .value("realm", "/services")
                 .value("password_hashes", newHashSet(new UserPasswordHash("foo", "unknown"), new UserPasswordHash("bar", "unknown")))
-                .value("scopes", singletonMap("write", "true")));
+                .value("scopes", singletonMap("write", "true"))
+                .value("created_by", USER1)
+                .value("last_modified_by", USER2));
         assertThat(fetchUser("0815", "/services")).isNotNull();
 
         restTemplate.exchange(delete(URI.create(basePath() + "/users/services/0815"))
@@ -161,7 +163,9 @@ public class UserControllerIT extends AbstractSpringTest {
                 .value("username", "1234")
                 .value("realm", "/services")
                 .value("password_hashes", newHashSet(new UserPasswordHash("foo", "unknown"), new UserPasswordHash("bar", "unknown")))
-                .value("scopes", singletonMap("write", "true")));
+                .value("scopes", singletonMap("write", "true"))
+                .value("created_by", USER1)
+                .value("last_modified_by", USER2));
 
         final User service1234 = new User();
         service1234.setPasswordHashes(asList(genHash("foo"), genHash("bar")));
@@ -200,7 +204,9 @@ public class UserControllerIT extends AbstractSpringTest {
                 .value("username", "testAddPasswordWrongHash")
                 .value("realm", "/services")
                 .value("password_hashes", singleton(new UserPasswordHash("foo", "test")))
-                .value("scopes", singletonMap("write", "true")));
+                .value("scopes", singletonMap("write", "true"))
+                .value("created_by", USER1)
+                .value("last_modified_by", USER2));
 
         final URI uri = URI.create(basePath() + "/users/services/testAddPasswordWrongHash/password");
         final Password body = new Password();
@@ -224,7 +230,9 @@ public class UserControllerIT extends AbstractSpringTest {
                 .value("username", "9876")
                 .value("realm", "/services")
                 .value("password_hashes", singleton(new UserPasswordHash("foo", "test")))
-                .value("scopes", singletonMap("write", "true")));
+                .value("scopes", singletonMap("write", "true"))
+                .value("created_by", USER1)
+                .value("last_modified_by", USER2));
 
         final URI uri = URI.create(basePath() + "/users/services/9876/password");
         final Password body = new Password();

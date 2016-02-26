@@ -96,7 +96,9 @@ public class ClientControllerIT extends AbstractSpringTest {
                 .value("realm", "/services")
                 .value("client_secret_hash", "qwertz")
                 .value("scopes", newHashSet("foo", "bar"))
-                .value("is_confidential", true));
+                .value("is_confidential", true)
+                .value("created_by", USER1)
+                .value("last_modified_by", USER2));
         assertThat(fetchClient("0815", "/services")).isNotNull();
 
         restTemplate.exchange(delete(URI.create(basePath() + "/clients/services/0815"))
@@ -195,7 +197,9 @@ public class ClientControllerIT extends AbstractSpringTest {
                 .value("realm", "/services")
                 .value("client_secret_hash", hash)
                 .value("scopes", newHashSet("foo", "bar"))
-                .value("is_confidential", true));
+                .value("is_confidential", true)
+                .value("created_by", USER1)
+                .value("last_modified_by", USER2));
 
         final Client service1234 = new Client();
         service1234.setSecretHash(hash);

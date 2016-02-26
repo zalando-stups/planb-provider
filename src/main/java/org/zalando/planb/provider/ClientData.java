@@ -57,7 +57,7 @@ public class ClientData {
                 .toString();
     }
 
-    public static ClientData.Builder copyOf(Client client) {
+    public static Builder copyOf(Client client) {
         return new ClientData.Builder()
                 .withClientSecretHash(client.getSecretHash())
                 .withScopes(ImmutableSet.copyOf(client.getScopes()))

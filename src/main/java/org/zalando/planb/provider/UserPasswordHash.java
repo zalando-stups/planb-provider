@@ -3,6 +3,8 @@ package org.zalando.planb.provider;
 import com.datastax.driver.mapping.annotations.Field;
 import com.datastax.driver.mapping.annotations.UDT;
 
+import static java.time.ZonedDateTime.now;
+
 @UDT(keyspace = "provider", name = "user_password_hash")
 public class UserPasswordHash {
     @Field(name = "password_hash")
@@ -14,9 +16,13 @@ public class UserPasswordHash {
     // default constructor for UDT mapping
     public UserPasswordHash() {}
 
+    public UserPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
     public UserPasswordHash(String passwordHash, String createdBy) {
         this.passwordHash = passwordHash;
-        this.created = (int) (System.currentTimeMillis() / 1000);
+        this.created = (int) now().toEpochSecond();
         this.createdBy = createdBy;
     }
 
