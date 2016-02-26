@@ -3,9 +3,6 @@ package org.zalando.planb.provider;
 import com.datastax.driver.mapping.annotations.Field;
 import com.datastax.driver.mapping.annotations.UDT;
 
-/**
- * Created by hjacobs on 2/25/16.
- */
 @UDT(keyspace = "provider", name = "user_password_hash")
 public class UserPasswordHash {
     @Field(name = "password_hash")

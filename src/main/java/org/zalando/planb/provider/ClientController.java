@@ -43,7 +43,7 @@ public class ClientController implements ClientsApi {
             @RequestBody Client client) {
         log.info("Create or replace client /{}/{}: {}", realm, id, client);
         validateBCryptHash("client secret", client.getSecretHash());
-        getClientManagedRealm(realm).createOrReplace(id, client);
+        getClientManagedRealm(realm).createOrReplace(id, ClientData.copyOf(client).build());
         return new ResponseEntity<>(OK);
     }
 
@@ -63,7 +63,7 @@ public class ClientController implements ClientsApi {
             @RequestBody Client client) {
         log.info("Update client /{}/{}: {}", realm, id, client);
         validateBCryptHash("client secret", client.getSecretHash());
-        getClientManagedRealm(realm).update(id, client);
+        getClientManagedRealm(realm).update(id, ClientData.copyOf(client).build());
         return new ResponseEntity<>(OK);
     }
 

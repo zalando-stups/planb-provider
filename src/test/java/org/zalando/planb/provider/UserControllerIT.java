@@ -76,7 +76,7 @@ public class UserControllerIT extends AbstractSpringTest {
                 "write_all", "true"));
 
         // create the user
-        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body1), Void.class)
+        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body1), Void.class)
                 .getStatusCode())
                 .isEqualTo(OK);
 
@@ -87,7 +87,7 @@ public class UserControllerIT extends AbstractSpringTest {
         body2.setScopes(singletonMap("write_all", "false"));
 
         // update the user. modify all (non-key) columns
-        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body2), Void.class)
+        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body2), Void.class)
                 .getStatusCode())
                 .isEqualTo(OK);
 
@@ -99,7 +99,7 @@ public class UserControllerIT extends AbstractSpringTest {
     public void testDeleteInNotManagedRealm() throws Exception {
         try {
             restTemplate.exchange(delete(URI.create(basePath() + "/users/animals/1"))
-                    .header(AUTHORIZATION, VALID_ACCESS_TOKEN).build(), Void.class);
+                    .header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (HttpClientErrorException e) {
             Assertions.assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
@@ -127,7 +127,7 @@ public class UserControllerIT extends AbstractSpringTest {
         assertThat(fetchUser("0815", "/services")).isNotNull();
 
         restTemplate.exchange(delete(URI.create(basePath() + "/users/services/0815"))
-                .header(AUTHORIZATION, VALID_ACCESS_TOKEN).build(), Void.class);
+                .header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), Void.class);
 
         assertThat(fetchUser("0815", "/services")).isNull();
     }
@@ -136,7 +136,7 @@ public class UserControllerIT extends AbstractSpringTest {
     public void testDeleteUsersNotFound() throws Exception {
         try {
             restTemplate.exchange(delete(URI.create(basePath() + "/users/services/not-found"))
-                    .header(AUTHORIZATION, VALID_ACCESS_TOKEN).build(), Void.class);
+                    .header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
             Assertions.assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
@@ -147,7 +147,7 @@ public class UserControllerIT extends AbstractSpringTest {
     public void testUpdateUserNotFound() throws Exception {
         try {
             final URI uri = URI.create(basePath() + "/users/services/not-found");
-            restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(new User()), Void.class);
+            restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(new User()), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
@@ -174,7 +174,7 @@ public class UserControllerIT extends AbstractSpringTest {
         final List<String> newPasswordHashes = asList(genHash("bar"), genHash("hello"), genHash("world"));
         final User body1 = new User();
         body1.setPasswordHashes(newPasswordHashes);
-        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body1), Void.class);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body1), Void.class);
 
         // then changes only this change is reflected in data storage
         service1234.setPasswordHashes(newPasswordHashes);
@@ -186,7 +186,7 @@ public class UserControllerIT extends AbstractSpringTest {
                 "write_all", "true");
         final User body2 = new User();
         body2.setScopes(newScopes);
-        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body2), Void.class);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body2), Void.class);
 
         // then this change is also reflected in data storage
         service1234.setScopes(newScopes);
@@ -206,7 +206,7 @@ public class UserControllerIT extends AbstractSpringTest {
         final Password body = new Password();
         body.setPasswordHash("not a valid hash");
         try {
-            restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body), Void.class);
+            restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body), Void.class);
             fail("wrong BCrypt hash should fail with Bad Request");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
@@ -230,7 +230,7 @@ public class UserControllerIT extends AbstractSpringTest {
         final Password body = new Password();
         String hash = genHash("bar");
         body.setPasswordHash(hash);
-        assertThat(restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body), Void.class)
+        assertThat(restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body), Void.class)
                 .getStatusCode())
                 .isEqualTo(CREATED);
         assertThat(fetchUser("9876", "/services").getSet("password_hashes", UserPasswordHash.class).stream()

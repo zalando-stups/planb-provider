@@ -60,7 +60,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
         client.setScopes(singletonList(scope));
         http.exchange(put(URI.create("http://localhost:" + port + "/raw-sync/clients" + realm + "/" + clientId))
                 .contentType(APPLICATION_JSON)
-                .header(AUTHORIZATION, VALID_ACCESS_TOKEN)
+                .header(AUTHORIZATION, USER1_ACCESS_TOKEN)
                 .body(client), Void.class);
 
         // Create the user
@@ -69,7 +69,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
         user.setScopes(singletonMap(scope, "test-service"));
         http.exchange(put(URI.create("http://localhost:" + port + "/raw-sync/users" + realm + "/" + username))
                 .contentType(APPLICATION_JSON)
-                .header(AUTHORIZATION, VALID_ACCESS_TOKEN)
+                .header(AUTHORIZATION, USER1_ACCESS_TOKEN)
                 .body(user), Void.class);
 
         // Get an access token for the newly created user
