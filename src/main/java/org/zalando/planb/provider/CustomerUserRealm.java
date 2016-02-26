@@ -23,7 +23,6 @@ public class CustomerUserRealm implements UserRealm {
 
     public static final int APP_DOMAIN_ID = 1;
     public static final String SUCCESS_STATUS = "SUCCESS";
-    public static final String UID = "uid";
 
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^(..).*(..)$");
     private static final String USERNAME_MASK = "$1***$2";

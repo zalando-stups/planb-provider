@@ -3,6 +3,9 @@ package org.zalando.planb.provider;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
+import com.google.common.collect.ImmutableList;
+import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTParser;
 import org.jose4j.jwk.HttpsJwks;
 import org.jose4j.jwt.MalformedClaimException;
 import org.jose4j.jwt.consumer.InvalidJwtException;
@@ -203,6 +206,14 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(response.getBody().getRealm()).isEqualTo("/customers");
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
         assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
+
+        final String customerNumber = "123456789";
+        JWT jwt = JWTParser.parse(response.getBody().getAccessToken());
+        assertThat(jwt.getJWTClaimsSet().getSubject()).isEqualTo(customerNumber);
+        assertThat(jwt.getJWTClaimsSet().getStringClaim("uid")).isEqualTo(customerNumber);
+        assertThat(jwt.getJWTClaimsSet().getStringClaim("realm")).isEqualTo("/customers");
+        assertThat(jwt.getJWTClaimsSet().getStringClaim("iss")).isEqualTo("PlanB");
+        assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("uid");
     }
 
     @Test
