@@ -31,7 +31,7 @@ public interface UserManagedRealm extends UserRealm {
             throw new UserRealmAuthorizationException(username, getName(), missingScopes);
         }
 
-        return singletonMap("sub", username);
+        return singletonMap(UID, username);
     }
 
     void update(String username, UserData data) throws NotFoundException;

@@ -118,19 +118,22 @@ public class OIDCController {
             final String[] clientCredentials = getClientCredentials(authorization);
 
             clientRealm.authenticate(clientCredentials[0], clientCredentials[1], scopes, defaultScopes);
-            Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
+            final Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
 
+            final String subject = Optional.ofNullable(extraClaims.get(Realm.UID))
+                    // this should never happen (only if some realm does not return "uid"
+                    .orElseThrow(() -> new IllegalStateException("'uid' claim missing")).toString();
 
             // request authorized, create JWT
             JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
                     .issuer("PlanB")
                     .expirationTime(new Date(System.currentTimeMillis() + EXPIRATION_TIME_UNIT.toMillis(EXPIRATION_TIME)))
                     .issueTime(new Date())
-                    .subject(username)
+                    .subject(subject)
                     .claim("realm", realmName)
                     .claim("scope", finalScopes);
             extraClaims.forEach(claimsBuilder::claim);
-            JWTClaimsSet claims = claimsBuilder.build();
+            final JWTClaimsSet claims = claimsBuilder.build();
 
             // sign JWT
             Optional<OIDCKeyHolder.Signer> optionalSigner = keyHolder.getCurrentSigner(realmName);
