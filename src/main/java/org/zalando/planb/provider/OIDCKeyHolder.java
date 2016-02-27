@@ -3,6 +3,7 @@ package org.zalando.planb.provider;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -95,9 +96,14 @@ public class OIDCKeyHolder {
                 select().from(cassandraProperties.getKeyspace(), KEYPAIR_TABLE));
     }
 
+    @VisibleForTesting
+    List<Row> getStoredKeys() {
+        return session.execute(fetchKeys.bind()).all();
+    }
+
     private void loadKeys() throws JOSEException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, IOException {
         // fetch list from cassandra
-        final List<Row> storedKeys = session.execute(fetchKeys.bind()).all();
+        final List<Row> storedKeys = getStoredKeys();
 
         // transform results into proper JWKs
         // http://connect2id.com/products/nimbus-jose-jwt/openssl-key-generation

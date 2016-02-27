@@ -79,8 +79,7 @@ public class OIDCController {
                                         @RequestHeader(name = "Authorization") Optional<String> authorization,
                                         @RequestHeader(name = "Host") Optional<String> hostHeader)
             throws RealmAuthenticationException, RealmAuthorizationException, JOSEException {
-        final Metric metric = new Metric(metricRegistry);
-        metric.start();
+        final Metric metric = new Metric(metricRegistry).start();
 
         final String realmName = realmNameParam.orElseGet(() -> realms.findRealmNameInHost(hostHeader
                 .orElseThrow(() -> new BadRequestException("Missing realm parameter and no Host header.", "missing_realm", "Missing realm parameter and no Host header.")))
@@ -138,37 +137,25 @@ public class OIDCController {
             final JWTClaimsSet claims = claimsBuilder.build();
 
             // sign JWT
-            Optional<OIDCKeyHolder.Signer> optionalSigner = keyHolder.getCurrentSigner(realmName);
-            if (optionalSigner.isPresent()) {
-                final OIDCKeyHolder.Signer signer = optionalSigner.get();
-                final JWSAlgorithm algorithm = signer.getAlgorithm();
+            OIDCKeyHolder.Signer signer = keyHolder.getCurrentSigner(realmName)
+                    .orElseThrow(() -> new UnsupportedOperationException("No key found for signing requests of realm " + realmName));
 
-                final Metric signingMetric = new Metric(metricRegistry);
-                signingMetric.start();
-
-                String rawJWT;
-                try {
-                    SignedJWT jwt = new SignedJWT(new JWSHeader(algorithm, null, null, null,
-                            null, null, null, null, null, null, signer.getKid(), null, null), claims);
-                    jwt.sign(signer.getJWSSigner());
-
-                    // done
-                    rawJWT = jwt.serialize();
-                } finally {
-                    signingMetric.finish("planb.provider.jwt.signing." + algorithm.getName());
-                }
-
-                metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
-
-                return new OIDCCreateTokenResponse(
-                        rawJWT,
-                        rawJWT,
-                        EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME),
-                        finalScopes.stream().collect(joining(SPACE)),
-                        realmName);
-            } else {
-                throw new UnsupportedOperationException("No key found for signing requests of realm " + realmName);
+            final Metric signingMetric = new Metric(metricRegistry).start();
+            String rawJWT;
+            try {
+                rawJWT = getSignedJWT(claims, signer);
+            } finally {
+                signingMetric.finish("planb.provider.jwt.signing." + signer.getAlgorithm().getName());
             }
+
+            metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
+
+            return new OIDCCreateTokenResponse(
+                    rawJWT,
+                    rawJWT,
+                    EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME),
+                    finalScopes.stream().collect(joining(SPACE)),
+                    realmName);
         } catch (Throwable t) {
             final String errorType = Optional.of(t)
                     .filter(e -> e instanceof RestException)
@@ -178,6 +165,17 @@ public class OIDCController {
             metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".error." + errorType);
             throw t;
         }
+    }
+
+    static String getSignedJWT(JWTClaimsSet claims, OIDCKeyHolder.Signer signer) throws JOSEException {
+        final JWSAlgorithm algorithm = signer.getAlgorithm();
+
+        SignedJWT jwt = new SignedJWT(new JWSHeader(algorithm, null, null, null,
+                null, null, null, null, null, null, signer.getKid(), null, null), claims);
+        jwt.sign(signer.getJWSSigner());
+
+        // done
+        return jwt.serialize();
     }
 
     @RequestMapping("/.well-known/openid-configuration")
