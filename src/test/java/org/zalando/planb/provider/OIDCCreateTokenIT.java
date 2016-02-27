@@ -206,11 +206,14 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(response.getBody().getRealm()).isEqualTo("/customers");
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
         assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
+        assertThat(response.getBody().getAccessToken().length()).isLessThan(310);
+        System.out.println("** CUSTOMER TOKEN **");
+        System.out.println(response.getBody().getAccessToken());
 
         final String customerNumber = "123456789";
         JWT jwt = JWTParser.parse(response.getBody().getAccessToken());
         assertThat(jwt.getJWTClaimsSet().getSubject()).isEqualTo(customerNumber);
-        assertThat(jwt.getJWTClaimsSet().getStringClaim("uid")).isEqualTo(customerNumber);
+        assertThat(jwt.getJWTClaimsSet().getClaims()).containsOnlyKeys("sub", "realm", "iss", "iat");
         assertThat(jwt.getJWTClaimsSet().getStringClaim("realm")).isEqualTo("/customers");
         assertThat(jwt.getJWTClaimsSet().getStringClaim("iss")).isEqualTo("PlanB");
         assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("uid");
