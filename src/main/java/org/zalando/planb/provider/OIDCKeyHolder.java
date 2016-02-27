@@ -303,7 +303,7 @@ public class OIDCKeyHolder {
             return algorithm;
         }
 
-        public long getValidFrom() {
+        public int getValidFrom() {
             return validFrom;
         }
 

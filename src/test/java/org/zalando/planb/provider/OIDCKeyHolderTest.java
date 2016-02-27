@@ -1,24 +1,14 @@
 package org.zalando.planb.provider;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.Row;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.reflect.TypeToken;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jwt.JWT;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.JWTParser;
-import org.assertj.core.api.Assertions;
+import org.assertj.core.util.Lists;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.InetAddress;
-import java.nio.ByteBuffer;
-import java.text.ParseException;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -26,7 +16,8 @@ import static org.mockito.Mockito.when;
 /**
  * Created by hjacobs on 27.02.16.
  */
-public class OIDCControllerTest {
+public class OIDCKeyHolderTest {
+
 
     private static final String TEST_RS256_PEM = "-----BEGIN RSA PRIVATE KEY-----\n" +
             "MIIEpAIBAAKCAQEA3dEMoTXmK7/+WJJpnyjR6hzcG4fKhLfQ0i5VOyT7wny2yw0P\n" +
@@ -56,38 +47,64 @@ public class OIDCControllerTest {
             "ZJleYgmy4L+qZ9SWZixHBxVZba+XLXQ4sdba7FwQ0CumHTbzuElKfg==\n" +
             "-----END RSA PRIVATE KEY-----\n";
 
-    private Row getStoredKey() {
+    private Row getStoredKey(String kid, int validFrom) {
         Row row = Mockito.mock(Row.class);
-        when(row.getString("kid")).thenReturn("mykey");
+        when(row.getString("kid")).thenReturn(kid);
         when(row.getSet("realms", String.class)).thenReturn(ImmutableSet.of("myrealm"));
         when(row.getString("private_key_pem")).thenReturn(TEST_RS256_PEM);
         when(row.getString("algorithm")).thenReturn("RS256");
-        when(row.getInt("valid_from")).thenReturn(0);
+        when(row.getInt("valid_from")).thenReturn(validFrom);
         return row;
     }
 
     @Test
-    public void testGetSignedJWT() throws JOSEException, ParseException {
-        JWTClaimsSet claims = new JWTClaimsSet.Builder().claim("foo", "/bar").build();
+    public void testNoKeys() {
         OIDCKeyHolder keyHolder = new OIDCKeyHolder();
 
-        List<Row> storedKeys = ImmutableList.of(getStoredKey());
+        List<Row> storedKeys = Lists.emptyList();
         keyHolder = Mockito.spy(keyHolder);
         Mockito.doReturn(storedKeys).when(keyHolder).getStoredKeys();
         keyHolder.checkKeys();
-        OIDCKeyHolder.Signer signer = keyHolder.getCurrentSigner("myrealm").get();
-        final String rawJWT = OIDCController.getSignedJWT(claims, signer);
-        assertThat(rawJWT).isNotEmpty();
+        Optional<OIDCKeyHolder.Signer> signer = keyHolder.getCurrentSigner("myrealm");
+        assertThat(signer).isEmpty();
+    }
 
-        final String jsonPayload = new String(Base64.getDecoder().decode(rawJWT.split("\\.")[1]));
-        assertThat(jsonPayload).contains("/bar");
-        // make sure our serialized JSON does NOT contain a stupid unnecessary backslash escape for the forward slash..
-        assertThat(jsonPayload).doesNotContain("\\/bar");
+    @Test
+    public void testUseYoungestKey() {
+        OIDCKeyHolder keyHolder = new OIDCKeyHolder();
 
-        // check JWT contents
-        JWT jwt = JWTParser.parse(rawJWT);
-        assertThat(jwt.getHeader().toJSONObject()).containsOnlyKeys("kid", "alg");
-        assertThat(jwt.getJWTClaimsSet().getClaims()).containsOnlyKeys("foo");
-        assertThat(jwt.getJWTClaimsSet().getStringClaim("foo")).isEqualTo("/bar");
+        int futureTimestamp = (int) (System.currentTimeMillis() / 1000) + 3600;
+        List<Row> storedKeys = ImmutableList.of(
+                getStoredKey("oldkey", 123),
+                getStoredKey("newkey", 999),
+                getStoredKey("otherkey", 500),
+                getStoredKey("futurekey", futureTimestamp));
+        keyHolder = Mockito.spy(keyHolder);
+        Mockito.doReturn(storedKeys).when(keyHolder).getStoredKeys();
+        keyHolder.checkKeys();
+        Optional<OIDCKeyHolder.Signer> signer = keyHolder.getCurrentSigner("myrealm");
+        assertThat(signer).isPresent();
+        assertThat(signer.get().getKid()).isEqualTo("newkey");
+    }
+
+    @Test
+    public void testNewKeyForExistingRealm() {
+        OIDCKeyHolder keyHolder = new OIDCKeyHolder();
+
+        List<Row> storedKeys = ImmutableList.of(getStoredKey("oldkey", 1));
+        keyHolder = Mockito.spy(keyHolder);
+        Mockito.doReturn(storedKeys).when(keyHolder).getStoredKeys();
+        keyHolder.checkKeys();
+        Optional<OIDCKeyHolder.Signer> signer = keyHolder.getCurrentSigner("myrealm");
+        assertThat(signer).isPresent();
+        assertThat(signer.get().getKid()).isEqualTo("oldkey");
+
+        List<Row> newKeys = ImmutableList.of(getStoredKey("newkey", 99));
+        Mockito.doReturn(newKeys).when(keyHolder).getStoredKeys();
+        keyHolder.checkKeys();
+
+        signer = keyHolder.getCurrentSigner("myrealm");
+        assertThat(signer).isPresent();
+        assertThat(signer.get().getKid()).isEqualTo("newkey");
     }
 }
