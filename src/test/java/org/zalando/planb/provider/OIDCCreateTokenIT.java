@@ -206,16 +206,15 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(response.getBody().getRealm()).isEqualTo("/customers");
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
         assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
-        assertThat(response.getBody().getAccessToken().length()).isLessThan(310);
-        System.out.println("** CUSTOMER TOKEN **");
-        System.out.println(response.getBody().getAccessToken());
+        assertThat(response.getBody().getAccessToken().length()).isLessThan(280);
 
         final String customerNumber = "123456789";
         JWT jwt = JWTParser.parse(response.getBody().getAccessToken());
+        assertThat(jwt.getHeader().toJSONObject()).containsOnlyKeys("kid", "alg");
         assertThat(jwt.getJWTClaimsSet().getSubject()).isEqualTo(customerNumber);
-        assertThat(jwt.getJWTClaimsSet().getClaims()).containsOnlyKeys("sub", "realm", "iss", "iat");
+        assertThat(jwt.getJWTClaimsSet().getClaims()).containsOnlyKeys("sub", "realm", "iss", "iat", "exp", "scope");
         assertThat(jwt.getJWTClaimsSet().getStringClaim("realm")).isEqualTo("/customers");
-        assertThat(jwt.getJWTClaimsSet().getStringClaim("iss")).isEqualTo("PlanB");
+        assertThat(jwt.getJWTClaimsSet().getStringClaim("iss")).isEqualTo("B");
         assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("uid");
     }
 

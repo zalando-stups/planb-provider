@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface Realm {
 
-    public static final String UID = "uid";
+    public static final String SUB = "sub";
 
     List<String> NEW_BCRYPT_SALT_PREFIXES = Lists.newArrayList("$2b", "$2y");
     String OLD_BCRYPT_SALT_PREFIX = "$2a";

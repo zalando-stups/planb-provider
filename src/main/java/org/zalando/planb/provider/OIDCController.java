@@ -2,6 +2,7 @@ package org.zalando.planb.provider;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -32,6 +33,9 @@ public class OIDCController {
     private static final Base64.Decoder BASE_64_DECODER = Base64.getDecoder();
 
     private static final String BASIC_AUTH_PREFIX = "Basic ";
+
+    // we just need one char to identify ourselves as "Plan B Provider" (Base64 has 33% overhead)
+    private static final String ISSUER = "B";
 
     @Autowired
     private RealmConfig realms;
@@ -120,16 +124,14 @@ public class OIDCController {
             clientRealm.authenticate(clientCredentials[0], clientCredentials[1], scopes, defaultScopes);
             final Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
 
-            final String subject = Optional.ofNullable(extraClaims.get(Realm.UID))
-                    // this should never happen (only if some realm does not return "uid"
-                    .orElseThrow(() -> new IllegalStateException("'uid' claim missing")).toString();
+            // this should never happen (only if some realm does not return "sub"
+            Preconditions.checkState(extraClaims.containsKey(Realm.SUB), "'sub' claim missing");
 
             // request authorized, create JWT
             JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
-                    .issuer("PlanB")
+                    .issuer(ISSUER)
                     .expirationTime(new Date(System.currentTimeMillis() + EXPIRATION_TIME_UNIT.toMillis(EXPIRATION_TIME)))
                     .issueTime(new Date())
-                    .subject(subject)
                     .claim("realm", realmName)
                     .claim("scope", finalScopes);
             extraClaims.forEach(claimsBuilder::claim);
@@ -146,7 +148,7 @@ public class OIDCController {
 
                 String rawJWT;
                 try {
-                    SignedJWT jwt = new SignedJWT(new JWSHeader(algorithm, JOSEObjectType.JWT, null, null,
+                    SignedJWT jwt = new SignedJWT(new JWSHeader(algorithm, null, null, null,
                             null, null, null, null, null, null, signer.getKid(), null, null), claims);
                     jwt.sign(signer.getJWSSigner());
 

@@ -2,7 +2,6 @@ package org.zalando.planb.provider;
 
 import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
 import com.github.tomakehurst.wiremock.http.Fault;
-import com.google.common.collect.Sets;
 import com.netflix.hystrix.exception.HystrixRuntimeException;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -12,7 +11,6 @@ import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.Collections;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -27,9 +25,8 @@ import static org.springframework.http.MediaType.TEXT_XML_VALUE;
 @ActiveProfiles({"it"})
 public class CustomerUserRealmIT extends AbstractSpringTest {
 
-    private static final Logger log = LoggerFactory.getLogger(CustomerUserRealmIT.class);
-
     public static final String UID = "uid";
+    public static final String SUB = "sub";
 
     public static final String SOAP_RESPONSE =
             "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
@@ -79,7 +76,7 @@ public class CustomerUserRealmIT extends AbstractSpringTest {
                         .withBody(SOAP_RESPONSE)));
 
         Map<String, Object> authenticate = customerUserRealm.authenticate(EMAIL, PASSWORD, newHashSet(UID), emptySet());
-        assertThat(authenticate.get(UID)).isEqualTo(CUSTOMER_NUMBER);
+        assertThat(authenticate.get(SUB)).isEqualTo(CUSTOMER_NUMBER);
     }
 
     @Test(expected = RealmAuthenticationException.class)
@@ -91,7 +88,7 @@ public class CustomerUserRealmIT extends AbstractSpringTest {
                         .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
                         .withBody(SOAP_FAILED_RESPONSE)));
 
-        Map<String, Object> authenticate = customerUserRealm.authenticate(EMAIL, PASSWORD, newHashSet(UID), emptySet());
+        customerUserRealm.authenticate(EMAIL, PASSWORD, newHashSet(UID), emptySet());
     }
 
     @Test(expected = RealmAuthenticationException.class)
@@ -103,7 +100,7 @@ public class CustomerUserRealmIT extends AbstractSpringTest {
                         .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
                         .withBody(SOAP_EMPTY_RESPONSE)));
 
-        Map<String, Object> authenticate = customerUserRealm.authenticate(EMAIL, PASSWORD, newHashSet(UID), emptySet());
+        customerUserRealm.authenticate(EMAIL, PASSWORD, newHashSet(UID), emptySet());
     }
 
     @Test(expected = HystrixRuntimeException.class)
@@ -113,6 +110,6 @@ public class CustomerUserRealmIT extends AbstractSpringTest {
                 .willReturn(aResponse()
                         .withFault(Fault.EMPTY_RESPONSE)));
 
-        Map<String, Object> authenticate = customerUserRealm.authenticate(EMAIL, PASSWORD, newHashSet(UID), emptySet());
+        customerUserRealm.authenticate(EMAIL, PASSWORD, newHashSet(UID), emptySet());
     }
 }
