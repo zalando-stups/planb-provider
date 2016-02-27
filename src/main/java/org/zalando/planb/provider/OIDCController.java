@@ -2,13 +2,12 @@ package org.zalando.planb.provider;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Joiner;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JOSEObjectType;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
+import com.google.common.base.Preconditions;
+import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import net.minidev.json.JSONStyle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +31,9 @@ public class OIDCController {
     private static final Base64.Decoder BASE_64_DECODER = Base64.getDecoder();
 
     private static final String BASIC_AUTH_PREFIX = "Basic ";
+
+    // we just need one char to identify ourselves as "Plan B Provider" (Base64 has 33% overhead)
+    private static final String ISSUER = "B";
 
     @Autowired
     private RealmConfig realms;
@@ -75,8 +77,7 @@ public class OIDCController {
                                         @RequestHeader(name = "Authorization") Optional<String> authorization,
                                         @RequestHeader(name = "Host") Optional<String> hostHeader)
             throws RealmAuthenticationException, RealmAuthorizationException, JOSEException {
-        final Metric metric = new Metric(metricRegistry);
-        metric.start();
+        final Metric metric = new Metric(metricRegistry).start();
 
         final String realmName = realmNameParam.orElseGet(() -> realms.findRealmNameInHost(hostHeader
                 .orElseThrow(() -> new BadRequestException("Missing realm parameter and no Host header.", "missing_realm", "Missing realm parameter and no Host header.")))
@@ -120,53 +121,39 @@ public class OIDCController {
             clientRealm.authenticate(clientCredentials[0], clientCredentials[1], scopes, defaultScopes);
             final Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
 
-            final String subject = Optional.ofNullable(extraClaims.get(Realm.UID))
-                    // this should never happen (only if some realm does not return "uid"
-                    .orElseThrow(() -> new IllegalStateException("'uid' claim missing")).toString();
+            // this should never happen (only if some realm does not return "sub"
+            Preconditions.checkState(extraClaims.containsKey(Realm.SUB), "'sub' claim missing");
 
             // request authorized, create JWT
             JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
-                    .issuer("PlanB")
+                    .issuer(ISSUER)
                     .expirationTime(new Date(System.currentTimeMillis() + EXPIRATION_TIME_UNIT.toMillis(EXPIRATION_TIME)))
                     .issueTime(new Date())
-                    .subject(subject)
                     .claim("realm", realmName)
                     .claim("scope", finalScopes);
             extraClaims.forEach(claimsBuilder::claim);
             final JWTClaimsSet claims = claimsBuilder.build();
 
             // sign JWT
-            Optional<OIDCKeyHolder.Signer> optionalSigner = keyHolder.getCurrentSigner(realmName);
-            if (optionalSigner.isPresent()) {
-                final OIDCKeyHolder.Signer signer = optionalSigner.get();
-                final JWSAlgorithm algorithm = signer.getAlgorithm();
+            OIDCKeyHolder.Signer signer = keyHolder.getCurrentSigner(realmName)
+                    .orElseThrow(() -> new UnsupportedOperationException("No key found for signing requests of realm " + realmName));
 
-                final Metric signingMetric = new Metric(metricRegistry);
-                signingMetric.start();
-
-                String rawJWT;
-                try {
-                    SignedJWT jwt = new SignedJWT(new JWSHeader(algorithm, JOSEObjectType.JWT, null, null,
-                            null, null, null, null, null, null, signer.getKid(), null, null), claims);
-                    jwt.sign(signer.getJWSSigner());
-
-                    // done
-                    rawJWT = jwt.serialize();
-                } finally {
-                    signingMetric.finish("planb.provider.jwt.signing." + algorithm.getName());
-                }
-
-                metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
-
-                return new OIDCCreateTokenResponse(
-                        rawJWT,
-                        rawJWT,
-                        EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME),
-                        finalScopes.stream().collect(joining(SPACE)),
-                        realmName);
-            } else {
-                throw new UnsupportedOperationException("No key found for signing requests of realm " + realmName);
+            final Metric signingMetric = new Metric(metricRegistry).start();
+            String rawJWT;
+            try {
+                rawJWT = getSignedJWT(claims, signer);
+            } finally {
+                signingMetric.finish("planb.provider.jwt.signing." + signer.getAlgorithm().getName());
             }
+
+            metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
+
+            return new OIDCCreateTokenResponse(
+                    rawJWT,
+                    rawJWT,
+                    EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME),
+                    finalScopes.stream().collect(joining(SPACE)),
+                    realmName);
         } catch (Throwable t) {
             final String errorType = Optional.of(t)
                     .filter(e -> e instanceof RestException)
@@ -176,6 +163,22 @@ public class OIDCController {
             metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".error." + errorType);
             throw t;
         }
+    }
+
+    static String getSignedJWT(JWTClaimsSet claims, OIDCKeyHolder.Signer signer) throws JOSEException {
+        final JWSAlgorithm algorithm = signer.getAlgorithm();
+
+        // NOTE: we are doing the JSON serialization "by hand" here to use the correct compression flag
+        // (the default is using net.minidev.json.JStylerObj.ESCAPE4Web which also escapes forward slashes)
+        final String serializedJson = claims.toJSONObject().toJSONString(JSONStyle.LT_COMPRESS);
+        final JWSHeader header = new JWSHeader(algorithm, null, null, null, null, null, null, null, null, null,
+                signer.getKid(), null, null);
+        final Payload payload = new Payload(serializedJson);
+        final JWSObject jwt = new JWSObject(header, payload);
+
+        jwt.sign(signer.getJWSSigner());
+
+        return jwt.serialize();
     }
 
     @RequestMapping("/.well-known/openid-configuration")

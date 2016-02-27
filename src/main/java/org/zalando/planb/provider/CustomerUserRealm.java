@@ -42,7 +42,7 @@ public class CustomerUserRealm implements UserRealm {
                 .filter(r -> SUCCESS_STATUS.equals(r.getLoginResult()))
                 .orElseThrow(() -> new UserRealmAuthenticationException(format("Customer %s login failed", maskUsername(username))));
 
-        return singletonMap(UID, response.getCustomerNumber());
+        return singletonMap(SUB, response.getCustomerNumber());
     }
 
     @Override

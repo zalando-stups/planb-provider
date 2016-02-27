@@ -20,8 +20,9 @@ public class Metric {
         this.metricRegistry = metricRegistry;
     }
 
-    public void start() {
+    public Metric start() {
         this.start = System.currentTimeMillis();
+        return this;
     }
 
     public void finish(String key) {
