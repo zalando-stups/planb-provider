@@ -57,11 +57,33 @@ public class OIDCKeyHolderTest {
         return row;
     }
 
+    private Row getKeyWithInvalidAlgorithm() {
+        Row row = Mockito.mock(Row.class);
+        when(row.getString("kid")).thenReturn("invalidkey");
+        when(row.getSet("realms", String.class)).thenReturn(ImmutableSet.of("myrealm"));
+        when(row.getString("private_key_pem")).thenReturn(TEST_RS256_PEM);
+        when(row.getString("algorithm")).thenReturn("INVALID-ALG");
+        when(row.getInt("valid_from")).thenReturn(0);
+        return row;
+    }
+
     @Test
     public void testNoKeys() {
         OIDCKeyHolder keyHolder = new OIDCKeyHolder();
 
         List<Row> storedKeys = Lists.emptyList();
+        keyHolder = Mockito.spy(keyHolder);
+        Mockito.doReturn(storedKeys).when(keyHolder).getStoredKeys();
+        keyHolder.checkKeys();
+        Optional<OIDCKeyHolder.Signer> signer = keyHolder.getCurrentSigner("myrealm");
+        assertThat(signer).isEmpty();
+    }
+
+    @Test
+    public void testInvalidAlgorithm() {
+        OIDCKeyHolder keyHolder = new OIDCKeyHolder();
+
+        List<Row> storedKeys = ImmutableList.of(getKeyWithInvalidAlgorithm());
         keyHolder = Mockito.spy(keyHolder);
         Mockito.doReturn(storedKeys).when(keyHolder).getStoredKeys();
         keyHolder.checkKeys();
