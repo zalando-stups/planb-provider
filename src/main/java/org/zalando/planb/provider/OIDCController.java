@@ -3,13 +3,11 @@ package org.zalando.planb.provider;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JOSEObjectType;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import net.minidev.json.JSONStyle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -170,11 +168,16 @@ public class OIDCController {
     static String getSignedJWT(JWTClaimsSet claims, OIDCKeyHolder.Signer signer) throws JOSEException {
         final JWSAlgorithm algorithm = signer.getAlgorithm();
 
-        SignedJWT jwt = new SignedJWT(new JWSHeader(algorithm, null, null, null,
-                null, null, null, null, null, null, signer.getKid(), null, null), claims);
+        // NOTE: we are doing the JSON serialization "by hand" here to use the correct compression flag
+        // (the default is using net.minidev.json.JStylerObj.ESCAPE4Web which also escapes forward slashes)
+        final String serializedJson = claims.toJSONObject().toJSONString(JSONStyle.LT_COMPRESS);
+        final JWSHeader header = new JWSHeader(algorithm, null, null, null, null, null, null, null, null, null,
+                signer.getKid(), null, null);
+        final Payload payload = new Payload(serializedJson);
+        final JWSObject jwt = new JWSObject(header, payload);
+
         jwt.sign(signer.getJWSSigner());
 
-        // done
         return jwt.serialize();
     }
 
