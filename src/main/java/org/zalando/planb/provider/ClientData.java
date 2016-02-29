@@ -1,6 +1,5 @@
 package org.zalando.planb.provider;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import org.zalando.planb.provider.api.Client;
 
@@ -45,16 +44,6 @@ public class ClientData {
 
     public String getLastModifiedBy() {
         return lastModifiedBy;
-    }
-
-    @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("scopes", scopes)
-                .add("confidential", confidential)
-                .add("createdBy", createdBy)
-                .add("lastModifiedBy", lastModifiedBy)
-                .toString();
     }
 
     public static Builder copyOf(Client client) {

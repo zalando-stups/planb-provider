@@ -3,6 +3,8 @@ package org.zalando.planb.provider;
 import com.datastax.driver.mapping.annotations.Field;
 import com.datastax.driver.mapping.annotations.UDT;
 
+import java.util.Objects;
+
 import static java.time.ZonedDateTime.now;
 
 @UDT(keyspace = "provider", name = "user_password_hash")
@@ -48,5 +50,18 @@ public class UserPasswordHash {
 
     public void setCreatedBy(String createdBy) {
         this.createdBy = createdBy;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserPasswordHash that = (UserPasswordHash) o;
+        return Objects.equals(getPasswordHash(), that.getPasswordHash());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getPasswordHash());
     }
 }
