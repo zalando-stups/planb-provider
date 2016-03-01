@@ -13,12 +13,12 @@ public interface ClientManagedRealm extends ClientRealm {
             throws ClientRealmAuthenticationException, ClientRealmAuthorizationException {
         final ClientData client = get(clientId).orElseThrow(() -> clientNotFound(clientId, getName()));
 
-        // TODO hardcoded assumption, that only Resource Owner Password Credentials flow is supported
         if (!client.isConfidential()) {
-            throw clientIsPublic(clientId, getName());
-        }
+            // TODO: non-confidential clients have no client secret,
+            // i.e. we do not really authenticate anything here
+            // Consider linking clients to users for the Resource Owner Password Credentials flow?
 
-        if (!Realm.checkBCryptPassword(clientSecret, client.getClientSecretHash())) {
+        } else if (!Realm.checkBCryptPassword(clientSecret, client.getClientSecretHash())) {
             throw wrongClientSecret(clientId, getName());
         }
 

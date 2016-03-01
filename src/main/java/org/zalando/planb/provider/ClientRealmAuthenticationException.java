@@ -18,14 +18,6 @@ public class ClientRealmAuthenticationException extends RealmAuthenticationExcep
                 "Client authentication failed");
     }
 
-    public static ClientRealmAuthenticationException clientIsPublic(String clientId, String realmName) {
-        return new ClientRealmAuthenticationException(
-                BAD_REQUEST.value(),
-                format("Public client '%s' in realm '%s' is not permitted to authenticate", clientId, realmName),
-                "unauthorized_client",
-                "Client not authorized to use this grant type");
-    }
-
     public static ClientRealmAuthenticationException wrongClientSecret(String clientId, String realmName) {
         return new ClientRealmAuthenticationException(
                 UNAUTHORIZED.value(),

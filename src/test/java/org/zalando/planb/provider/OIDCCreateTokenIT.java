@@ -348,13 +348,8 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
     @Test
     public void testPublicClient() throws Exception {
-        try {
-            createToken("/services", "testpublicclient", "test", "testuser", "test", "uid");
-            failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
-        } catch (HttpClientErrorException e) {
-            assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
-            assertThat(getErrorResponseMap(e)).contains(entry("error", "unauthorized_client"));
-        }
+        ResponseEntity<OIDCCreateTokenResponse> response = createToken("/services", "testpublicclient", "whatever", "testuser", "test", "uid");
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     private static Map<String, String> getErrorResponseMap(HttpStatusCodeException e) throws IOException {
