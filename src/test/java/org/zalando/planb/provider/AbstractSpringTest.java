@@ -16,12 +16,16 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 public abstract class AbstractSpringTest {
 
-    protected static final String VALID_ACCESS_TOKEN = "Bearer 987654321";
+    protected static final String USER1_ACCESS_TOKEN = "Bearer 987651111";
+    protected static final String USER2_ACCESS_TOKEN = "Bearer 987652222";
     protected static final String INVALID_ACCESS_TOKEN = "Bearer 123456789";
     protected static final String INSUFFICIENT_SCOPES_ACCESS_TOKEN = "Bearer 111222333";
 
-    private static final String TOKENINFO_RESPONSE = "{\n" +
-            "    \"uid\": \"testapp\",\n" +
+    protected static final String USER1 = "/services/user1";
+    protected static final String USER2 = "/employees/user2";
+
+    private static final String USER1_TOKENINFO_RESPONSE = "{\n" +
+            "    \"uid\": \"user1\",\n" +
             "    \"scope\": [\n" +
             "        \"uid\",\n" +
             "        \"hello\"\n" +
@@ -31,6 +35,19 @@ public abstract class AbstractSpringTest {
             "    \"token_type\": \"Bearer\",\n" +
             "    \"access_token\": \"987654321\",\n" +
             "    \"realm\": \"/services\"\n" +
+            "}";
+
+    private static final String USER2_TOKENINFO_RESPONSE = "{\n" +
+            "    \"uid\": \"user2\",\n" +
+            "    \"scope\": [\n" +
+            "        \"uid\",\n" +
+            "        \"hello\"\n" +
+            "    ],\n" +
+            "    \"hello\": \"World\",\n" +
+            "    \"expires_in\": 99999,\n" +
+            "    \"token_type\": \"Bearer\",\n" +
+            "    \"access_token\": \"987654321\",\n" +
+            "    \"realm\": \"/employees\"\n" +
             "}";
 
     private static final String TOKENINFO_RESPONSE_INSUFFICIENT_SCOPES = "{\n" +
@@ -60,11 +77,18 @@ public abstract class AbstractSpringTest {
     @Before
     public void setUpMockTokenInfo() throws Exception {
         stubFor(get(urlEqualTo("/tokeninfo"))
-                .withHeader(AUTHORIZATION, equalTo(VALID_ACCESS_TOKEN))
+                .withHeader(AUTHORIZATION, equalTo(USER1_ACCESS_TOKEN))
                 .willReturn(aResponse()
                         .withStatus(OK.value())
                         .withHeader(ContentTypeHeader.KEY, APPLICATION_JSON_VALUE)
-                        .withBody(TOKENINFO_RESPONSE)));
+                        .withBody(USER1_TOKENINFO_RESPONSE)));
+
+        stubFor(get(urlEqualTo("/tokeninfo"))
+                .withHeader(AUTHORIZATION, equalTo(USER2_ACCESS_TOKEN))
+                .willReturn(aResponse()
+                        .withStatus(OK.value())
+                        .withHeader(ContentTypeHeader.KEY, APPLICATION_JSON_VALUE)
+                        .withBody(USER2_TOKENINFO_RESPONSE)));
 
         stubFor(get(urlEqualTo("/tokeninfo"))
                 .withHeader(AUTHORIZATION, equalTo(INVALID_ACCESS_TOKEN))

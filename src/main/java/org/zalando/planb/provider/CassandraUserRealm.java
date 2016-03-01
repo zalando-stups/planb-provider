@@ -1,26 +1,24 @@
 package org.zalando.planb.provider;
 
-import com.datastax.driver.core.*;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.mapping.MappingManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
-import org.zalando.planb.provider.api.Password;
-import org.zalando.planb.provider.api.User;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
-import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
 import static java.lang.String.format;
 import static java.util.Collections.singleton;
+import static java.util.stream.Collectors.toSet;
 
 @Component
 @Scope("prototype")
@@ -31,6 +29,8 @@ public class CassandraUserRealm implements UserManagedRealm {
     private static final String REALM = "realm";
     private static final String PASSWORD_HASHES = "password_hashes";
     private static final String SCOPES = "scopes";
+    private static final String CREATED_BY = "created_by";
+    private static final String LAST_MODIFIED_BY = "last_modified_by";
 
     @Autowired
     private CassandraProperties cassandraProperties;
@@ -38,7 +38,8 @@ public class CassandraUserRealm implements UserManagedRealm {
     @Autowired
     private Session session;
 
-    private TypeCodec<UserPasswordHash> udtCodec;
+    @Autowired
+    private CurrentUser currentUser;
 
     private String realmName;
 
@@ -58,7 +59,9 @@ public class CassandraUserRealm implements UserManagedRealm {
                 .value(USERNAME, bindMarker(USERNAME))
                 .value(REALM, realmName)
                 .value(PASSWORD_HASHES, bindMarker(PASSWORD_HASHES))
-                .value(SCOPES, bindMarker(SCOPES)))
+                .value(SCOPES, bindMarker(SCOPES))
+                .value(CREATED_BY, bindMarker(CREATED_BY))
+                .value(LAST_MODIFIED_BY, bindMarker(LAST_MODIFIED_BY)))
                 .setConsistencyLevel(cassandraProperties.getWriteConsistencyLevel());
 
         deleteOne = session.prepare(QueryBuilder.delete().all()
@@ -78,11 +81,7 @@ public class CassandraUserRealm implements UserManagedRealm {
     public void initialize(String realmName) {
         Assert.hasText(realmName, "realmName must not be blank");
         this.realmName = realmName;
-
-        // On UDTs:
-        // http://www.datastax.com/dev/blog/cql-in-2-1
-        // https://docs.datastax.com/en/developer/java-driver/2.1/java-driver/reference/mappingUdts.html
-        udtCodec = new MappingManager(session).udtCodec(UserPasswordHash.class);
+        new MappingManager(session).udtCodec(UserPasswordHash.class);
 
         prepareStatements();
     }
@@ -93,58 +92,70 @@ public class CassandraUserRealm implements UserManagedRealm {
     }
 
     @Override
+    public void update(String username, UserData data) throws NotFoundException {
+        final UserData existing = get(username).orElseThrow(() -> new NotFoundException(format("Could not find user %s in realm %s", username, getName())));
+
+        session.execute(upsert.bind()
+                .setString(USERNAME, username)
+                .setSet(PASSWORD_HASHES, Optional.ofNullable(data.getPasswordHashes()).filter(list -> !list.isEmpty()).map(this::withAuditing).orElseGet(existing::getPasswordHashes))
+                .setMap(SCOPES, Optional.ofNullable(data.getScopes()).filter(scopes -> !scopes.isEmpty()).orElseGet(existing::getScopes))
+                .setString(CREATED_BY, existing.getCreatedBy())
+                .setString(LAST_MODIFIED_BY, currentUser.get()));
+    }
+
+    @Override
     public void delete(String username) throws NotFoundException {
         assertExists(username);
         session.execute(deleteOne.bind().setString(USERNAME, username));
     }
 
     @Override
-    public void createOrReplace(String username, User user) {
-        Set<UserPasswordHash> udtValues = user.getPasswordHashes().stream()
-                .map(hash -> new UserPasswordHash(hash, "todo"))
-                .collect(Collectors.toSet());
-
+    public void createOrReplace(String username, UserData user) {
+        final Optional<String> existingCreatedBy = get(username).map(UserData::getCreatedBy);
         session.execute(upsert.bind()
                 .setString(USERNAME, username)
-                .setSet(PASSWORD_HASHES, udtValues)
-                .setMap(SCOPES, scopesMap(user)));
-    }
-
-    // TODO is it possible to use Map in the User POJO?
-    private Map<String, String> scopesMap(User user) {
-        final Map<?, ?> scopes = (Map<?, ?>) user.getScopes();
-        final Map<String, String> result = newHashMapWithExpectedSize(scopes.size());
-        scopes.forEach((key, value) -> result.put(String.valueOf(key), String.valueOf(value)));
-        return result;
+                .setSet(PASSWORD_HASHES, withAuditing(user.getPasswordHashes()))
+                .setMap(SCOPES, user.getScopes())
+                .setString(CREATED_BY, existingCreatedBy.orElseGet(currentUser))
+                .setString(LAST_MODIFIED_BY, currentUser.get()));
     }
 
     @Override
-    public void addPassword(String username, Password password) {
+    public void addPassword(String username, UserPasswordHash password) {
         assertExists(username);
         session.execute(addPassword.bind()
                 .setString(USERNAME, username)
-                .setSet(PASSWORD_HASHES, singleton(new UserPasswordHash(password.getPasswordHash(), "todo"))));
+                .setSet(PASSWORD_HASHES, singleton(withAuditing(password))));
     }
 
     @Override
-    public Optional<User> get(String username) {
+    public Optional<UserData> get(String username) {
         return Optional.of(findOne.bind().setString(USERNAME, username))
                 .map(session::execute)
                 .map(ResultSet::one)
                 .map(this::toUser);
     }
 
+    private Set<UserPasswordHash> withAuditing(Set<UserPasswordHash> set) {
+        return set.stream().map(this::withAuditing).collect(toSet());
+    }
+
+    private UserPasswordHash withAuditing(UserPasswordHash userPasswordHash) {
+        userPasswordHash.setCreated((int) ZonedDateTime.now().toEpochSecond());
+        userPasswordHash.setCreatedBy(currentUser.get());
+        return userPasswordHash;
+    }
+
     private void assertExists(String username) {
         get(username).orElseThrow(() -> new NotFoundException(format("Could not find user %s in realm %s", username, getName())));
     }
 
-    private User toUser(Row row) {
-        final User user = new User();
-        List<String> passwordHashes = row.getSet(PASSWORD_HASHES, UserPasswordHash.class).stream()
-                .map(UserPasswordHash::getPasswordHash)
-                .collect(Collectors.toList());
-        user.setPasswordHashes(passwordHashes);
-        user.setScopes(row.getMap(SCOPES, String.class, String.class));
-        return user;
+    private UserData toUser(Row row) {
+        return new UserData.Builder()
+                .withPasswordHashes(row.getSet(PASSWORD_HASHES, UserPasswordHash.class))
+                .withScopes(row.getMap(SCOPES, String.class, String.class))
+                .withCreatedBy(row.getString(CREATED_BY))
+                .withLastModifiedBy(row.getString(LAST_MODIFIED_BY))
+                .build();
     }
 }

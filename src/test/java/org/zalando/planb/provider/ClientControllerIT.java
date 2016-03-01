@@ -32,6 +32,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.RequestEntity.delete;
 import static org.springframework.http.RequestEntity.*;
 import static org.springframework.http.RequestEntity.put;
+import static org.zalando.planb.provider.ClientData.copyOf;
 
 
 @SpringApplicationConfiguration(classes = { Main.class })
@@ -60,7 +61,7 @@ public class ClientControllerIT extends AbstractSpringTest {
     public void testDeleteInNotManagedRealm() throws Exception {
         try {
             restTemplate.exchange(delete(URI.create(basePath() + "/clients/animals/1"))
-                    .header(AUTHORIZATION, VALID_ACCESS_TOKEN).build(), Void.class);
+                    .header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
@@ -95,11 +96,13 @@ public class ClientControllerIT extends AbstractSpringTest {
                 .value("realm", "/services")
                 .value("client_secret_hash", "qwertz")
                 .value("scopes", newHashSet("foo", "bar"))
-                .value("is_confidential", true));
+                .value("is_confidential", true)
+                .value("created_by", USER1)
+                .value("last_modified_by", USER2));
         assertThat(fetchClient("0815", "/services")).isNotNull();
 
         restTemplate.exchange(delete(URI.create(basePath() + "/clients/services/0815"))
-                .header(AUTHORIZATION, VALID_ACCESS_TOKEN).build(), Void.class);
+                .header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), Void.class);
 
         assertThat(fetchClient("0815", "/services")).isNull();
     }
@@ -108,7 +111,7 @@ public class ClientControllerIT extends AbstractSpringTest {
     public void testDeleteServicesClientNotFound() throws Exception {
         try {
             restTemplate.exchange(delete(URI.create(basePath() + "/clients/services/not-found"))
-                    .header(AUTHORIZATION, VALID_ACCESS_TOKEN).build(), Void.class);
+                    .header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
@@ -128,7 +131,7 @@ public class ClientControllerIT extends AbstractSpringTest {
         body1.setIsConfidential(true);
 
         try {
-            restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body1), Void.class);
+            restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body1), Void.class);
             fail("wrong BCrypt hash should fail with Bad Request");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
@@ -149,31 +152,35 @@ public class ClientControllerIT extends AbstractSpringTest {
         body1.setScopes(asList("read_foo", "read_bar"));
         body1.setIsConfidential(true);
 
-        // create the client
-        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body1), Void.class)
+        // user1 creates the client
+        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body1), Void.class)
                 .getStatusCode())
                 .isEqualTo(OK);
 
-        assertThat(fetchClient("4711", "/customers")).isNotNull().has(valuesEqualTo(body1));
+        assertThat(fetchClient("4711", "/customers"))
+                .isNotNull()
+                .has(valuesEqualTo(copyOf(body1).withCreatedBy(USER1).withLastModifiedBy(USER1).build()));
 
         final Client body2 = new Client();
         body2.setSecretHash(hash);
         body2.setScopes(asList("read_team", "write_hello", "write_world"));
         body2.setIsConfidential(false);
 
-        // update the client. modify all (non-key) columns
-        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body2), Void.class)
+        // user2 updates the client. modifying all (non-key) columns
+        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER2_ACCESS_TOKEN).body(body2), Void.class)
                 .getStatusCode())
                 .isEqualTo(OK);
 
-        assertThat(fetchClient("4711", "/customers")).isNotNull().has(valuesEqualTo(body2));
+        assertThat(fetchClient("4711", "/customers"))
+                .isNotNull()
+                .has(valuesEqualTo(copyOf(body2).withCreatedBy(USER1).withLastModifiedBy(USER2).build()));
     }
 
     @Test
     public void testUpdateServicesClientNotFound() throws Exception {
         try {
             final URI uri = URI.create(basePath() + "/clients/services/not-found");
-            restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(new Client()), Void.class);
+            restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(new Client()), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
@@ -190,7 +197,9 @@ public class ClientControllerIT extends AbstractSpringTest {
                 .value("realm", "/services")
                 .value("client_secret_hash", hash)
                 .value("scopes", newHashSet("foo", "bar"))
-                .value("is_confidential", true));
+                .value("is_confidential", true)
+                .value("created_by", USER1)
+                .value("last_modified_by", USER2));
 
         final Client service1234 = new Client();
         service1234.setSecretHash(hash);
@@ -203,37 +212,42 @@ public class ClientControllerIT extends AbstractSpringTest {
         final String newSecretHash = genHash("lolz");
         final Client body1 = new Client();
         body1.setSecretHash(newSecretHash);
-        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body1), Void.class);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body1), Void.class);
 
         // then changes only this change is reflected in data storage
         service1234.setSecretHash(newSecretHash);
-        assertThat(fetchClient("1234", "/services")).has(valuesEqualTo(service1234));
+        assertThat(fetchClient("1234", "/services"))
+                .has(valuesEqualTo(copyOf(service1234).withCreatedBy(USER1).withLastModifiedBy(USER1).build()));
 
         // when the scopes are updated
         final List<String> newScopes = asList("mickey", "mouse", "donald", "duck");
         final Client body2 = new Client();
         body2.setScopes(newScopes);
-        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body2), Void.class);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER2_ACCESS_TOKEN).body(body2), Void.class);
 
         // then this change is also reflected in data storage
         service1234.setScopes(newScopes);
-        assertThat(fetchClient("1234", "/services")).has(valuesEqualTo(service1234));
+        assertThat(fetchClient("1234", "/services"))
+                .has(valuesEqualTo(copyOf(service1234).withCreatedBy(USER1).withLastModifiedBy(USER2).build()));
 
         // and when finally the confidential flag is updated
         final Client body3 = new Client();
         body3.setIsConfidential(false);
-        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, VALID_ACCESS_TOKEN).body(body3), Void.class);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body3), Void.class);
 
         // then this change is also reflected in data storage
         service1234.setIsConfidential(false);
-        assertThat(fetchClient("1234", "/services")).has(valuesEqualTo(service1234));
+        assertThat(fetchClient("1234", "/services"))
+                .has(valuesEqualTo(copyOf(service1234).withCreatedBy(USER1).withLastModifiedBy(USER1).build()));
     }
 
-    private Condition<? super Row> valuesEqualTo(Client expected) {
+    private Condition<? super Row> valuesEqualTo(ClientData expected) {
         return allOf(
-                new Condition<>(r -> Objects.equals(r.getString("client_secret_hash"), expected.getSecretHash()), "client_secret_hash = %s", expected.getSecretHash()),
-                new Condition<>(r -> Objects.equals(r.getBool("is_confidential"), expected.getIsConfidential()), "is_confidential = %s", expected.getIsConfidential()),
-                new Condition<>(r -> Objects.equals(r.getSet("scopes", String.class), newHashSet(expected.getScopes())), "scopes = %s", expected.getScopes()));
+                new Condition<>(r -> Objects.equals(r.getString("client_secret_hash"), expected.getClientSecretHash()), "client_secret_hash = %s", expected.getClientSecretHash()),
+                new Condition<>(r -> Objects.equals(r.getBool("is_confidential"), expected.isConfidential()), "is_confidential = %s", expected.isConfidential()),
+                new Condition<>(r -> Objects.equals(r.getSet("scopes", String.class), newHashSet(expected.getScopes())), "scopes = %s", expected.getScopes()),
+                new Condition<>(r -> Objects.equals(r.getString("created_by"), expected.getCreatedBy()), "created_by = %s", expected.getCreatedBy()),
+                new Condition<>(r -> Objects.equals(r.getString("last_modified_by"), expected.getLastModifiedBy()), "last_modified_by = %s", expected.getLastModifiedBy()));
     }
 
     private Row fetchClient(String clientId, String realm) {
