@@ -8,6 +8,7 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import net.minidev.json.JSONStyle;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.joining;
+import static org.slf4j.LoggerFactory.getLogger;
 import static org.zalando.planb.provider.Metric.trimSlash;
 import static org.zalando.planb.provider.ScopeProperties.SPACE;
 
@@ -34,6 +36,8 @@ public class OIDCController {
 
     // we just need one char to identify ourselves as "Plan B Provider" (Base64 has 33% overhead)
     private static final String ISSUER = "B";
+
+    private final Logger log = getLogger(getClass());
 
     @Autowired
     private RealmConfig realms;
@@ -117,8 +121,10 @@ public class OIDCController {
 
             // do the authentication
             final String[] clientCredentials = getClientCredentials(authorization);
+            final String clientId = clientCredentials[0];
+            final String clientSecret = clientCredentials[1];
 
-            clientRealm.authenticate(clientCredentials[0], clientCredentials[1], scopes, defaultScopes);
+            clientRealm.authenticate(clientId, clientSecret, scopes, defaultScopes);
             final Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
 
             // this should never happen (only if some realm does not return "sub"
@@ -146,6 +152,8 @@ public class OIDCController {
                 signingMetric.finish("planb.provider.jwt.signing." + signer.getAlgorithm().getName());
             }
 
+            final String maskedSubject = userRealm.maskSubject((String) extraClaims.get(Realm.SUB));
+            log.info("Issued JWT for '{}' requested by client {}/{}", maskedSubject, realmName, clientId);
             metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
 
             return new OIDCCreateTokenResponse(

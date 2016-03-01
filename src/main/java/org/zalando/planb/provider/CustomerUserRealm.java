@@ -55,6 +55,11 @@ public class CustomerUserRealm implements UserRealm {
         return realmName;
     }
 
+    @Override
+    public String maskSubject(String sub) {
+        return maskUsername(sub);
+    }
+
     @VisibleForTesting
     static String maskUsername(String username) {
         final Matcher matcher = USERNAME_PATTERN.matcher(username);

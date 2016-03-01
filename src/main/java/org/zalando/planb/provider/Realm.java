@@ -32,4 +32,8 @@ public interface Realm {
     void initialize(String realmName);
 
     String getName();
+
+    default String maskSubject(String sub) {
+        return sub;
+    }
 }
