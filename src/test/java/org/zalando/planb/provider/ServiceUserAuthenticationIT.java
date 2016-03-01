@@ -22,6 +22,7 @@ import java.util.Base64;
 import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,6 +50,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
         final String clientId = "test-service_0815";
         final String clientSecret = "cL!3Nt";
         final String userPassword = "p455W0rD";
+        final String userPassword2 = "fooBar";
         final String username = "test-service";
         final String scope = "uid";
         final String realm = "/services";
@@ -65,14 +67,14 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
 
         // Create the user
         final User user = new User();
-        user.setPasswordHashes(singletonList(hashAndEncodePassword(userPassword)));
+        user.setPasswordHashes(asList(hashAndEncodePassword(userPassword), hashAndEncodePassword(userPassword2)));
         user.setScopes(singletonMap(scope, "test-service"));
         http.exchange(put(URI.create("http://localhost:" + port + "/raw-sync/users" + realm + "/" + username))
                 .contentType(APPLICATION_JSON)
                 .header(AUTHORIZATION, USER1_ACCESS_TOKEN)
                 .body(user), Void.class);
 
-        // Get an access token for the newly created user
+        // Get an access token for the newly created user using
         final MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("realm", realm);
         requestParameters.add("grant_type", "password");
