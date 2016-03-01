@@ -30,10 +30,8 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.StrictAssertions.allOf;
-import static org.assertj.core.api.StrictAssertions.failBecauseExceptionWasNotThrown;
+import static org.assertj.core.api.StrictAssertions.*;
 import static org.junit.Assert.fail;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpStatus.*;
@@ -51,6 +49,7 @@ public class UserControllerIT extends AbstractSpringTest {
     @Value("${local.server.port}")
     private int port;
 
+    @SuppressWarnings("SpringJavaAutowiredMembersInspection")
     @Autowired
     private Session session;
 
@@ -88,7 +87,9 @@ public class UserControllerIT extends AbstractSpringTest {
                 .has(valuesEqualTo(copyOf(body1)
                         .withCreatedBy(USER1)
                         .withLastModifiedBy(USER1)
-                        .withPasswordHashes(body1.getPasswordHashes().stream().map(h -> new UserPasswordHash(h, USER1)).collect(toList()))
+                        .withPasswordHashes(body1.getPasswordHashes().stream()
+                                .map(h -> new UserPasswordHash(h, USER1))
+                                .collect(toList()))
                         .build()));
 
         final User body2 = new User();
@@ -96,13 +97,19 @@ public class UserControllerIT extends AbstractSpringTest {
         body2.setScopes(singletonMap("write_all", "false"));
 
         // update the user. modify all (non-key) columns
-        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body2), Void.class)
+        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER2_ACCESS_TOKEN).body(body2), Void.class)
                 .getStatusCode())
                 .isEqualTo(OK);
 
-        // TODO FIXME
-        //assertThat(fetchUser("4711", "/services")).isNotNull().has(valuesEqualTo(body2));
-
+        assertThat(fetchUser("4711", "/services"))
+                .isNotNull()
+                .has(valuesEqualTo(copyOf(body2)
+                        .withCreatedBy(USER1)
+                        .withLastModifiedBy(USER2)
+                        .withPasswordHashes(body2.getPasswordHashes().stream()
+                                .map(h -> new UserPasswordHash(h, USER2))
+                                .collect(toList()))
+                        .build()));
     }
 
     @Test
@@ -168,19 +175,16 @@ public class UserControllerIT extends AbstractSpringTest {
 
     @Test
     public void testUpdateUser() throws Exception {
+        final Map<String, String> initialScopes = singletonMap("write", "true");
+
         // given an existing user
         session.execute(insertInto("user")
                 .value("username", "1234")
                 .value("realm", "/services")
                 .value("password_hashes", newHashSet(new UserPasswordHash("foo", "unknown"), new UserPasswordHash("bar", "unknown")))
-                .value("scopes", singletonMap("write", "true"))
+                .value("scopes", initialScopes)
                 .value("created_by", USER1)
-                .value("last_modified_by", USER2));
-
-        final User service1234 = new User();
-        service1234.setPasswordHashes(asList(genHash("foo"), genHash("bar")));
-        service1234.setScopes(asList("foo", "bar"));
-        service1234.setScopes(singletonMap("write", "true"));
+                .value("last_modified_by", USER1));
 
         final URI uri = URI.create(basePath() + "/users/services/1234");
 
@@ -188,12 +192,16 @@ public class UserControllerIT extends AbstractSpringTest {
         final List<String> newPasswordHashes = asList(genHash("bar"), genHash("hello"), genHash("world"));
         final User body1 = new User();
         body1.setPasswordHashes(newPasswordHashes);
-        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body1), Void.class);
+        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER2_ACCESS_TOKEN).body(body1), Void.class);
 
-        // then changes only this change is reflected in data storage
-        service1234.setPasswordHashes(newPasswordHashes);
-        // TODO FIXME
-        // assertThat(fetchUser("1234", "/services")).has(valuesEqualTo(service1234));
+        assertThat(fetchUser("1234", "/services"))
+                .isNotNull()
+                .has(valuesEqualTo(new UserData.Builder()
+                        .withScopes(initialScopes)
+                        .withPasswordHashes(newPasswordHashes.stream().map(h -> new UserPasswordHash(h, USER2)).collect(toList()))
+                        .withCreatedBy(USER1)
+                        .withLastModifiedBy(USER2)
+                        .build()));
 
         // when the scopes are updated
         final Map<String, String> newScopes = ImmutableMap.of(
@@ -203,11 +211,14 @@ public class UserControllerIT extends AbstractSpringTest {
         body2.setScopes(newScopes);
         restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body2), Void.class);
 
-        // then this change is also reflected in data storage
-        service1234.setScopes(newScopes);
-
-        // TODO FIXME
-        // assertThat(fetchUser("1234", "/services")).has(valuesEqualTo(service1234));
+        assertThat(fetchUser("1234", "/services"))
+                .isNotNull()
+                .has(valuesEqualTo(new UserData.Builder()
+                        .withScopes(newScopes)
+                        .withPasswordHashes(newPasswordHashes.stream().map(h -> new UserPasswordHash(h, USER2)).collect(toList()))
+                        .withCreatedBy(USER1)
+                        .withLastModifiedBy(USER1)
+                        .build()));
     }
 
     @Test
@@ -231,9 +242,8 @@ public class UserControllerIT extends AbstractSpringTest {
             assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
         }
 
-        assertThat(fetchUser("testAddPasswordWrongHash", "/services").getSet("password_hashes", UserPasswordHash.class).stream()
-                .map(UserPasswordHash::getPasswordHash)
-                .collect(toSet())).containsOnly("foo");
+        assertThat(fetchUser("testAddPasswordWrongHash", "/services").getSet("password_hashes", UserPasswordHash.class))
+                .extracting("passwordHash", "createdBy").containsOnly(tuple("foo", "test"));
     }
 
     @Test
@@ -254,12 +264,17 @@ public class UserControllerIT extends AbstractSpringTest {
         assertThat(restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body), Void.class)
                 .getStatusCode())
                 .isEqualTo(CREATED);
-        assertThat(fetchUser("9876", "/services").getSet("password_hashes", UserPasswordHash.class).stream()
-                .map(UserPasswordHash::getPasswordHash)
-                .collect(toSet())).containsOnly("foo", hash);
+        assertThat(fetchUser("9876", "/services").getSet("password_hashes", UserPasswordHash.class))
+                .extracting("passwordHash", "createdBy").containsOnly(tuple("foo", "test"), tuple(hash, USER1));
     }
 
-    private Condition<? super Row> valuesEqualTo(UserData expected) {
+    private Row fetchUser(String username, String realm) {
+        return session
+                .execute(select().all().from("user").where(eq("username", username)).and(eq("realm", realm)))
+                .one();
+    }
+
+    private static Condition<? super Row> valuesEqualTo(UserData expected) {
         return allOf(
                 new Condition<>(
                         r -> passwordHashesEqual(r.getSet("password_hashes", UserPasswordHash.class), expected.getPasswordHashes()),
@@ -279,7 +294,7 @@ public class UserControllerIT extends AbstractSpringTest {
                         expected.getLastModifiedBy()));
     }
 
-    private boolean passwordHashesEqual(Set<UserPasswordHash> actualPasswords, Set<UserPasswordHash> expectedPasswords) {
+    private static boolean passwordHashesEqual(Set<UserPasswordHash> actualPasswords, Set<UserPasswordHash> expectedPasswords) {
         return actualPasswords.size() == expectedPasswords.size()
                 && expectedPasswords.stream()
                 .allMatch(expected -> actualPasswords.stream()
@@ -287,11 +302,5 @@ public class UserControllerIT extends AbstractSpringTest {
                                 && Objects.equals(expected.getCreatedBy(), actual.getCreatedBy()))
                         .findFirst()
                         .isPresent());
-    }
-
-    private Row fetchUser(String username, String realm) {
-        return session
-                .execute(select().all().from("user").where(eq("username", username)).and(eq("realm", realm)))
-                .one();
     }
 }
