@@ -78,6 +78,8 @@ public class OIDCController {
                                         @RequestParam(value = "username", required = true) String username,
                                         @RequestParam(value = "password", required = true) String password,
                                         @RequestParam(value = "scope") Optional<String> scope,
+                                        @RequestParam(value = "client_id") Optional<String> clientIdParam,
+                                        @RequestParam(value = "client_secret") Optional<String> clientSecretParam,
                                         @RequestHeader(name = "Authorization") Optional<String> authorization,
                                         @RequestHeader(name = "Host") Optional<String> hostHeader)
             throws RealmAuthenticationException, RealmAuthorizationException, JOSEException {
@@ -120,9 +122,18 @@ public class OIDCController {
             final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
 
             // do the authentication
-            final String[] clientCredentials = getClientCredentials(authorization);
-            final String clientId = clientCredentials[0];
-            final String clientSecret = clientCredentials[1];
+            String clientId;
+            String clientSecret;
+            if (clientIdParam.isPresent() && clientSecretParam.isPresent()) {
+                // passing client credentials in request body is not recommended!
+                // https://tools.ietf.org/html/rfc6749#section-2.3.1
+                clientId = clientIdParam.get();
+                clientSecret = clientSecretParam.get();
+            } else {
+                final String[] clientCredentials = getClientCredentials(authorization);
+                clientId = clientCredentials[0];
+                clientSecret = clientCredentials[1];
+            }
 
             clientRealm.authenticate(clientId, clientSecret, scopes, defaultScopes);
             final Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
