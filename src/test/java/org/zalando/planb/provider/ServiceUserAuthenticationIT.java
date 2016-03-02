@@ -74,7 +74,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
                 .header(AUTHORIZATION, USER1_ACCESS_TOKEN)
                 .body(user), Void.class);
 
-        // Get an access token for the newly created user using
+        // Get an access token for the newly created user using the first password
         final MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("realm", realm);
         requestParameters.add("grant_type", "password");
@@ -96,6 +96,29 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
         assertThat(tokenResponse.getAccessToken()).isNotEmpty();
         assertThat(tokenResponse.getAccessToken()).isEqualTo(tokenResponse.getIdToken());
         assertThat(tokenResponse.getAccessToken().split("\\.")).hasSize(3);
+
+        // Get an access token for the newly created user using the second password
+        final MultiValueMap<String, Object> requestParameters2 = new LinkedMultiValueMap<>();
+        requestParameters2.add("realm", realm);
+        requestParameters2.add("grant_type", "password");
+        requestParameters2.add("username", username);
+        requestParameters2.add("password", userPassword2);
+        requestParameters2.add("scope", scope);
+
+        final ResponseEntity<OIDCCreateTokenResponse> response2 = http.exchange(
+                post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                        .header("Authorization", "Basic " + Base64.getEncoder().encodeToString((clientId + ':' + clientSecret).getBytes(UTF_8)))
+                        .body(requestParameters2),
+                OIDCCreateTokenResponse.class);
+
+        assertThat(response2.getStatusCode()).isEqualTo(HttpStatus.OK);
+        final OIDCCreateTokenResponse tokenResponse2 = response2.getBody();
+        assertThat(tokenResponse2.getScope()).isEqualTo("uid");
+        assertThat(tokenResponse2.getTokenType()).isEqualTo("Bearer");
+        assertThat(tokenResponse2.getRealm()).isEqualTo("/services");
+        assertThat(tokenResponse2.getAccessToken()).isNotEmpty();
+        assertThat(tokenResponse2.getAccessToken()).isEqualTo(tokenResponse2.getIdToken());
+        assertThat(tokenResponse2.getAccessToken().split("\\.")).hasSize(3);
 
         // check metrics
         final URI metricsUrl = URI.create("http://localhost:" + mgmtPort + "/metrics");
