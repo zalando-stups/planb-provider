@@ -48,7 +48,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
     @Test
     public void testServiceUserFlow() throws Exception {
         final String clientId = "test-service_0815";
-        final String clientSecret = "cL!3Nt";
+        final String clientSecret = "cL!3:Nt";
         final String userPassword = "p455W0rD";
         final String userPassword2 = "fooBar";
         final String username = "test-service";

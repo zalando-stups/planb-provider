@@ -60,7 +60,7 @@ public class OIDCController {
                 .map(string -> string.substring(BASIC_AUTH_PREFIX.length()))
                 .map(BASE_64_DECODER::decode)
                 .map(bytes -> new String(bytes, UTF_8))
-                .map(string -> string.split(":"))
+                .map(string -> string.split(":", 2))
                 .filter(array -> array.length == 2)
                 .orElseThrow(() -> new BadRequestException(
                         "Malformed or missing Authorization header.",
