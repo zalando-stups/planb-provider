@@ -86,6 +86,28 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     }
 
     @Test
+    public void createServiceUserTokenWithClientCredentialsInRequestBody() {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("realm", "/services");
+        requestParameters.add("grant_type", "password");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        // this is not recommended, but the RFC allows to use request body instead of Authorization header
+        requestParameters.add("client_id", "testclient");
+        requestParameters.add("client_secret", "test");
+
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .body(requestParameters);
+
+        ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
+        assertThat(response.getBody().getAccessToken()).isNotEmpty();
+    }
+
+    @Test
     public void createServiceUserTokenUsingWrongHostHeader() throws IOException {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("grant_type", "password");
