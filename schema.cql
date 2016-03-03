@@ -44,5 +44,7 @@ CREATE TABLE provider.authorization_code (
     client_id TEXT,
     realm TEXT,
     scopes SET<TEXT>,
+    claims MAP<TEXT, TEXT>,
+    redirect_uri TEXT,
     expires INT                 -- expiry date in seconds since epoch
 );

@@ -17,6 +17,10 @@ security:
       # Get environment variable
       token-info-uri: ${TOKENINFO_URL}
 
+
+upstreamRealm:
+  tokenInfoUrl: ${TOKENINFO_URL}
+
 logging:
   level:
     root: INFO

@@ -55,10 +55,31 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     private final RestTemplate rest = new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient));
 
     @Test
-    public void authorize() {
+    public void showLoginForm() {
         RequestEntity<Void> request = RequestEntity
                 .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=code&client_id=testclient&redirect_uri=foo"))
                 .build();
+
+        ResponseEntity<String> response = rest.exchange(request, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).contains("<form");
+    }
+
+    @Test
+    public void authorize() {
+
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testclient");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .body(requestParameters);
 
         ResponseEntity<Void> response = rest.exchange(request, Void.class);
 

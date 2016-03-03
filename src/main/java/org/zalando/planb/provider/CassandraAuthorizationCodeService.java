@@ -1,6 +1,8 @@
 package org.zalando.planb.provider;
 
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +15,7 @@ import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.time.temporal.TemporalAmount;
 import java.time.temporal.TemporalUnit;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -35,9 +38,11 @@ public class CassandraAuthorizationCodeService {
     private static final String CLIENT_ID = "client_id";
     private static final String REALM = "realm";
     private static final String SCOPES = "scopes";
+    private static final String CLAIMS = "claims";
+    private static final String REDIRECT_URI = "redirect_uri";
     private static final String EXPIRES = "expires";
 
-    private static final Duration TTL = Duration.ofMinutes(10);
+    private static final Duration LIFETIME = Duration.ofSeconds(60);
 
     @Autowired
     private Session session;
@@ -66,6 +71,8 @@ public class CassandraAuthorizationCodeService {
                 .value(CLIENT_ID, bindMarker(CLIENT_ID))
                 .value(REALM, bindMarker(REALM))
                 .value(SCOPES, bindMarker(SCOPES))
+                .value(CLAIMS, bindMarker(CLAIMS))
+                .value(REDIRECT_URI, bindMarker(REDIRECT_URI))
                 .value(EXPIRES, bindMarker(EXPIRES)))
                 .setConsistencyLevel(cassandraProperties.getWriteConsistencyLevel());
 
@@ -75,19 +82,38 @@ public class CassandraAuthorizationCodeService {
                 .setConsistencyLevel(cassandraProperties.getWriteConsistencyLevel());
     }
 
-    public String create(String state, String clientId, String realm, Set<String> scopes) {
+    public String create(String state, String clientId, String realm, Set<String> scopes, Map<String, String> claims, String redirectUri) {
 
         String code = UUID.randomUUID().toString();
 
-        int expires = (int) now().plus(TTL).toEpochSecond();
+        int expires = (int) now().plus(LIFETIME).toEpochSecond();
         session.execute(upsert.bind()
                 .setString(CODE, code)
                 .setString(STATE, state)
                 .setString(CLIENT_ID, clientId)
                 .setString(REALM, realm)
                 .setSet(SCOPES, scopes)
+                .setMap(CLAIMS, claims)
+                .setString(REDIRECT_URI, redirectUri)
                 .setInt(EXPIRES, expires));
 
         return code;
     }
+
+    public Optional<AuthorizationCode> invalidate(String code) {
+        Optional<AuthorizationCode> authorizationCode = Optional.ofNullable(findOne.bind().setString(CODE, code))
+                .map(session::execute)
+                .map(ResultSet::one)
+                .filter(row -> row.getInt(EXPIRES) > now().toEpochSecond())
+                .map(CassandraAuthorizationCodeService::toAuthorizationCode);
+        session.execute(deleteOne.bind().setString(CODE, code));
+        return authorizationCode;
+    }
+
+    private static AuthorizationCode toAuthorizationCode(Row row) {
+        return new AuthorizationCode(row.getString(CODE), row.getString(STATE), row.getString(CLIENT_ID), row.getString(REALM), row.getSet(SCOPES, String.class), row.getMap(CLAIMS, String.class, String.class), row.getString(REDIRECT_URI));
+    }
+
+
 }
+

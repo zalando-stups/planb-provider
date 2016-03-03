@@ -3,6 +3,9 @@ package org.zalando.planb.provider;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.escape.Escaper;
+import com.google.common.html.HtmlEscapers;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -12,6 +15,8 @@ import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.View;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -73,16 +78,15 @@ public class OIDCController {
                         "Client authentication failed"));
     }
 
-    @RequestMapping(value = {"/oauth2/authorize"}, method = RequestMethod.GET)
-    @ResponseBody
-    void authorize(@RequestParam(value = "realm") Optional<String> realmNameParam,
-                   @RequestParam(value = "response_type", required = true) String responseType,
-                   @RequestParam(value = "client_id", required = true) String clientId,
-                   @RequestParam(value = "scope") Optional<String> scope,
-                   @RequestParam(value = "redirect_uri") Optional<String> redirectUriParam,
-                   @RequestParam(name = "state") Optional<String> state,
-                   @RequestHeader(name = "Host") Optional<String> hostHeader,
-                   HttpServletResponse response) throws IOException {
+    @RequestMapping(value = "/oauth2/authorize")
+    String showAuthorizationForm(@RequestParam(value = "realm") Optional<String> realmNameParam,
+                                 @RequestParam(value = "response_type", required = true) String responseType,
+                                 @RequestParam(value = "client_id", required = true) String clientId,
+                                 @RequestParam(value = "scope") Optional<String> scope,
+                                 @RequestParam(value = "redirect_uri") Optional<String> redirectUriParam,
+                                 @RequestParam(name = "state") Optional<String> state,
+                                 @RequestHeader(name = "Host") Optional<String> hostHeader,
+                                 HttpServletResponse response) throws IOException {
 
         final String realmName = getRealmName(realmNameParam, hostHeader);
 
@@ -92,19 +96,55 @@ public class OIDCController {
             throw new RealmNotFoundException(realmName);
         }
 
+        // TODO: make redirect URI optional
+        final String redirectUri = redirectUriParam.orElseThrow(() -> new BadRequestException("Missing redirect_uri", "invalid_request", "Missing redirect_uri"));
+
+        Escaper escaper = HtmlEscapers.htmlEscaper();
+        return "<form action=\"/oauth2/authorize\" method=\"post\">" +
+                "<input type=\"hidden\" name=\"realm\" value=\"" + escaper.escape(realmName) + "\"/>" +
+                "<input type=\"hidden\" name=\"client_id\" value=\"" + escaper.escape(clientId) + "\"/>" +
+                "<input type=\"hidden\" name=\"scope\" value=\"" + escaper.escape(scope.orElse("")) + "\"/>" +
+                "<input type=\"hidden\" name=\"state\" value=\"" + escaper.escape(state.orElse("")) + "\"/>" +
+                "<input type=\"hidden\" name=\"redirect_uri\" value=\"" + escaper.escape(redirectUri) + "\"/>" +
+                "<div><label>User Name:</label><input name=\"username\" /></div>" +
+                "<div><label>Password:</label><input name=\"password\" type=\"password\"/></div>" +
+                "<button type=\"submit\">Log in</button></form>";
+        //
+    }
+
+    @RequestMapping(value = "/oauth2/authorize", method = RequestMethod.POST)
+    void authorize(@RequestParam(value = "realm") Optional<String> realmNameParam,
+                   @RequestParam(value = "client_id", required = true) String clientId,
+                   @RequestParam(value = "scope") Optional<String> scope,
+                   @RequestParam(value = "redirect_uri") String redirectUri,
+                   @RequestParam(name = "state") Optional<String> state,
+                   @RequestParam(value = "username", required = true) String username,
+                   @RequestParam(value = "password", required = true) String password,
+                   @RequestHeader(name = "Host") Optional<String> hostHeader,
+                   HttpServletResponse response) throws IOException {
+
+        final String realmName = getRealmName(realmNameParam, hostHeader);
+
         final Set<String> scopes = ScopeProperties.split(scope);
         final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);
         final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
 
-        final String code = cassandraAuthorizationCodeService.create(state.orElse(""), clientId, realmName, finalScopes);
+        UserRealm userRealm = realms.getUserRealm(realmName);
+        if (userRealm == null) {
+            throw new RealmNotFoundException(realmName);
+        }
 
-        String redirectUrl = redirectUriParam.get() + "&code=" + code + "&state=" + state.orElse("");
+        Map<String, String> claims = userRealm.authenticate(username, password, finalScopes, defaultScopes);
+
+        final String code = cassandraAuthorizationCodeService.create(state.orElse(""), clientId, realmName, finalScopes, claims, redirectUri);
+
+        String redirectUrl = redirectUri + "&code=" + code + "&state=" + state.orElse("");
+
         response.sendRedirect(redirectUrl);
-
 
     }
 
-    String getRealmName(Optional<String> realmNameParam, Optional<String> hostHeader){
+    String getRealmName(Optional<String> realmNameParam, Optional<String> hostHeader) {
         final String realmName = realmNameParam.orElseGet(() -> realms.findRealmNameInHost(hostHeader
                 .orElseThrow(() -> new BadRequestException("Missing realm parameter and no Host header.", "missing_realm", "Missing realm parameter and no Host header.")))
                 .orElseThrow(() -> new RealmNotFoundException(hostHeader.get())));
@@ -114,12 +154,93 @@ public class OIDCController {
     /**
      * https://bitbucket.org/b_c/jose4j/wiki/JWT%20Examples
      */
-    @RequestMapping(value = {"/oauth2/access_token", "/z/oauth2/access_token"}, method = RequestMethod.POST)
+    @RequestMapping(value = "/oauth2/access_token", method = RequestMethod.POST, params = "grant_type=authorization_code")
+    @ResponseBody
+    OIDCCreateTokenResponse createTokenFromCode(
+            @RequestParam(value = "grant_type", required = true) String grantType,
+            @RequestParam(value = "code", required = true) String code,
+            @RequestHeader(name = "Authorization") Optional<String> authorization) throws JOSEException {
+
+        // check for supported grant types
+        if (!"authorization_code".equals(grantType)) {
+            throw new BadRequestException(
+                    "Grant type is not supported: " + grantType,
+                    "unsupported_grant_type",
+                    "Grant type is not supported: " + grantType);
+        }
+
+
+        AuthorizationCode authCode = cassandraAuthorizationCodeService.invalidate(code).orElseThrow(() -> new BadRequestException("Invalid authorization code", "invalid_request", "Invalid authorization code"));
+
+        String realmName = authCode.getRealm();
+
+        // retrieve realms for the given realm
+        ClientRealm clientRealm = realms.getClientRealm(realmName);
+        if (clientRealm == null) {
+            throw new RealmNotFoundException(realmName);
+        }
+
+        UserRealm userRealm = realms.getUserRealm(realmName);
+        if (userRealm == null) {
+            throw new RealmNotFoundException(realmName);
+        }
+
+        String clientId;
+        String clientSecret;
+        final String[] clientCredentials = getClientCredentials(authorization);
+        clientId = clientCredentials[0];
+        clientSecret = clientCredentials[1];
+
+        clientRealm.authenticate(clientId, clientSecret, authCode.getScopes(), authCode.getScopes());
+
+        final Map<String, String> extraClaims = authCode.getClaims();
+
+        // this should never happen (only if some realm does not return "sub"
+        Preconditions.checkState(extraClaims.containsKey(Realm.SUB), "'sub' claim missing");
+
+        // request authorized, create JWT
+        JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
+                .issuer(ISSUER)
+                .expirationTime(new Date(System.currentTimeMillis() + EXPIRATION_TIME_UNIT.toMillis(EXPIRATION_TIME)))
+                .issueTime(new Date())
+                .claim("realm", realmName)
+                .claim("scope", authCode.getScopes());
+        extraClaims.forEach(claimsBuilder::claim);
+        final JWTClaimsSet claims = claimsBuilder.build();
+
+        // sign JWT
+        OIDCKeyHolder.Signer signer = keyHolder.getCurrentSigner(realmName)
+                .orElseThrow(() -> new UnsupportedOperationException("No key found for signing requests of realm " + realmName));
+
+        final Metric signingMetric = new Metric(metricRegistry).start();
+        String rawJWT;
+        try {
+            rawJWT = getSignedJWT(claims, signer);
+        } finally {
+            signingMetric.finish("planb.provider.jwt.signing." + signer.getAlgorithm().getName());
+        }
+
+        final String maskedSubject = userRealm.maskSubject((String) extraClaims.get(Realm.SUB));
+        log.info("Issued JWT for '{}' requested by client {}/{}", maskedSubject, realmName, clientId);
+
+        return new OIDCCreateTokenResponse(
+                rawJWT,
+                rawJWT,
+                EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME),
+                authCode.getScopes().stream().collect(joining(SPACE)),
+                realmName);
+    }
+
+    /**
+     * https://bitbucket.org/b_c/jose4j/wiki/JWT%20Examples
+     */
+    @RequestMapping(value = {"/oauth2/access_token", "/z/oauth2/access_token"}, method = RequestMethod.POST, params = "grant_type=password")
     @ResponseBody
     OIDCCreateTokenResponse createToken(@RequestParam(value = "realm") Optional<String> realmNameParam,
                                         @RequestParam(value = "grant_type", required = true) String grantType,
                                         @RequestParam(value = "username", required = true) String username,
                                         @RequestParam(value = "password", required = true) String password,
+
                                         @RequestParam(value = "scope") Optional<String> scope,
                                         @RequestParam(value = "client_id") Optional<String> clientIdParam,
                                         @RequestParam(value = "client_secret") Optional<String> clientSecretParam,
@@ -138,7 +259,6 @@ public class OIDCController {
                         "The provided access grant is invalid, expired, or revoked.");
             }
 
-            // check for supported grant types
             if (!"password".equals(grantType)) {
                 throw new BadRequestException(
                         "Grant type is not supported: " + grantType,
@@ -177,7 +297,7 @@ public class OIDCController {
             }
 
             clientRealm.authenticate(clientId, clientSecret, scopes, defaultScopes);
-            final Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
+            final Map<String, String> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
 
             // this should never happen (only if some realm does not return "sub"
             Preconditions.checkState(extraClaims.containsKey(Realm.SUB), "'sub' claim missing");

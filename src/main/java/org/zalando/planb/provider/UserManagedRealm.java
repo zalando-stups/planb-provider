@@ -13,7 +13,7 @@ import static org.zalando.planb.provider.UserRealmAuthenticationException.wrongU
 public interface UserManagedRealm extends UserRealm {
 
     @Override
-    default Map<String, Object> authenticate(String username, String password, Set<String> scopes, Set<String> defaultScopes)
+    default Map<String, String> authenticate(String username, String password, Set<String> scopes, Set<String> defaultScopes)
             throws UserRealmAuthenticationException, UserRealmAuthorizationException {
         final UserData user = get(username).orElseThrow(() -> userNotFound(username, getName()));
 
