@@ -38,5 +38,5 @@ public interface ClientManagedRealm extends ClientRealm {
 
     void createOrReplace(String id, ClientData client);
 
-    Optional<ClientData> get(String clientId);
+
 }

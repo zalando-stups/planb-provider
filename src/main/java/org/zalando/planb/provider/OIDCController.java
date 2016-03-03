@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.joining;
 import static org.slf4j.LoggerFactory.getLogger;
+import static org.zalando.planb.provider.ClientRealmAuthenticationException.clientNotFound;
 import static org.zalando.planb.provider.Metric.trimSlash;
 import static org.zalando.planb.provider.ScopeProperties.SPACE;
 
@@ -100,7 +101,9 @@ public class OIDCController {
             throw new RealmNotFoundException(realmName);
         }
 
-        // TODO: make redirect URI optional
+        final ClientData clientData = clientRealm.get(clientId).orElseThrow(() -> clientNotFound(clientId, realmName));
+
+        // TODO: make redirect URI optional and check that it matches one configured in client
         final URI redirectUri = redirectUriParam.orElseThrow(() -> new BadRequestException("Missing redirect_uri", "invalid_request", "Missing redirect_uri"));
 
         Escaper escaper = HtmlEscapers.htmlEscaper();
@@ -168,6 +171,8 @@ public class OIDCController {
     OIDCCreateTokenResponse createTokenFromCode(
             @RequestParam(value = "grant_type", required = true) String grantType,
             @RequestParam(value = "code", required = true) String code,
+            @RequestParam(value = "client_id") Optional<String> clientIdParam,
+            @RequestParam(value = "client_secret") Optional<String> clientSecretParam,
             @RequestHeader(name = "Authorization") Optional<String> authorization) throws JOSEException {
 
         // check for supported grant types
@@ -179,9 +184,12 @@ public class OIDCController {
         }
 
 
-        AuthorizationCode authCode = cassandraAuthorizationCodeService.invalidate(code).orElseThrow(() -> new BadRequestException("Invalid authorization code", "invalid_request", "Invalid authorization code"));
+        final AuthorizationCode authCode = cassandraAuthorizationCodeService.invalidate(code)
+                .orElseThrow(() -> new BadRequestException("Invalid authorization code", "invalid_request", "Invalid authorization code"));
 
-        String realmName = authCode.getRealm();
+        // TODO: check redirect_uri
+
+        final String realmName = authCode.getRealm();
 
         // retrieve realms for the given realm
         ClientRealm clientRealm = realms.getClientRealm(realmName);
@@ -194,11 +202,20 @@ public class OIDCController {
             throw new RealmNotFoundException(realmName);
         }
 
+        // do the authentication
         String clientId;
         String clientSecret;
-        final String[] clientCredentials = getClientCredentials(authorization);
-        clientId = clientCredentials[0];
-        clientSecret = clientCredentials[1];
+        if (clientIdParam.isPresent() && clientSecretParam.isPresent()) {
+            // passing client credentials in request body is not recommended!
+            // https://tools.ietf.org/html/rfc6749#section-2.3.1
+            // but this is used e.g. by Python's flask_oauthlib!
+            clientId = clientIdParam.get();
+            clientSecret = clientSecretParam.get();
+        } else {
+            final String[] clientCredentials = getClientCredentials(authorization);
+            clientId = clientCredentials[0];
+            clientSecret = clientCredentials[1];
+        }
 
         clientRealm.authenticate(clientId, clientSecret, authCode.getScopes(), authCode.getScopes());
 
