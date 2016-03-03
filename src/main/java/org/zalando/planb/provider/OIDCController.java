@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -51,6 +53,9 @@ public class OIDCController {
     @Autowired
     private ScopeProperties scopeProperties;
 
+    @Autowired
+    private CassandraAuthorizationCodeService cassandraAuthorizationCodeService;
+
     /**
      * Get client_id and client_secret from HTTP Basic Auth
      */
@@ -66,6 +71,44 @@ public class OIDCController {
                         "Malformed or missing Authorization header.",
                         "invalid_client",
                         "Client authentication failed"));
+    }
+
+    @RequestMapping(value = {"/oauth2/authorize"}, method = RequestMethod.GET)
+    @ResponseBody
+    void authorize(@RequestParam(value = "realm") Optional<String> realmNameParam,
+                   @RequestParam(value = "response_type", required = true) String responseType,
+                   @RequestParam(value = "client_id", required = true) String clientId,
+                   @RequestParam(value = "scope") Optional<String> scope,
+                   @RequestParam(value = "redirect_uri") Optional<String> redirectUriParam,
+                   @RequestParam(name = "state") Optional<String> state,
+                   @RequestHeader(name = "Host") Optional<String> hostHeader,
+                   HttpServletResponse response) throws IOException {
+
+        final String realmName = getRealmName(realmNameParam, hostHeader);
+
+        // retrieve realms for the given realm
+        ClientRealm clientRealm = realms.getClientRealm(realmName);
+        if (clientRealm == null) {
+            throw new RealmNotFoundException(realmName);
+        }
+
+        final Set<String> scopes = ScopeProperties.split(scope);
+        final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);
+        final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
+
+        final String code = cassandraAuthorizationCodeService.create(state.orElse(""), clientId, realmName, finalScopes);
+
+        String redirectUrl = redirectUriParam.get() + "&code=" + code + "&state=" + state.orElse("");
+        response.sendRedirect(redirectUrl);
+
+
+    }
+
+    String getRealmName(Optional<String> realmNameParam, Optional<String> hostHeader){
+        final String realmName = realmNameParam.orElseGet(() -> realms.findRealmNameInHost(hostHeader
+                .orElseThrow(() -> new BadRequestException("Missing realm parameter and no Host header.", "missing_realm", "Missing realm parameter and no Host header.")))
+                .orElseThrow(() -> new RealmNotFoundException(hostHeader.get())));
+        return realmName;
     }
 
     /**
@@ -85,9 +128,7 @@ public class OIDCController {
             throws RealmAuthenticationException, RealmAuthorizationException, JOSEException {
         final Metric metric = new Metric(metricRegistry).start();
 
-        final String realmName = realmNameParam.orElseGet(() -> realms.findRealmNameInHost(hostHeader
-                .orElseThrow(() -> new BadRequestException("Missing realm parameter and no Host header.", "missing_realm", "Missing realm parameter and no Host header.")))
-                .orElseThrow(() -> new RealmNotFoundException(hostHeader.get())));
+        final String realmName = getRealmName(realmNameParam, hostHeader);
 
         try {
             if (username.trim().isEmpty() || password.trim().isEmpty()) {
