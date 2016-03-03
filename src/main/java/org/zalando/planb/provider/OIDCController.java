@@ -104,7 +104,11 @@ public class OIDCController {
         final URI redirectUri = redirectUriParam.orElseThrow(() -> new BadRequestException("Missing redirect_uri", "invalid_request", "Missing redirect_uri"));
 
         Escaper escaper = HtmlEscapers.htmlEscaper();
-        return "<h1>Sign in</h1>" +
+        return "<html>" +
+                "<head><title>Login</title><style>body { font: 17px Arial, Helvetica, sans-serif; }</style></head>" +
+                "</body>" +
+                "<div style=\"max-width: 612px; margin: 0 auto\">" +
+                "<h1>Sign in</h1>" +
                 "<form action=\"/oauth2/authorize\" method=\"post\">" +
                 "<input type=\"hidden\" name=\"realm\" value=\"" + escaper.escape(realmName) + "\"/>" +
                 "<input type=\"hidden\" name=\"client_id\" value=\"" + escaper.escape(clientId) + "\"/>" +
@@ -113,7 +117,9 @@ public class OIDCController {
                 "<input type=\"hidden\" name=\"redirect_uri\" value=\"" + escaper.escape(redirectUri.toString()) + "\"/>" +
                 "<div><label>User Name:</label><input name=\"username\" /></div>" +
                 "<div><label>Password:</label><input name=\"password\" type=\"password\"/></div>" +
-                "<button type=\"submit\">Log in</button></form>";
+                "<button type=\"submit\">Log in</button></form>"+
+                "</div>" +
+                "</body></html>";
         //
     }
 
@@ -139,14 +145,12 @@ public class OIDCController {
             throw new RealmNotFoundException(realmName);
         }
 
-        Map<String, String> claims = userRealm.authenticate(username, password, finalScopes, defaultScopes);
+        final Map<String, String> claims = userRealm.authenticate(username, password, finalScopes, defaultScopes);
 
         final String code = cassandraAuthorizationCodeService.create(state.orElse(""), clientId, realmName, finalScopes, claims, redirectUri);
 
-
         URI redirect = new URIBuilder(redirectUri).addParameter("code", code).addParameter("state", state.orElse("")).build();
         response.sendRedirect(redirect.toString());
-
     }
 
     String getRealmName(Optional<String> realmNameParam, Optional<String> hostHeader) {
