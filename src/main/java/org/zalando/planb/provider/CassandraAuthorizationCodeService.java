@@ -12,6 +12,7 @@ import org.springframework.util.Assert;
 
 import javax.annotation.PostConstruct;
 
+import java.net.URI;
 import java.time.Duration;
 import java.time.temporal.TemporalAmount;
 import java.time.temporal.TemporalUnit;
@@ -82,7 +83,7 @@ public class CassandraAuthorizationCodeService {
                 .setConsistencyLevel(cassandraProperties.getWriteConsistencyLevel());
     }
 
-    public String create(String state, String clientId, String realm, Set<String> scopes, Map<String, String> claims, String redirectUri) {
+    public String create(String state, String clientId, String realm, Set<String> scopes, Map<String, String> claims, URI redirectUri) {
 
         String code = UUID.randomUUID().toString();
 
@@ -94,7 +95,7 @@ public class CassandraAuthorizationCodeService {
                 .setString(REALM, realm)
                 .setSet(SCOPES, scopes)
                 .setMap(CLAIMS, claims)
-                .setString(REDIRECT_URI, redirectUri)
+                .setString(REDIRECT_URI, redirectUri.toString())
                 .setInt(EXPIRES, expires));
 
         return code;
@@ -111,7 +112,7 @@ public class CassandraAuthorizationCodeService {
     }
 
     private static AuthorizationCode toAuthorizationCode(Row row) {
-        return new AuthorizationCode(row.getString(CODE), row.getString(STATE), row.getString(CLIENT_ID), row.getString(REALM), row.getSet(SCOPES, String.class), row.getMap(CLAIMS, String.class, String.class), row.getString(REDIRECT_URI));
+        return new AuthorizationCode(row.getString(CODE), row.getString(STATE), row.getString(CLIENT_ID), row.getString(REALM), row.getSet(SCOPES, String.class), row.getMap(CLAIMS, String.class, String.class), URI.create(row.getString(REDIRECT_URI)));
     }
 
 

@@ -43,9 +43,7 @@ public class UpstreamUserRealm implements UserRealm {
         this.upstreamRealmProperties = upstreamRealmProperties;
     }
 
-    @Override
-    @HystrixCommand(ignoreExceptions = {RealmAuthenticationException.class})
-    public Map<String, String> authenticate(String username, String password, Set<String> scopes, Set<String> defaultScopes) throws UserRealmAuthenticationException, UserRealmAuthorizationException {
+    String getAccessToken(String username, String password, Set<String> scopes) {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("realm", realmName);
         requestParameters.add("scope", scopes.stream().collect(joining(SPACE)));
@@ -66,8 +64,21 @@ public class UpstreamUserRealm implements UserRealm {
             }
         }
 
-        String token = tokenResponse.getBody().replaceAll("\\s+", "");
+        final String token = tokenResponse.getBody().replaceAll("\\s+", "");
+        return token;
+    }
 
+    @Override
+    @HystrixCommand(ignoreExceptions = {RealmAuthenticationException.class})
+    public Map<String, String> authenticate(String username, String password, Set<String> scopes, Set<String> defaultScopes) throws UserRealmAuthenticationException, UserRealmAuthorizationException {
+        final String token = getAccessToken(username, password, scopes);
+
+        UpstreamTokenResponse response = getTokenInfo(username, token);
+
+        return singletonMap(SUB, response.getUid());
+    }
+
+    private UpstreamTokenResponse getTokenInfo(String username, String token) {
         RequestEntity<Void> request = RequestEntity
                 .get(URI.create(upstreamRealmProperties.getTokenInfoUrl()))
                 .header("Authorization", "Bearer " + token).build();
@@ -82,8 +93,7 @@ public class UpstreamUserRealm implements UserRealm {
                 throw ex;
             }
         }
-
-        return singletonMap(SUB, response.getBody().getUid());
+        return response.getBody();
     }
 
     @Override

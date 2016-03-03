@@ -11,6 +11,8 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import net.minidev.json.JSONStyle;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.client.utils.URIUtils;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -20,6 +22,8 @@ import org.springframework.web.servlet.View;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -83,7 +87,7 @@ public class OIDCController {
                                  @RequestParam(value = "response_type", required = true) String responseType,
                                  @RequestParam(value = "client_id", required = true) String clientId,
                                  @RequestParam(value = "scope") Optional<String> scope,
-                                 @RequestParam(value = "redirect_uri") Optional<String> redirectUriParam,
+                                 @RequestParam(value = "redirect_uri") Optional<URI> redirectUriParam,
                                  @RequestParam(name = "state") Optional<String> state,
                                  @RequestHeader(name = "Host") Optional<String> hostHeader,
                                  HttpServletResponse response) throws IOException {
@@ -97,15 +101,16 @@ public class OIDCController {
         }
 
         // TODO: make redirect URI optional
-        final String redirectUri = redirectUriParam.orElseThrow(() -> new BadRequestException("Missing redirect_uri", "invalid_request", "Missing redirect_uri"));
+        final URI redirectUri = redirectUriParam.orElseThrow(() -> new BadRequestException("Missing redirect_uri", "invalid_request", "Missing redirect_uri"));
 
         Escaper escaper = HtmlEscapers.htmlEscaper();
-        return "<form action=\"/oauth2/authorize\" method=\"post\">" +
+        return "<h1>Sign in</h1>" +
+                "<form action=\"/oauth2/authorize\" method=\"post\">" +
                 "<input type=\"hidden\" name=\"realm\" value=\"" + escaper.escape(realmName) + "\"/>" +
                 "<input type=\"hidden\" name=\"client_id\" value=\"" + escaper.escape(clientId) + "\"/>" +
                 "<input type=\"hidden\" name=\"scope\" value=\"" + escaper.escape(scope.orElse("")) + "\"/>" +
                 "<input type=\"hidden\" name=\"state\" value=\"" + escaper.escape(state.orElse("")) + "\"/>" +
-                "<input type=\"hidden\" name=\"redirect_uri\" value=\"" + escaper.escape(redirectUri) + "\"/>" +
+                "<input type=\"hidden\" name=\"redirect_uri\" value=\"" + escaper.escape(redirectUri.toString()) + "\"/>" +
                 "<div><label>User Name:</label><input name=\"username\" /></div>" +
                 "<div><label>Password:</label><input name=\"password\" type=\"password\"/></div>" +
                 "<button type=\"submit\">Log in</button></form>";
@@ -116,12 +121,12 @@ public class OIDCController {
     void authorize(@RequestParam(value = "realm") Optional<String> realmNameParam,
                    @RequestParam(value = "client_id", required = true) String clientId,
                    @RequestParam(value = "scope") Optional<String> scope,
-                   @RequestParam(value = "redirect_uri") String redirectUri,
+                   @RequestParam(value = "redirect_uri") URI redirectUri,
                    @RequestParam(name = "state") Optional<String> state,
                    @RequestParam(value = "username", required = true) String username,
                    @RequestParam(value = "password", required = true) String password,
                    @RequestHeader(name = "Host") Optional<String> hostHeader,
-                   HttpServletResponse response) throws IOException {
+                   HttpServletResponse response) throws IOException, URISyntaxException {
 
         final String realmName = getRealmName(realmNameParam, hostHeader);
 
@@ -138,9 +143,9 @@ public class OIDCController {
 
         final String code = cassandraAuthorizationCodeService.create(state.orElse(""), clientId, realmName, finalScopes, claims, redirectUri);
 
-        String redirectUrl = redirectUri + "&code=" + code + "&state=" + state.orElse("");
 
-        response.sendRedirect(redirectUrl);
+        URI redirect = new URIBuilder(redirectUri).addParameter("code", code).addParameter("state", state.orElse("")).build();
+        response.sendRedirect(redirect.toString());
 
     }
 

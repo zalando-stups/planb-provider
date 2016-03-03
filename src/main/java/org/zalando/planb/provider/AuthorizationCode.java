@@ -1,5 +1,6 @@
 package org.zalando.planb.provider;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,9 +21,9 @@ public class AuthorizationCode {
 
     Map<String, String> claims;
 
-    String redirectUri;
+    URI redirectUri;
 
-    public AuthorizationCode(String code, String state, String clientId, String realm, Set<String> scopes, Map<String, String> claims, String redirectUri) {
+    public AuthorizationCode(String code, String state, String clientId, String realm, Set<String> scopes, Map<String, String> claims, URI redirectUri) {
         this.code = code;
         this.state = state;
         this.clientId = clientId;
@@ -76,7 +77,7 @@ public class AuthorizationCode {
         return claims;
     }
 
-    public String getRedirectUri() {
+    public URI getRedirectUri() {
         return redirectUri;
     }
 }
