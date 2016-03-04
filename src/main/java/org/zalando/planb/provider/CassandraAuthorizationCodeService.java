@@ -44,6 +44,7 @@ public class CassandraAuthorizationCodeService {
     private static final String EXPIRES = "expires";
 
     private static final Duration LIFETIME = Duration.ofSeconds(60);
+    private static final int TTL = (int) Duration.ofMinutes(15).getSeconds();
 
     @Autowired
     private Session session;
@@ -66,7 +67,7 @@ public class CassandraAuthorizationCodeService {
                 .where(eq(CODE, bindMarker(CODE))))
                 .setConsistencyLevel(cassandraProperties.getReadConsistencyLevel());
 
-        upsert = session.prepare(insertInto(AUTHORIZATION_CODE)
+        upsert = session.prepare(insertInto(AUTHORIZATION_CODE).using(ttl(TTL))
                 .value(CODE, bindMarker(CODE))
                 .value(STATE, bindMarker(STATE))
                 .value(CLIENT_ID, bindMarker(CLIENT_ID))
