@@ -62,7 +62,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     @Test
     public void showLoginForm() {
         RequestEntity<Void> request = RequestEntity
-                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=code&client_id=testclient&redirect_uri=foo"))
+                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=code&client_id=testredirectclient&redirect_uri=https://myapp.example.org/callback"))
                 .build();
 
         ResponseEntity<String> response = rest.exchange(request, String.class);
@@ -72,11 +72,36 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     }
 
     @Test
+    public void redirectUriMismatch() {
+
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testredirectclient");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope");
+        requestParameters.add("redirect_uri", "https://wrong.redirect.uri.example.org/callback");
+
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .body(requestParameters);
+
+        try {
+            ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
+            fail("POST should have thrown Bad Request");
+        } catch (HttpClientErrorException ex) {
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getResponseBodyAsString()).contains("Redirect URI mismatch");
+        }
+
+    }
+
+    @Test
     public void authorize() {
 
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("realm", "/services");
-        requestParameters.add("client_id", "testclient");
+        requestParameters.add("client_id", "testredirectclient");
         requestParameters.add("username", "testuser");
         requestParameters.add("password", "test");
         requestParameters.add("scope", "uid ascope");
