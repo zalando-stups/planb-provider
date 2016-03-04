@@ -7,6 +7,9 @@ CREATE TABLE provider.client (
     client_secret_hash TEXT,         -- Bcrypt hash of the client secret
     scopes SET<TEXT>,                -- scopes this client is allowed to request
     is_confidential BOOLEAN,         -- whether the client is confidential or not (non-confidential clients should only be allowed to use the implicit flow)
+    name TEXT,                       -- client's human readable name (shown on authorization login form)
+    description TEXT,                -- client's human readable description
+    redirect_uris SET<TEXT>,
     created_by TEXT,                 -- name of the user who created this entry
     last_modified_by TEXT,           -- name of the user did the last modification on this entry
     PRIMARY KEY ((client_id), realm)

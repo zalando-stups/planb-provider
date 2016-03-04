@@ -28,6 +28,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.joining;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -106,6 +107,10 @@ public class OIDCController {
         // TODO: make redirect URI optional and check that it matches one configured in client
         final URI redirectUri = redirectUriParam.orElseThrow(() -> new BadRequestException("Missing redirect_uri", "invalid_request", "Missing redirect_uri"));
 
+        if (!clientData.getRedirectUris().contains(redirectUri.toString())) {
+            throw new BadRequestException(format("Redirect URI mismatch for client %s/%s", realmName, clientId), "invalid_request", "Redirect URI mismatch");
+        }
+
         Escaper escaper = HtmlEscapers.htmlEscaper();
         return "<html>" +
                 "<head><title>Login</title><style>body { font: 17px Arial, Helvetica, sans-serif; }</style></head>" +
@@ -138,6 +143,19 @@ public class OIDCController {
                    HttpServletResponse response) throws IOException, URISyntaxException {
 
         final String realmName = getRealmName(realmNameParam, hostHeader);
+
+        // retrieve realms for the given realm
+        ClientRealm clientRealm = realms.getClientRealm(realmName);
+        if (clientRealm == null) {
+            throw new RealmNotFoundException(realmName);
+        }
+
+        final ClientData clientData = clientRealm.get(clientId).orElseThrow(() -> clientNotFound(clientId, realmName));
+
+        // make sure (again!) that the redirect_uri was configured in the client
+        if (!clientData.getRedirectUris().contains(redirectUri.toString())) {
+            throw new BadRequestException(format("Redirect URI mismatch for client %s/%s", realmName, clientId), "invalid_request", "Redirect URI mismatch");
+        }
 
         final Set<String> scopes = ScopeProperties.split(scope);
         final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);

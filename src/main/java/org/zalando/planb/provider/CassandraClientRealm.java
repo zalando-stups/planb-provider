@@ -26,6 +26,9 @@ public class CassandraClientRealm implements ClientManagedRealm {
     private static final String CLIENT_SECRET_HASH = "client_secret_hash";
     private static final String IS_CONFIDENTIAL = "is_confidential";
     private static final String SCOPES = "scopes";
+    private static final String NAME = "name";
+    private static final String DESCRIPTION = "description";
+    private static final String REDIRECT_URIS = "redirect_uris";
     private static final String CREATED_BY = "created_by";
     private static final String LAST_MODIFIED_BY = "last_modified_by";
 
@@ -126,6 +129,9 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 row.getString(CLIENT_SECRET_HASH),
                 row.getSet(SCOPES, String.class),
                 row.getBool(IS_CONFIDENTIAL),
+                row.getString(NAME),
+                row.getString(DESCRIPTION),
+                row.getSet(REDIRECT_URIS, String.class),
                 row.getString(CREATED_BY),
                 row.getString(LAST_MODIFIED_BY)
 
