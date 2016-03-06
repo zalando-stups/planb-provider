@@ -8,6 +8,10 @@ Plan B Provider
 .. image:: https://codecov.io/github/zalando/planb-provider/coverage.svg?branch=master
     :target: https://codecov.io/github/zalando/planb-provider?branch=master
 
+.. image:: https://readthedocs.org/projects/planb/badge/?version=latest
+   :target: https://readthedocs.org/projects/planb/?badge=latest
+   :alt: Documentation Status
+
 This is a minimalistic `OpenID Connect Provider`_ that currently only supports the `Resource Owner Password Credentials Grant`_ to issue JWTs_.
 
 
