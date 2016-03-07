@@ -70,8 +70,8 @@ public class OIDCController {
     /**
      * Get client_id and client_secret from HTTP Basic Auth
      */
-    public static String[] getClientCredentials(Optional<String> authorization) throws RealmAuthenticationException {
-        return authorization
+    public static ClientCredentials getClientCredentials(Optional<String> authorization) throws RealmAuthenticationException {
+        String[] basicAuth = authorization
                 .filter(string -> string.toUpperCase().startsWith(BASIC_AUTH_PREFIX.toUpperCase()))
                 .map(string -> string.substring(BASIC_AUTH_PREFIX.length()))
                 .map(BASE_64_DECODER::decode)
@@ -82,6 +82,15 @@ public class OIDCController {
                         "Malformed or missing Authorization header.",
                         "invalid_client",
                         "Client authentication failed"));
+        return new ClientCredentials(basicAuth[0], basicAuth[1]);
+    }
+
+    public static ClientCredentials getClientCredentials(Optional<String> authorization, Optional<String> clientId, Optional<String> clientSecret) throws RealmAuthenticationException {
+        if (clientId.isPresent() && clientSecret.isPresent()) {
+            return new ClientCredentials(clientId.get(), clientSecret.get());
+        } else {
+            return getClientCredentials(authorization);
+        }
     }
 
     @RequestMapping(value = "/oauth2/authorize")
@@ -193,15 +202,6 @@ public class OIDCController {
             @RequestParam(value = "client_secret") Optional<String> clientSecretParam,
             @RequestHeader(name = "Authorization") Optional<String> authorization) throws JOSEException {
 
-        // check for supported grant types
-        if (!"authorization_code".equals(grantType)) {
-            throw new BadRequestException(
-                    "Grant type is not supported: " + grantType,
-                    "unsupported_grant_type",
-                    "Grant type is not supported: " + grantType);
-        }
-
-
         final AuthorizationCode authCode = cassandraAuthorizationCodeService.invalidate(code)
                 .orElseThrow(() -> new BadRequestException("Invalid authorization code", "invalid_request", "Invalid authorization code"));
 
@@ -220,22 +220,8 @@ public class OIDCController {
             throw new RealmNotFoundException(realmName);
         }
 
-        // do the authentication
-        String clientId;
-        String clientSecret;
-        if (clientIdParam.isPresent() && clientSecretParam.isPresent()) {
-            // passing client credentials in request body is not recommended!
-            // https://tools.ietf.org/html/rfc6749#section-2.3.1
-            // but this is used e.g. by Python's flask_oauthlib!
-            clientId = clientIdParam.get();
-            clientSecret = clientSecretParam.get();
-        } else {
-            final String[] clientCredentials = getClientCredentials(authorization);
-            clientId = clientCredentials[0];
-            clientSecret = clientCredentials[1];
-        }
-
-        clientRealm.authenticate(clientId, clientSecret, authCode.getScopes(), authCode.getScopes());
+        final ClientCredentials clientCredentials = getClientCredentials(authorization, clientIdParam, clientSecretParam);
+        clientRealm.authenticate(clientCredentials.getClientId(), clientCredentials.getClientSecret(), authCode.getScopes(), authCode.getScopes());
 
         final Map<String, String> extraClaims = authCode.getClaims();
 
@@ -265,7 +251,7 @@ public class OIDCController {
         }
 
         final String maskedSubject = userRealm.maskSubject((String) extraClaims.get(Realm.SUB));
-        log.info("Issued JWT for '{}' requested by client {}/{}", maskedSubject, realmName, clientId);
+        log.info("Issued JWT for '{}' requested by client {}/{}", maskedSubject, realmName, clientCredentials.getClientId());
 
         return new OIDCCreateTokenResponse(
                 rawJWT,
@@ -303,13 +289,6 @@ public class OIDCController {
                         "The provided access grant is invalid, expired, or revoked.");
             }
 
-            if (!"password".equals(grantType)) {
-                throw new BadRequestException(
-                        "Grant type is not supported: " + grantType,
-                        "unsupported_grant_type",
-                        "Grant type is not supported: " + grantType);
-            }
-
             // retrieve realms for the given realm
             ClientRealm clientRealm = realms.getClientRealm(realmName);
             if (clientRealm == null) {
@@ -326,21 +305,8 @@ public class OIDCController {
             final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);
             final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
 
-            // do the authentication
-            String clientId;
-            String clientSecret;
-            if (clientIdParam.isPresent() && clientSecretParam.isPresent()) {
-                // passing client credentials in request body is not recommended!
-                // https://tools.ietf.org/html/rfc6749#section-2.3.1
-                clientId = clientIdParam.get();
-                clientSecret = clientSecretParam.get();
-            } else {
-                final String[] clientCredentials = getClientCredentials(authorization);
-                clientId = clientCredentials[0];
-                clientSecret = clientCredentials[1];
-            }
-
-            clientRealm.authenticate(clientId, clientSecret, scopes, defaultScopes);
+            final ClientCredentials clientCredentials = getClientCredentials(authorization, clientIdParam, clientSecretParam);
+            clientRealm.authenticate(clientCredentials.getClientId(), clientCredentials.getClientSecret(), scopes, defaultScopes);
             final Map<String, String> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
 
             // this should never happen (only if some realm does not return "sub"
@@ -369,7 +335,7 @@ public class OIDCController {
             }
 
             final String maskedSubject = userRealm.maskSubject((String) extraClaims.get(Realm.SUB));
-            log.info("Issued JWT for '{}' requested by client {}/{}", maskedSubject, realmName, clientId);
+            log.info("Issued JWT for '{}' requested by client {}/{}", maskedSubject, realmName, clientCredentials.getClientId());
             metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
 
             return new OIDCCreateTokenResponse(

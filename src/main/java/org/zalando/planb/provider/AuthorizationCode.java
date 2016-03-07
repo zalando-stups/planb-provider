@@ -37,40 +37,20 @@ public class AuthorizationCode {
         return code;
     }
 
-    public void setCode(String code) {
-        this.code = code;
-    }
-
     public String getState() {
         return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
     }
 
     public String getClientId() {
         return clientId;
     }
 
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
     public String getRealm() {
         return realm;
     }
 
-    public void setRealm(String realm) {
-        this.realm = realm;
-    }
-
     public Set<String> getScopes() {
         return scopes;
-    }
-
-    public void setScopes(Set<String> scopes) {
-        this.scopes = scopes;
     }
 
     public Map<String, String> getClaims() {
