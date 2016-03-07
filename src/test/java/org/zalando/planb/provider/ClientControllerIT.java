@@ -2,6 +2,7 @@ package org.zalando.planb.provider;
 
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import org.assertj.core.api.Condition;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.zalando.planb.provider.api.Client;
 
@@ -85,6 +87,27 @@ public class ClientControllerIT extends AbstractSpringTest {
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(FORBIDDEN);
+        }
+    }
+
+    @Test
+    public void testDeleteTokeninfoServerError() throws Exception {
+        try {
+            restTemplate.exchange(delete(URI.create(basePath() + "/clients/animals/1")).header(AUTHORIZATION, SERVER_ERROR_ACCESS_TOKEN).build(), Void.class);
+            failBecauseExceptionWasNotThrown(HttpServerErrorException.class);
+        } catch (HttpServerErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @Test
+    public void testDeleteTokeninfoServerTimeout() throws Exception {
+        try {
+            WireMock.addRequestProcessingDelay(2100);
+            restTemplate.exchange(delete(URI.create(basePath() + "/clients/animals/1")).header(AUTHORIZATION, SERVER_ERROR_ACCESS_TOKEN).build(), Void.class);
+            failBecauseExceptionWasNotThrown(HttpServerErrorException.class);
+        } catch (HttpServerErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(INTERNAL_SERVER_ERROR);
         }
     }
 
