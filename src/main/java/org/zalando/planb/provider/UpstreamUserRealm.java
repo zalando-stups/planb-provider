@@ -78,7 +78,7 @@ public class UpstreamUserRealm implements UserRealm {
         return singletonMap(SUB, response.getUid());
     }
 
-    private UpstreamTokenResponse getTokenInfo(String username, String token) {
+    UpstreamTokenResponse getTokenInfo(String username, String token) {
         RequestEntity<Void> request = RequestEntity
                 .get(URI.create(upstreamRealmProperties.getTokenInfoUrl()))
                 .header("Authorization", "Bearer " + token).build();
