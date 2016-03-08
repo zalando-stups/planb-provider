@@ -46,6 +46,8 @@ public class ScopePropertiesTest {
         assertThat(scopeProperties.getDefaultScopes("customers")).containsOnly("email");
         assertThat(scopeProperties.getDefaultScopes("services")).containsOnly("id", "team");
         assertThat(scopeProperties.getDefaultScopes("foobar")).containsOnly("id", "team");
+        assertThat(scopeProperties.getDefaultScopes("Foobar")).containsOnly("id", "team");
+        assertThat(scopeProperties.getDefaultScopes("fooBar")).containsOnly("id", "team");
     }
 
     @Configuration
