@@ -178,6 +178,16 @@ definitions:
           type: string
       is_confidential:
         type: boolean
+      name:
+        type: string
+        description: Human readable client name for authorization flow
+      description:
+        type: string
+        description: Human readable description for authorization flow
+      redirect_uris:
+        type: array
+        items:
+          type: string
 
   User:
     type: object

@@ -71,7 +71,10 @@ public class ClientData {
         return new ClientData.Builder()
                 .withClientSecretHash(client.getSecretHash())
                 .withScopes(ImmutableSet.copyOf(client.getScopes()))
-                .withConfidential(client.getIsConfidential());
+                .withConfidential(client.getIsConfidential())
+                .withName(client.getName())
+                .withDescription(client.getDescription())
+                .withRedirectUris(ImmutableSet.copyOf(client.getRedirectUris()));
     }
 
     public static class Builder {
