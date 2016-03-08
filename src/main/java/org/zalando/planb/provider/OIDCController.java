@@ -93,6 +93,16 @@ public class OIDCController {
         }
     }
 
+    /*
+     * Check the given Redirect URI against the ones configured for the given client.
+     * Throw BAD REQUEST exception if it does not match.
+     */
+    void validateRedirectUri(String realm, String clientId, ClientData clientData, URI redirectUri) {
+        if (!clientData.getRedirectUris().contains(redirectUri.toString())) {
+            throw new BadRequestException(format("Redirect URI mismatch for client %s/%s", realm, clientId), "invalid_request", "Redirect URI mismatch");
+        }
+    }
+
     @RequestMapping(value = "/oauth2/authorize")
     String showAuthorizationForm(@RequestParam(value = "realm") Optional<String> realmNameParam,
                                  @RequestParam(value = "response_type", required = true) String responseType,
@@ -110,13 +120,17 @@ public class OIDCController {
 
         final ClientData clientData = clientRealm.get(clientId).orElseThrow(() -> clientNotFound(clientId, realmName));
 
-        // TODO: make redirect URI optional and check that it matches one configured in client
-        final URI redirectUri = redirectUriParam.orElseThrow(() -> new BadRequestException("Missing redirect_uri", "invalid_request", "Missing redirect_uri"));
+        // Either use passed Redirect URI or get configured Redirect URI
+        // "redirect_uri" parameter is OPTIONAL according to http://tools.ietf.org/html/rfc6749#section-4.1.1
+        // NOTE 1: we use "findFirst", i.e. if no parameter was passed and the client has multiple Redirect URIs configured, it will take a "random" one
+        // NOTE 2: not passing the "redirect_uri" parameter allows "snooping" the configured Redirect URI(s) for known client IDs --- client IDs should be unpredictable to prevent this
+        final URI redirectUri = redirectUriParam
+                .orElseGet(() -> clientData.getRedirectUris().stream().findFirst().map(URI::create)
+                        .orElseThrow(() -> new BadRequestException("Missing redirect_uri", "invalid_request", "Missing redirect_uri")));
 
-        if (!clientData.getRedirectUris().contains(redirectUri.toString())) {
-            throw new BadRequestException(format("Redirect URI mismatch for client %s/%s", realmName, clientId), "invalid_request", "Redirect URI mismatch");
-        }
+        validateRedirectUri(realmName, clientId, clientData, redirectUri);
 
+        // TODO: use a proper view template here :-)
         Escaper escaper = HtmlEscapers.htmlEscaper();
         return "<html>" +
                 "<head><title>Login</title><style>body { font: 17px Arial, Helvetica, sans-serif; }</style></head>" +
@@ -131,7 +145,7 @@ public class OIDCController {
                 "<input type=\"hidden\" name=\"redirect_uri\" value=\"" + escaper.escape(redirectUri.toString()) + "\"/>" +
                 "<div><label>User Name:</label><input name=\"username\" /></div>" +
                 "<div><label>Password:</label><input name=\"password\" type=\"password\"/></div>" +
-                "<button type=\"submit\">Log in</button></form>"+
+                "<button type=\"submit\">Log in</button></form>" +
                 "</div>" +
                 "</body></html>";
         //
@@ -156,9 +170,7 @@ public class OIDCController {
         final ClientData clientData = clientRealm.get(clientId).orElseThrow(() -> clientNotFound(clientId, realmName));
 
         // make sure (again!) that the redirect_uri was configured in the client
-        if (!clientData.getRedirectUris().contains(redirectUri.toString())) {
-            throw new BadRequestException(format("Redirect URI mismatch for client %s/%s", realmName, clientId), "invalid_request", "Redirect URI mismatch");
-        }
+        validateRedirectUri(realmName, clientId, clientData, redirectUri);
 
         final Set<String> scopes = ScopeProperties.split(scope);
         final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);
