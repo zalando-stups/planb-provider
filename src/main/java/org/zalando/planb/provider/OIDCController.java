@@ -219,6 +219,11 @@ public class OIDCController {
         final ClientCredentials clientCredentials = getClientCredentials(authorization, clientIdParam, clientSecretParam);
         clientRealm.authenticate(clientCredentials.getClientId(), clientCredentials.getClientSecret(), authCode.getScopes(), authCode.getScopes());
 
+        if (!clientCredentials.getClientId().equals(authCode.getClientId())) {
+            // authorization code can only be used by the client who requested it
+            throw new BadRequestException("Invalid authorization code: client mismatch", "invalid_request", "Invalid authorization code: client mismatch");
+        }
+
         final Map<String, String> extraClaims = authCode.getClaims();
 
         // this should never happen (only if some realm does not return "sub"
