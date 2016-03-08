@@ -107,9 +107,6 @@ public class OIDCController {
 
         // retrieve realms for the given realm
         ClientRealm clientRealm = realms.getClientRealm(realmName);
-        if (clientRealm == null) {
-            throw new RealmNotFoundException(realmName);
-        }
 
         final ClientData clientData = clientRealm.get(clientId).orElseThrow(() -> clientNotFound(clientId, realmName));
 
@@ -155,9 +152,6 @@ public class OIDCController {
 
         // retrieve realms for the given realm
         ClientRealm clientRealm = realms.getClientRealm(realmName);
-        if (clientRealm == null) {
-            throw new RealmNotFoundException(realmName);
-        }
 
         final ClientData clientData = clientRealm.get(clientId).orElseThrow(() -> clientNotFound(clientId, realmName));
 
@@ -171,9 +165,6 @@ public class OIDCController {
         final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
 
         UserRealm userRealm = realms.getUserRealm(realmName);
-        if (userRealm == null) {
-            throw new RealmNotFoundException(realmName);
-        }
 
         final Map<String, String> claims = userRealm.authenticate(username, password, finalScopes, defaultScopes);
 
@@ -211,14 +202,7 @@ public class OIDCController {
 
         // retrieve realms for the given realm
         ClientRealm clientRealm = realms.getClientRealm(realmName);
-        if (clientRealm == null) {
-            throw new RealmNotFoundException(realmName);
-        }
-
         UserRealm userRealm = realms.getUserRealm(realmName);
-        if (userRealm == null) {
-            throw new RealmNotFoundException(realmName);
-        }
 
         final ClientCredentials clientCredentials = getClientCredentials(authorization, clientIdParam, clientSecretParam);
         clientRealm.authenticate(clientCredentials.getClientId(), clientCredentials.getClientSecret(), authCode.getScopes(), authCode.getScopes());
@@ -291,14 +275,7 @@ public class OIDCController {
 
             // retrieve realms for the given realm
             ClientRealm clientRealm = realms.getClientRealm(realmName);
-            if (clientRealm == null) {
-                throw new RealmNotFoundException(realmName);
-            }
-
             UserRealm userRealm = realms.getUserRealm(realmName);
-            if (userRealm == null) {
-                throw new RealmNotFoundException(realmName);
-            }
 
             // parse requested scopes
             final Set<String> scopes = ScopeProperties.split(scope);

@@ -67,10 +67,18 @@ public class RealmConfig implements BeanFactoryAware {
     }
 
     UserRealm getUserRealm(String name) {
-        return userRealms.get(name);
+        UserRealm realm = userRealms.get(name);
+        if (realm == null) {
+            throw new RealmNotFoundException(name);
+        }
+        return realm;
     }
 
     ClientRealm getClientRealm(String name) {
-        return clientRealms.get(name);
+        ClientRealm realm = clientRealms.get(name);
+        if (realm == null) {
+            throw new RealmNotFoundException(name);
+        }
+        return realm;
     }
 }

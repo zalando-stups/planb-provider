@@ -44,4 +44,16 @@ public class RealmConfigTest {
         // we sort the realm names, so it will return the first one if both match
         assertThat(RealmConfig.findRealmNameInHost(realmNames, "foo.bar")).contains("/bar");
     }
+
+    @Test(expected = RealmNotFoundException.class)
+    public void testUserRealmNotFound() {
+        RealmConfig config = new RealmConfig();
+        config.getUserRealm("wrong-user-realm");
+    }
+
+    @Test(expected = RealmNotFoundException.class)
+    public void testClientRealmNotFound() {
+        RealmConfig config = new RealmConfig();
+        config.getUserRealm("wrong-client-realm");
+    }
 }
