@@ -1,4 +1,4 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;

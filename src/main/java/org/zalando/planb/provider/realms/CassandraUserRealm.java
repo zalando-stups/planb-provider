@@ -1,4 +1,4 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
+import org.zalando.planb.provider.*;
 
 import java.time.ZonedDateTime;
 import java.util.Optional;

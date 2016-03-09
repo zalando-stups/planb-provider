@@ -1,4 +1,4 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
 
 import java.util.Map;
 import java.util.Set;

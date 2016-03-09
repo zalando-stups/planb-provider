@@ -1,4 +1,4 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
 
 import org.apache.cxf.interceptor.LoggingInInterceptor;
 import org.apache.cxf.interceptor.LoggingOutInterceptor;
@@ -7,6 +7,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.zalando.planb.provider.realms.CustomerRealmProperties;
+import org.zalando.planb.provider.realms.CustomerRealmWebService;
 import org.zalando.stups.oauth2.jaxws.cxf.interceptors.OAuth2TokenInterceptor;
 import org.zalando.stups.tokens.AccessTokens;
 

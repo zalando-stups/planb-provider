@@ -1,4 +1,4 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
 
 public class ClientRealmAuthorizationException extends RealmAuthorizationException {
 

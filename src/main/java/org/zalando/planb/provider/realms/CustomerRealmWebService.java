@@ -1,4 +1,4 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
 
 import javax.jws.WebMethod;
 import javax.jws.WebParam;

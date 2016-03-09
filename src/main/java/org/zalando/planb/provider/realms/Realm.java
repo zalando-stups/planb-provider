@@ -1,4 +1,4 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
 
 import com.google.common.collect.Lists;
 import org.springframework.security.crypto.bcrypt.BCrypt;

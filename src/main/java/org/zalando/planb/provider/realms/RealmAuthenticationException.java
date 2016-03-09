@@ -1,4 +1,6 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
+
+import org.zalando.planb.provider.RestException;
 
 /**
  * If identity doesn't exist or secret is wrong

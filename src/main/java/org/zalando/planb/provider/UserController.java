@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.zalando.planb.provider.api.Password;
 import org.zalando.planb.provider.api.User;
 import org.zalando.planb.provider.api.UsersApi;
+import org.zalando.planb.provider.realms.UserManagedRealm;
 
 import java.util.Optional;
 

@@ -1,8 +1,6 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
-import org.bouncycastle.jcajce.provider.digest.SHA256;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.RequestEntity;
@@ -18,13 +16,10 @@ import java.net.URI;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonMap;
-import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.joining;
 import static org.bouncycastle.util.encoders.Hex.toHexString;
 import static org.zalando.planb.provider.ScopeProperties.SPACE;

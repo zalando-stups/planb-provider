@@ -1,11 +1,11 @@
 package org.zalando.planb.provider;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.stereotype.Component;
+import org.zalando.planb.provider.realms.*;
 
 import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotNull;
@@ -48,6 +48,7 @@ public class RealmConfig implements BeanFactoryAware {
 
     @PostConstruct
     void setup() {
+        // TODO: make this dynamically configurable
         newRealm("/services", CassandraClientRealm.class, CassandraUserRealm.class);
         newRealm("/customers", CassandraClientRealm.class, CustomerUserRealm.class);
         newRealm("/employees", CassandraClientRealm.class, UpstreamUserRealm.class);

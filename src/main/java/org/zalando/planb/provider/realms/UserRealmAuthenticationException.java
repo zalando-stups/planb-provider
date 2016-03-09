@@ -1,4 +1,4 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
 
 import static java.lang.String.format;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;

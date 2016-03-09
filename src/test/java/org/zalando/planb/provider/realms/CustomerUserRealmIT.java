@@ -1,15 +1,17 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
 
 import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.netflix.hystrix.exception.HystrixRuntimeException;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.zalando.planb.provider.AbstractSpringTest;
+import org.zalando.planb.provider.Main;
+import org.zalando.planb.provider.realms.CustomerUserRealm;
+import org.zalando.planb.provider.realms.RealmAuthenticationException;
 
 import java.util.Map;
 

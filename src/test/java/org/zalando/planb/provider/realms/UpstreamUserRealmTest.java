@@ -1,12 +1,15 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
 
-import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.google.common.collect.ImmutableSet;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.zalando.planb.provider.RestException;
+import org.zalando.planb.provider.realms.UpstreamRealmProperties;
+import org.zalando.planb.provider.realms.UpstreamTokenResponse;
+import org.zalando.planb.provider.realms.UpstreamUserRealm;
+import org.zalando.planb.provider.realms.UserRealmAuthenticationException;
 
 import java.util.Map;
 

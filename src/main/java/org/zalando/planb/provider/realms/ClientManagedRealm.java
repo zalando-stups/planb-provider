@@ -1,10 +1,11 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
 
-import java.util.Optional;
+import org.zalando.planb.provider.*;
+
 import java.util.Set;
 
 import static java.util.stream.Collectors.toSet;
-import static org.zalando.planb.provider.ClientRealmAuthenticationException.*;
+import static org.zalando.planb.provider.realms.ClientRealmAuthenticationException.*;
 
 public interface ClientManagedRealm extends ClientRealm {
 

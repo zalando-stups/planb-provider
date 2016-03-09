@@ -1,7 +1,8 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
 
 import org.junit.Test;
 import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.zalando.planb.provider.realms.Realm;
 
 import static org.assertj.core.api.StrictAssertions.assertThat;
 

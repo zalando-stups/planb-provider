@@ -1,4 +1,6 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
+
+import org.zalando.planb.provider.ClientData;
 
 import java.util.Optional;
 import java.util.Set;

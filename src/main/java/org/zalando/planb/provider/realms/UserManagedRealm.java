@@ -1,4 +1,6 @@
-package org.zalando.planb.provider;
+package org.zalando.planb.provider.realms;
+
+import org.zalando.planb.provider.*;
 
 import java.util.Map;
 import java.util.Optional;
@@ -6,9 +8,9 @@ import java.util.Set;
 
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toSet;
-import static org.zalando.planb.provider.Realm.checkBCryptPassword;
-import static org.zalando.planb.provider.UserRealmAuthenticationException.userNotFound;
-import static org.zalando.planb.provider.UserRealmAuthenticationException.wrongUserSecret;
+import static org.zalando.planb.provider.realms.Realm.checkBCryptPassword;
+import static org.zalando.planb.provider.realms.UserRealmAuthenticationException.userNotFound;
+import static org.zalando.planb.provider.realms.UserRealmAuthenticationException.wrongUserSecret;
 
 public interface UserManagedRealm extends UserRealm {
 

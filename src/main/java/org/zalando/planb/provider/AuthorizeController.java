@@ -1,7 +1,5 @@
 package org.zalando.planb.provider;
 
-import com.google.common.escape.Escaper;
-import com.google.common.html.HtmlEscapers;
 import org.apache.http.client.utils.URIBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -10,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.zalando.planb.provider.realms.ClientRealm;
+import org.zalando.planb.provider.realms.UserRealm;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.zalando.planb.provider.ClientRealmAuthenticationException.clientNotFound;
+import static org.zalando.planb.provider.realms.ClientRealmAuthenticationException.clientNotFound;
 import static org.zalando.planb.provider.OIDCController.getRealmName;
 import static org.zalando.planb.provider.OIDCController.validateRedirectUri;
 

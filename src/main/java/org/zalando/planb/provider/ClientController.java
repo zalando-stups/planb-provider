@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.zalando.planb.provider.api.Client;
 import org.zalando.planb.provider.api.ClientsApi;
+import org.zalando.planb.provider.realms.ClientManagedRealm;
+import org.zalando.planb.provider.realms.Realm;
 
 import java.util.Optional;
 
