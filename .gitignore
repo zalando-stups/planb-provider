@@ -8,7 +8,8 @@ target
 
 scm-source.json
 
-# readme example file
+# readme example files
 /key.cql
+/testuser.cql
 
 .factorypath

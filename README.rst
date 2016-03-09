@@ -34,14 +34,14 @@ Find the executable jar in the target directory. Building a Docker image with th
     $ docker build -t planb-provider .
 
 
-Code generation
+Code Generation
 ===============
 
 Java interfaces and classes for some REST APIs are auto-generated on build by swagger-codegen-maven-plugin. Find the
 generated sources in target/generated-sources/swagger-codegen/.
 
 
-Setting up local dev environment
+Setting up Local Dev Environment
 ================================
 
 Run a development Cassandra node:
@@ -50,7 +50,7 @@ Run a development Cassandra node:
 
     $ docker run --name dev-cassandra -d -p 9042:9042 cassandra:2.1
 
-Insert schema:
+Insert schema (you might need to wait a few seconds for Cassandra to boot):
 
 .. code-block:: bash
 
@@ -72,14 +72,26 @@ Set up some signing keys and pipe resulting ``key.cql`` into cluster as well:
         ('testkey', {'/services', '/customers'}, '$(cat src/test/resources/test-es384-secp384r1.pem)', 'ES384', $(date +"%s"));" > key.cql
     $ docker run -i --link dev-cassandra:cassandra --rm cassandra:2.1 cqlsh cassandra < key.cql
 
-Setup the following env variable:
+Manually create our first test service user and client (password is "test0" for both):
 
 .. code-block:: bash
 
-    $ export ACCESS_TOKEN_URI="https://example.com/oauth2/access_token"
-    $ export CREDENTIALS_DIR="/meta/credentials"
-    $ export OAUTH2_ACCESS_TOKENS=customerLogin=test
-    $ export TOKENINFO_URL=https://example.com/oauth2/tokeninfo
+    $ echo "INSERT INTO provider.client
+        (client_id, realm, client_secret_hash, is_confidential, scopes)
+      VALUES
+        ('test0', '/services', '"'$2b$04$0PzwhGVD9MYyXd9sqtf/dOSgN1PC18dSWEliTQdUMT3hJztlvW3Em'"', true, {'uid'});" > testuser.cql
+    $ echo "INSERT INTO provider.user
+        (username, realm, password_hashes, scopes)
+      VALUES
+        ('test0', '/services', { {password_hash: '"'$2b$04$0PzwhGVD9MYyXd9sqtf/dOSgN1PC18dSWEliTQdUMT3hJztlvW3Em'"', created: 1457044516, created_by: 'test'} }, {'uid': 'true'});" >> testuser.cql
+    $ docker run -i --link dev-cassandra:cassandra --rm cassandra:2.1 cqlsh cassandra < testuser.cql
+
+Set up the following env variable:
+
+.. code-block:: bash
+
+    $ export OAUTH2_ACCESS_TOKENS=customerLogin=test             # fixed OAuth test token (unused)
+    $ export TOKENINFO_URL=https://example.com/oauth2/tokeninfo  # required for /raw-sync REST API (unused here)
 
 Run the application against you local Cassandra:
 
@@ -87,26 +99,15 @@ Run the application against you local Cassandra:
 
     $ java -jar target/planb-provider-1.0-SNAPSHOT.jar --cassandra.contactPoints="127.0.0.1"
 
-Setting up some example keys
-============================
-
-.. code-block:: bash
-
-    $ openssl genrsa -out test-rs256-2048.pem 2048
-    $ openssl ecparam -genkey -out test-es256-prime256v1.pem -name prime256v1
-    $ openssl ecparam -genkey -out test-es384-secp384r1.pem -name secp384r1
-    $ openssl ecparam -genkey -out test-es512-secp521r1.pem -name secp521r1
-
-
-Testing the endpoints
+Testing the Endpoints
 =====================
 
-Requesting a new JWT:
+Requesting a new JWT (using the example credentials inserted into Cassandra above):
 
 .. code-block:: bash
 
-    $ curl --silent -X POST -d "grant_type=password&username=foo&password=test&scope=uid" \
-         "http://localhost:8080/oauth2/access_token?realm=/test" | jq .
+    $ curl --silent -X POST -u test0:test0 -d "grant_type=password&username=test0&password=test0&scope=uid" \
+         "http://localhost:8080/oauth2/access_token?realm=/services" | jq .
 
 Get the `OpenID Connect configuration discovery document`_:
 
@@ -121,16 +122,30 @@ Retrieving all public keys (`set of JWKs`_) for verification:
 
     $ curl --silent http://localhost:8080/oauth2/connect/keys | jq .
 
+Generating JWT Signing Keys
+===========================
+
+Use OpenSSL to generate JWT signing keys.
+
+.. code-block:: bash
+
+    $ openssl genrsa -out test-rs256-2048.pem 2048
+    $ openssl ecparam -genkey -out test-es256-prime256v1.pem -name prime256v1
+    $ openssl ecparam -genkey -out test-es384-secp384r1.pem -name secp384r1
+    $ openssl ecparam -genkey -out test-es512-secp521r1.pem -name secp521r1
+
+The resulting PEM file's contents must be stored in the ``private_key_pem`` column of the ``provider.keypair`` Cassandra table.
+
 
 Configuration
 =============
 
 ``TOKENINFO_URL``
-    OAuth2 token info URL (can point to Plan B Token Info).
+    OAuth2 token info URL (can point to Plan B Token Info), this is used to secure the ``/raw-sync/`` REST endpoints.
 ``CUSTOMER_REALM_SERVICE_URL``
     Optional URL to Zalando customer service WSDL.
 ``ACCESS_TOKEN_URI``
-    OAuth2 access token URL.
+    OAuth2 access token URL (can point to own endpoint), this is used to get OAuth tokens for upstream services.
 ``CASSANDRA_CONTACT_POINTS``
     Comma separated list of Cassandra cluster IPs.
 ``CASSANDRA_CLUSTER_NAME``
