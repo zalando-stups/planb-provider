@@ -18,14 +18,6 @@ This is a minimalistic `OpenID Connect Provider`_ that currently only supports t
 Building
 ========
 
-Setup the following env variable:
-
-.. code-block:: bash
-
-    $ export ACCESS_TOKEN_URI="https://example.com/oauth2/access_token"
-    $ export CREDENTIALS_DIR="/meta/credentials"
-    $ export OAUTH2_ACCESS_TOKENS=customerLogin=test
-
 Building the artifact and running all tests:
 
 .. code-block:: bash
@@ -78,6 +70,15 @@ Set up some signing keys and pipe resulting ``key.cql`` into cluster as well:
       VALUES
         ('testkey', {'/services', '/customers'}, '$(cat src/test/resources/test-es384-secp384r1.pem)', 'ES384', $(date +"%s"));" > key.cql
     $ docker run -i --link dev-cassandra:cassandra --rm cassandra:2.1 cqlsh cassandra < key.cql
+
+Setup the following env variable:
+
+.. code-block:: bash
+
+    $ export ACCESS_TOKEN_URI="https://example.com/oauth2/access_token"
+    $ export CREDENTIALS_DIR="/meta/credentials"
+    $ export OAUTH2_ACCESS_TOKENS=customerLogin=test
+    $ export TOKENINFO_URL=https://example.com/oauth2/tokeninfo
 
 Run the application against you local Cassandra:
 

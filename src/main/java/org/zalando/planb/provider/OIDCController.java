@@ -97,96 +97,13 @@ public class OIDCController {
      * Check the given Redirect URI against the ones configured for the given client.
      * Throw BAD REQUEST exception if it does not match.
      */
-    void validateRedirectUri(String realm, String clientId, ClientData clientData, URI redirectUri) {
+    static void validateRedirectUri(String realm, String clientId, ClientData clientData, URI redirectUri) {
         if (!clientData.getRedirectUris().contains(redirectUri.toString())) {
             throw new BadRequestException(format("Redirect URI mismatch for client %s/%s", realm, clientId), "invalid_request", "Redirect URI mismatch");
         }
     }
 
-    @RequestMapping(value = "/oauth2/authorize")
-    String showAuthorizationForm(@RequestParam(value = "realm") Optional<String> realmNameParam,
-                                 @RequestParam(value = "response_type", required = true) String responseType,
-                                 @RequestParam(value = "client_id", required = true) String clientId,
-                                 @RequestParam(value = "scope") Optional<String> scope,
-                                 @RequestParam(value = "redirect_uri") Optional<URI> redirectUriParam,
-                                 @RequestParam(name = "state") Optional<String> state,
-                                 @RequestHeader(name = "Host") Optional<String> hostHeader,
-                                 HttpServletResponse response) throws IOException {
-
-        final String realmName = getRealmName(realmNameParam, hostHeader);
-
-        // retrieve realms for the given realm
-        ClientRealm clientRealm = realms.getClientRealm(realmName);
-
-        final ClientData clientData = clientRealm.get(clientId).orElseThrow(() -> clientNotFound(clientId, realmName));
-
-        // Either use passed Redirect URI or get configured Redirect URI
-        // "redirect_uri" parameter is OPTIONAL according to http://tools.ietf.org/html/rfc6749#section-4.1.1
-        // NOTE 1: we use "findFirst", i.e. if no parameter was passed and the client has multiple Redirect URIs configured, it will take a "random" one
-        // NOTE 2: not passing the "redirect_uri" parameter allows "snooping" the configured Redirect URI(s) for known client IDs --- client IDs should be unpredictable to prevent this
-        final URI redirectUri = redirectUriParam
-                .orElseGet(() -> clientData.getRedirectUris().stream().findFirst().map(URI::create)
-                        .orElseThrow(() -> new BadRequestException("Missing redirect_uri", "invalid_request", "Missing redirect_uri")));
-
-        validateRedirectUri(realmName, clientId, clientData, redirectUri);
-
-        // TODO: use a proper view template here :-)
-        Escaper escaper = HtmlEscapers.htmlEscaper();
-        return "<html>" +
-                "<head><title>Login</title><style>body { font: 17px Arial, Helvetica, sans-serif; }</style></head>" +
-                "</body>" +
-                "<div style=\"max-width: 612px; margin: 0 auto\">" +
-                "<h1>Sign in</h1>" +
-                "<form action=\"/oauth2/authorize\" method=\"post\">" +
-                "<input type=\"hidden\" name=\"realm\" value=\"" + escaper.escape(realmName) + "\"/>" +
-                "<input type=\"hidden\" name=\"client_id\" value=\"" + escaper.escape(clientId) + "\"/>" +
-                "<input type=\"hidden\" name=\"scope\" value=\"" + escaper.escape(scope.orElse("")) + "\"/>" +
-                "<input type=\"hidden\" name=\"state\" value=\"" + escaper.escape(state.orElse("")) + "\"/>" +
-                "<input type=\"hidden\" name=\"redirect_uri\" value=\"" + escaper.escape(redirectUri.toString()) + "\"/>" +
-                "<div><label>User Name:</label><input name=\"username\" /></div>" +
-                "<div><label>Password:</label><input name=\"password\" type=\"password\"/></div>" +
-                "<button type=\"submit\">Log in</button></form>" +
-                "</div>" +
-                "</body></html>";
-        //
-    }
-
-    @RequestMapping(value = "/oauth2/authorize", method = RequestMethod.POST)
-    void authorize(@RequestParam(value = "realm") Optional<String> realmNameParam,
-                   @RequestParam(value = "client_id", required = true) String clientId,
-                   @RequestParam(value = "scope") Optional<String> scope,
-                   @RequestParam(value = "redirect_uri") URI redirectUri,
-                   @RequestParam(name = "state") Optional<String> state,
-                   @RequestParam(value = "username", required = true) String username,
-                   @RequestParam(value = "password", required = true) String password,
-                   @RequestHeader(name = "Host") Optional<String> hostHeader,
-                   HttpServletResponse response) throws IOException, URISyntaxException {
-
-        final String realmName = getRealmName(realmNameParam, hostHeader);
-
-        // retrieve realms for the given realm
-        ClientRealm clientRealm = realms.getClientRealm(realmName);
-
-        final ClientData clientData = clientRealm.get(clientId).orElseThrow(() -> clientNotFound(clientId, realmName));
-
-        // make sure (again!) that the redirect_uri was configured in the client
-        validateRedirectUri(realmName, clientId, clientData, redirectUri);
-
-        final Set<String> scopes = ScopeProperties.split(scope);
-        final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);
-        final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
-
-        UserRealm userRealm = realms.getUserRealm(realmName);
-
-        final Map<String, String> claims = userRealm.authenticate(username, password, finalScopes, defaultScopes);
-
-        final String code = cassandraAuthorizationCodeService.create(state.orElse(""), clientId, realmName, finalScopes, claims, redirectUri);
-
-        URI redirect = new URIBuilder(redirectUri).addParameter("code", code).addParameter("state", state.orElse("")).build();
-        response.sendRedirect(redirect.toString());
-    }
-
-    String getRealmName(Optional<String> realmNameParam, Optional<String> hostHeader) {
+    static String getRealmName(RealmConfig realms, Optional<String> realmNameParam, Optional<String> hostHeader) {
         final String realmName = realmNameParam.orElseGet(() -> realms.findRealmNameInHost(hostHeader
                 .orElseThrow(() -> new BadRequestException("Missing realm parameter and no Host header.", "missing_realm", "Missing realm parameter and no Host header.")))
                 .orElseThrow(() -> new RealmNotFoundException(hostHeader.get())));
@@ -280,7 +197,7 @@ public class OIDCController {
             throws RealmAuthenticationException, RealmAuthorizationException, JOSEException {
         final Metric metric = new Metric(metricRegistry).start();
 
-        final String realmName = getRealmName(realmNameParam, hostHeader);
+        final String realmName = getRealmName(realms, realmNameParam, hostHeader);
 
         try {
             if (username.trim().isEmpty() || password.trim().isEmpty()) {

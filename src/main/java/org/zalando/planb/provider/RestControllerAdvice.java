@@ -5,6 +5,7 @@ import com.netflix.hystrix.exception.HystrixRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,7 +17,7 @@ import java.util.Optional;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.ResponseEntity.status;
 
-@ControllerAdvice(annotations = {RestController.class})
+@ControllerAdvice
 public class RestControllerAdvice {
     private static final Logger LOG = LoggerFactory.getLogger(RestControllerAdvice.class);
 

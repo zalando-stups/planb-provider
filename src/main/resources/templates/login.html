@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Login</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <style>
+        body { font: 17px Arial, Helvetica, sans-serif; }
+        #wrapper { max-width: 612px; margin: 0 auto; }
+        form div { margin-bottom: 4px; }
+        label { font-weight: bold; width: 120px; float: left; display: block; }
+    </style>
+</head>
+<body>
+<div id="wrapper">
+    <h1>Sign in</h1>
+    <form action="/oauth2/authorize" method="post">
+        <input type="hidden" name="response_type" th:value="${responseType}"/>
+        <input type="hidden" name="realm" th:value="${realm}"/>
+        <input type="hidden" name="client_id" th:value="${clientId}"/>
+        <input type="hidden" name="scope" th:value="${scope}"/>
+        <input type="hidden" name="state" th:value="${state}"/>
+        <input type="hidden" name="redirect_uri" th:value="${redirectUri}"/>
+        <div><label>User Name:</label><input name="username" required="required"/></div>
+        <div><label>Password:</label><input name="password" type="password" required="required"/></div>
+        <button type="submit">Log in</button>
+    </form>
+</div>
+</body>
+</html>

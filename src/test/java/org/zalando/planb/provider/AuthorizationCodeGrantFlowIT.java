@@ -62,13 +62,29 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     @Test
     public void showLoginForm() {
         RequestEntity<Void> request = RequestEntity
-                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=code&client_id=testredirectclient&redirect_uri=https://myapp.example.org/callback"))
+                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=code&client_id=testredirectclient&redirect_uri=https://myapp.example.org/callback&state=mystate"))
                 .build();
 
         ResponseEntity<String> response = rest.exchange(request, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("<form");
+        assertThat(response.getBody()).contains("value=\"mystate\"");
+    }
+
+    @Test
+    public void invalidResponseType() {
+        RequestEntity<Void> request = RequestEntity
+                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=foo&client_id=testredirectclient"))
+                .build();
+
+        try {
+            ResponseEntity<String> response = rest.exchange(request, String.class);
+            fail("GET should have thrown Bad Request");
+        } catch (HttpClientErrorException ex) {
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getResponseBodyAsString()).contains("response_type");
+        }
     }
 
     @Test
@@ -90,6 +106,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     public void redirectUriMismatch() {
 
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "code");
         requestParameters.add("realm", "/services");
         requestParameters.add("client_id", "testredirectclient");
         requestParameters.add("username", "testuser");
@@ -115,6 +132,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     public void authorizeWrongClient() {
 
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "code");
         requestParameters.add("realm", "/services");
         requestParameters.add("client_id", "testredirectclient");
         requestParameters.add("username", "testuser");
@@ -158,6 +176,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     public void authorizeSuccess() {
 
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "code");
         requestParameters.add("realm", "/services");
         requestParameters.add("client_id", "testredirectclient");
         requestParameters.add("username", "testuser");
