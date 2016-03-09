@@ -55,7 +55,15 @@ public class CassandraClientRealm implements ClientManagedRealm {
     }
 
     private void prepareStatements() {
-        findOne = session.prepare(select().all()
+        findOne = session.prepare(select()
+                .column(CLIENT_SECRET_HASH)
+                .column(SCOPES)
+                .column(IS_CONFIDENTIAL)
+                .column(NAME)
+                .column(DESCRIPTION)
+                .column(REDIRECT_URIS)
+                .column(CREATED_BY)
+                .column(LAST_MODIFIED_BY)
                 .from(CLIENT)
                 .where(eq(CLIENT_ID, bindMarker(CLIENT_ID)))
                 .and(eq(REALM, realmName)))
