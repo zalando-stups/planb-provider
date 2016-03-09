@@ -87,14 +87,14 @@ Manually create our first test service user and client (password is "test0" for 
         ('test0', '/services', { {password_hash: '"'$2b$04$0PzwhGVD9MYyXd9sqtf/dOSgN1PC18dSWEliTQdUMT3hJztlvW3Em'"', created: 1457044516, created_by: 'test'} }, {'uid': 'true'});" >> testuser.cql
     $ docker run -i --link dev-cassandra:cassandra --rm cassandra:2.1 cqlsh cassandra < testuser.cql
 
-Set up the following env variable:
+Set up the following environment variables:
 
 .. code-block:: bash
 
     $ export OAUTH2_ACCESS_TOKENS=customerLogin=test             # fixed OAuth test token (unused)
     $ export TOKENINFO_URL=https://example.com/oauth2/tokeninfo  # required for /raw-sync REST API (unused here)
 
-Run the application against you local Cassandra:
+Run the application against your local Cassandra:
 
 .. code-block:: bash
 
