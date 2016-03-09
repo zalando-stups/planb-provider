@@ -61,6 +61,7 @@ General cqlsh access to your dev instance:
 .. code-block:: bash
 
     $ docker run -it --link dev-cassandra:cassandra --rm cassandra:2.1 cqlsh cassandra
+      cqlsh> DESCRIBE TABLE provider.client; -- run some example query
 
 Set up some signing keys and pipe resulting ``key.cql`` into cluster as well:
 
