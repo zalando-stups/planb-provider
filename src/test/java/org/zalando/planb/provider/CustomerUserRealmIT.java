@@ -75,7 +75,7 @@ public class CustomerUserRealmIT extends AbstractSpringTest {
                         .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
                         .withBody(SOAP_RESPONSE)));
 
-        Map<String, Object> authenticate = customerUserRealm.authenticate(EMAIL, PASSWORD, newHashSet(UID), emptySet());
+        Map<String, String> authenticate = customerUserRealm.authenticate(EMAIL, PASSWORD, newHashSet(UID), emptySet());
         assertThat(authenticate.get(SUB)).isEqualTo(CUSTOMER_NUMBER);
     }
 

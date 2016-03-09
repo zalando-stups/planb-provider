@@ -19,7 +19,7 @@ import java.security.Security;
 @ComponentScan
 @EnableHystrix
 @EnableAspectJAutoProxy(proxyTargetClass = true)
-@EnableConfigurationProperties(ScopeProperties.class)
+@EnableConfigurationProperties(value = {ScopeProperties.class, UpstreamRealmProperties.class})
 public class Main {
 
     static {

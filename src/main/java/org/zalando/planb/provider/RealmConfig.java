@@ -50,6 +50,7 @@ public class RealmConfig implements BeanFactoryAware {
     void setup() {
         newRealm("/services", CassandraClientRealm.class, CassandraUserRealm.class);
         newRealm("/customers", CassandraClientRealm.class, CustomerUserRealm.class);
+        newRealm("/employees", CassandraClientRealm.class, UpstreamUserRealm.class);
     }
 
     static Optional<String> findRealmNameInHost(@NotNull final Set<String> realmNames, @NotNull final String host) {
@@ -66,10 +67,18 @@ public class RealmConfig implements BeanFactoryAware {
     }
 
     UserRealm getUserRealm(String name) {
-        return userRealms.get(name);
+        UserRealm realm = userRealms.get(name);
+        if (realm == null) {
+            throw new RealmNotFoundException(name);
+        }
+        return realm;
     }
 
     ClientRealm getClientRealm(String name) {
-        return clientRealms.get(name);
+        ClientRealm realm = clientRealms.get(name);
+        if (realm == null) {
+            throw new RealmNotFoundException(name);
+        }
+        return realm;
     }
 }

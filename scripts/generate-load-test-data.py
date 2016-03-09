@@ -28,11 +28,12 @@ print('''
 INSERT INTO provider.keypair
         (kid, realms, private_key_pem, algorithm, valid_from, created_by)
               VALUES
-                      ('testkey-es256', {'/customers', '/services'}, ''' + "'" + es256 + "', 'ES256', " + str(now + 120) + ", 'generate-load-test-data.py');")
+                      ('testkey-es256', {'/customers', '/services', '/employees'}, ''' + "'" + es256 + "', 'ES256', " + str(now + 120) + ", 'generate-load-test-data.py');")
 
 for i in range(2048):
     uid = 'test{}'.format(i)
     pw = bcrypt.hashpw(uid.encode('utf-8'), bcrypt.gensalt(4)).decode('utf-8')
     print("INSERT INTO provider.client (client_id, realm, client_secret_hash, is_confidential, scopes, created_by) VALUES ('" + uid + "', '/services', '" + pw + "', true, {'uid'}, 'generate-load-test-data.py');")
     print("INSERT INTO provider.client (client_id, realm, client_secret_hash, is_confidential, scopes, created_by) VALUES ('" + uid + "', '/customers', '" + pw + "', true, {'uid'}, 'generate-load-test-data.py');")
+    print("INSERT INTO provider.client (client_id, realm, client_secret_hash, is_confidential, scopes, created_by) VALUES ('" + uid + "', '/employees', '" + pw + "', true, {'uid'}, 'generate-load-test-data.py');")
     print("INSERT INTO provider.user (username, realm, password_hashes, scopes, created_by) VALUES ('" + uid + "', '/services', { {password_hash: '" + pw + "', created: " + str(now) + ", created_by: 'generate-load-test-data.py'} }, {'uid': 'true'}, 'generate-load-test-data.py');")
