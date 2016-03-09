@@ -14,6 +14,8 @@ Plan B Provider
 
 This is a minimalistic `OpenID Connect Provider`_ that currently only supports the `Resource Owner Password Credentials Grant`_ to issue JWTs_.
 
+More information is available in our `Plan B Documentation`_.
+
 
 Building
 ========
@@ -141,5 +143,6 @@ Configuration
 .. _OpenID Connect Provider: https://openid.net/specs/openid-connect-core-1_0.html
 .. _Resource Owner Password Credentials Grant: https://tools.ietf.org/html/rfc6749#section-4.3
 .. _JWTs: https://tools.ietf.org/html/rfc7519
+.. _Plan B Documentation: http://planb.readthedocs.org/
 .. _OpenID Connect configuration discovery document: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationResponse
 .. _set of JWKs: https://tools.ietf.org/html/rfc7517#section-5
