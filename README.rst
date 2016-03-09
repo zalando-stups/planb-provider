@@ -12,10 +12,9 @@ Plan B Provider
    :target: https://readthedocs.org/projects/planb/?badge=latest
    :alt: Documentation Status
 
-This is a minimalistic `OpenID Connect Provider`_ that currently only supports the `Resource Owner Password Credentials Grant`_ to issue JWTs_.
+This is a minimalistic `OpenID Connect Provider`_ that mainly supports the `Resource Owner Password Credentials Grant`_ to issue JWTs_ for *Service to Service* authentication.
 
 More information is available in our `Plan B Documentation`_.
-
 
 Building
 ========
