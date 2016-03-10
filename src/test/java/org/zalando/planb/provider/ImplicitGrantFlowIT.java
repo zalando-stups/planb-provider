@@ -14,6 +14,8 @@ import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
@@ -53,9 +55,18 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
 
     @Test
     public void authorizeSuccess() {
-        RequestEntity<Void> request = RequestEntity
-                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=token&client_id=testredirectclient"))
-                .build();
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "token");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testredirectclient");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .body(requestParameters);
 
         ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
 
@@ -64,11 +75,12 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
         assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback?");
         List<NameValuePair> nameValuePairs = URLEncodedUtils.parse(authResponse.getHeaders().getLocation(), "UTF-8");
         Map<String, String> params = nameValuePairs.stream().collect(Collectors.groupingBy(NameValuePair::getName,
-                Collectors.reducing("", NameValuePair::getValue, (x, y) -> x)));
+                Collectors.reducing("", NameValuePair::getValue, (x, y) -> y)));
         // http://tools.ietf.org/html/rfc6749#section-4.2.2
+        // check required parameters
         assertThat(params).containsKey("access_token");
-        assertThat(params).containsKey("token_type");
-        assertThat(params).containsKey("expires_in");
+        assertThat(params).contains(MapEntry.entry("token_type", "Bearer"));
+        assertThat(params).contains(MapEntry.entry("expires_in", "28800")); // 8 hours
         assertThat(params).containsKey("scope");
         assertThat(params).containsKey("state");
     }
