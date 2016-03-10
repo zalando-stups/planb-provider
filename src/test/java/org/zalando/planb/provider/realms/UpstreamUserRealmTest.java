@@ -17,9 +17,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.StrictAssertions.fail;
 
-/**
- * Created by hjacobs on 07.03.16.
- */
 public class UpstreamUserRealmTest {
 
     private int wiremockPort = Integer.valueOf(System.getProperty("wiremock.port", "10080"));

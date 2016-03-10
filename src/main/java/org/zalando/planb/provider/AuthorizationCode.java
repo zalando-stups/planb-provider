@@ -4,9 +4,6 @@ import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Created by hjacobs on 3/3/16.
- */
 public class AuthorizationCode {
 
     String code;
