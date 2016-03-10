@@ -49,7 +49,11 @@ public class CassandraUserRealm implements UserManagedRealm {
     private PreparedStatement addPassword;
 
     private void prepareStatements() {
-        findOne = session.prepare(select().all()
+        findOne = session.prepare(select()
+                .column(PASSWORD_HASHES)
+                .column(SCOPES)
+                .column(CREATED_BY)
+                .column(LAST_MODIFIED_BY)
                 .from(USER)
                 .where(eq(USERNAME, bindMarker(USERNAME)))
                 .and(eq(REALM, realmName)))
