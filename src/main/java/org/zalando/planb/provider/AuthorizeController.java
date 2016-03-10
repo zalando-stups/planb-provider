@@ -1,5 +1,6 @@
 package org.zalando.planb.provider;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.http.client.utils.URIBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -23,11 +24,10 @@ import static org.zalando.planb.provider.realms.ClientRealmAuthenticationExcepti
 import static org.zalando.planb.provider.OIDCController.getRealmName;
 import static org.zalando.planb.provider.OIDCController.validateRedirectUri;
 
-/**
- * Created by hjacobs on 3/9/16.
- */
 @Controller
 public class AuthorizeController {
+
+    static final Set<String> SUPPORTED_RESPONSE_TYPES = ImmutableSet.of("code", "token");
 
     @Autowired
     private RealmConfig realms;
@@ -51,14 +51,12 @@ public class AuthorizeController {
                                  @RequestHeader(value = "Host") Optional<String> hostHeader,
                                  Model model) {
 
-        if (!"code".equals(responseType)) {
-            // implicit flow is not yet supported
-            throw new BadRequestException("Only 'code' response_type is supported", "invalid_request", "Only 'code' response_type is supported");
+        if (!SUPPORTED_RESPONSE_TYPES.contains(responseType)) {
+            throw new BadRequestException("Invalid response_type", "invalid_request", "Invalid response_type");
         }
 
         final String realmName = getRealmName(realms, realmNameParam, hostHeader);
 
-        // retrieve realms for the given realm
         ClientRealm clientRealm = realms.getClientRealm(realmName);
 
         final ClientData clientData = clientRealm.get(clientId).orElseThrow(() -> clientNotFound(clientId, realmName));
@@ -96,9 +94,8 @@ public class AuthorizeController {
             @RequestHeader(value = "Host") Optional<String> hostHeader,
             HttpServletResponse response) throws IOException, URISyntaxException {
 
-        if (!"code".equals(responseType)) {
-            // implicit flow is not yet supported
-            throw new BadRequestException("Only 'code' response_type is supported", "invalid_request", "Only 'code' response_type is supported");
+        if (!SUPPORTED_RESPONSE_TYPES.contains(responseType)) {
+            throw new BadRequestException("Invalid response_type", "invalid_request", "Invalid response_type");
         }
 
         final String realmName = getRealmName(realms, realmNameParam, hostHeader);
