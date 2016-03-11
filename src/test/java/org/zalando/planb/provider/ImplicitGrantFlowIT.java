@@ -16,6 +16,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
@@ -27,6 +28,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.StrictAssertions.fail;
 
 @SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
@@ -43,7 +45,7 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
     @Test
     public void showLoginForm() {
         RequestEntity<Void> request = RequestEntity
-                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=token&client_id=testredirectclient&redirect_uri=https://myapp.example.org/callback&state=mystate"))
+                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=token&client_id=testimplicit&redirect_uri=https://myapp.example.org/callback&state=mystate"))
                 .build();
 
         ResponseEntity<String> response = rest.exchange(request, String.class);
@@ -54,11 +56,35 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
     }
 
     @Test
+    public void confidentialClientNotAllowed() {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "token");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testauthcode");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .body(requestParameters);
+
+        try {
+            rest.exchange(request, Void.class);
+            fail("Implicit Grant flow should only be allowed for non-confidential clients");
+        } catch (HttpClientErrorException ex) {
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getResponseBodyAsString()).contains("Invalid response_type 'token' for confidential client");
+        }
+    }
+
+    @Test
     public void authorizeSuccess() {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("response_type", "token");
         requestParameters.add("realm", "/services");
-        requestParameters.add("client_id", "testredirectclient");
+        requestParameters.add("client_id", "testimplicit");
         requestParameters.add("username", "testuser");
         requestParameters.add("password", "test");
         requestParameters.add("scope", "uid ascope");
