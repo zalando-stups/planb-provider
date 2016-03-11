@@ -106,14 +106,22 @@ public class OIDCController {
             @RequestParam(value = "code", required = true) String code,
             @RequestParam(value = "client_id") Optional<String> clientIdParam,
             @RequestParam(value = "client_secret") Optional<String> clientSecretParam,
+            @RequestParam(value = "redirect_uri", required = true) URI redirectUri,
             @RequestHeader(name = "Authorization") Optional<String> authorization) throws JOSEException {
 
         final Metric metric = new Metric(metricRegistry).start();
         final AuthorizationCode authCode = cassandraAuthorizationCodeService.invalidate(code)
                 .orElseThrow(() -> new BadRequestException("Invalid authorization code", "invalid_request", "Invalid authorization code"));
 
-        // TODO: check that redirect_uri parameter matches the one from authorization request
+        // Check that redirect_uri parameter matches the one from authorization request
         // (required by RFC, see http://tools.ietf.org/html/rfc6749#section-4.1.3
+        // In order to prevent such an attack, the authorization server MUST
+        // ensure that the redirection URI used to obtain the authorization code
+        // is identical to the redirection URI provided when exchanging the
+        // authorization code for an access token.
+        if (!redirectUri.equals(authCode.getRedirectUri())) {
+            throw new BadRequestException("Invalid authorization code: redirect_uri mismatch", "invalid_request", "Invalid authorization code: redirect_uri mismatch");
+        }
 
         final String realmName = authCode.getRealm();
         try {
