@@ -1,5 +1,7 @@
 package org.zalando.planb.provider;
 
+import com.google.common.collect.ImmutableSet;
+import com.nimbusds.jose.JOSEException;
 import org.apache.http.client.utils.URIBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -19,21 +21,25 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import static java.lang.String.format;
+import static java.util.stream.Collectors.joining;
 import static org.zalando.planb.provider.realms.ClientRealmAuthenticationException.clientNotFound;
 import static org.zalando.planb.provider.OIDCController.getRealmName;
 import static org.zalando.planb.provider.OIDCController.validateRedirectUri;
 
-/**
- * Created by hjacobs on 3/9/16.
- */
 @Controller
 public class AuthorizeController {
+
+    static final Set<String> SUPPORTED_RESPONSE_TYPES = ImmutableSet.of("code", "token");
 
     @Autowired
     private RealmConfig realms;
 
     @Autowired
     private ScopeProperties scopeProperties;
+
+    @Autowired
+    private JWTIssuer jwtIssuer;
 
     @Autowired
     private CassandraAuthorizationCodeService cassandraAuthorizationCodeService;
@@ -51,14 +57,12 @@ public class AuthorizeController {
                                  @RequestHeader(value = "Host") Optional<String> hostHeader,
                                  Model model) {
 
-        if (!"code".equals(responseType)) {
-            // implicit flow is not yet supported
-            throw new BadRequestException("Only 'code' response_type is supported", "invalid_request", "Only 'code' response_type is supported");
+        if (!SUPPORTED_RESPONSE_TYPES.contains(responseType)) {
+            throw new BadRequestException("Invalid response_type", "invalid_request", "Invalid response_type");
         }
 
         final String realmName = getRealmName(realms, realmNameParam, hostHeader);
 
-        // retrieve realms for the given realm
         ClientRealm clientRealm = realms.getClientRealm(realmName);
 
         final ClientData clientData = clientRealm.get(clientId).orElseThrow(() -> clientNotFound(clientId, realmName));
@@ -94,11 +98,10 @@ public class AuthorizeController {
             @RequestParam(value = "username", required = true) String username,
             @RequestParam(value = "password", required = true) String password,
             @RequestHeader(value = "Host") Optional<String> hostHeader,
-            HttpServletResponse response) throws IOException, URISyntaxException {
+            HttpServletResponse response) throws IOException, URISyntaxException, JOSEException {
 
-        if (!"code".equals(responseType)) {
-            // implicit flow is not yet supported
-            throw new BadRequestException("Only 'code' response_type is supported", "invalid_request", "Only 'code' response_type is supported");
+        if (!SUPPORTED_RESPONSE_TYPES.contains(responseType)) {
+            throw new BadRequestException("Invalid response_type", "invalid_request", "Invalid response_type");
         }
 
         final String realmName = getRealmName(realms, realmNameParam, hostHeader);
@@ -107,6 +110,12 @@ public class AuthorizeController {
         ClientRealm clientRealm = realms.getClientRealm(realmName);
 
         final ClientData clientData = clientRealm.get(clientId).orElseThrow(() -> clientNotFound(clientId, realmName));
+
+        if ("token".equals(responseType) && clientData.isConfidential()) {
+            throw new BadRequestException(
+                    format("Invalid response_type 'token' for confidential client %s", clientId),
+                    "invalid_request", "Invalid response_type 'token' for confidential client");
+        }
 
         // make sure (again!) that the redirect_uri was configured in the client
         validateRedirectUri(realmName, clientId, clientData, redirectUri);
@@ -119,9 +128,20 @@ public class AuthorizeController {
 
         final Map<String, String> claims = userRealm.authenticate(username, password, finalScopes, defaultScopes);
 
-        final String code = cassandraAuthorizationCodeService.create(state.orElse(""), clientId, realmName, finalScopes, claims, redirectUri);
+        URI redirect;
+        if ("code".equals(responseType)) {
 
-        URI redirect = new URIBuilder(redirectUri).addParameter("code", code).addParameter("state", state.orElse("")).build();
+            final String code = cassandraAuthorizationCodeService.create(state.orElse(""), clientId, realmName, finalScopes, claims, redirectUri);
+
+            redirect = new URIBuilder(redirectUri).addParameter("code", code).addParameter("state", state.orElse("")).build();
+        } else {
+            String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientId, finalScopes, claims);
+            redirect = new URIBuilder(redirectUri).addParameter("access_token", rawJWT)
+                    .addParameter("token_type", "Bearer")
+                    .addParameter("expires_in", String.valueOf(JWTIssuer.EXPIRATION_TIME.getSeconds()))
+                    .addParameter("scope", scopes.stream().collect(joining(ScopeProperties.SPACE)))
+                    .addParameter("state", state.orElse("")).build();
+        }
         response.sendRedirect(redirect.toString());
     }
 }

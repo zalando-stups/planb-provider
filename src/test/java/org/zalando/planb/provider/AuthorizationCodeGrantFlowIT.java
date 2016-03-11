@@ -62,7 +62,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     @Test
     public void showLoginForm() {
         RequestEntity<Void> request = RequestEntity
-                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=code&client_id=testredirectclient&redirect_uri=https://myapp.example.org/callback&state=mystate"))
+                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=code&client_id=testauthcode&redirect_uri=https://myapp.example.org/callback&state=mystate"))
                 .build();
 
         ResponseEntity<String> response = rest.exchange(request, String.class);
@@ -75,7 +75,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     @Test
     public void invalidResponseType() {
         RequestEntity<Void> request = RequestEntity
-                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=foo&client_id=testredirectclient"))
+                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=foo&client_id=testauthcode"))
                 .build();
 
         try {
@@ -108,7 +108,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("response_type", "code");
         requestParameters.add("realm", "/services");
-        requestParameters.add("client_id", "testredirectclient");
+        requestParameters.add("client_id", "testauthcode");
         requestParameters.add("username", "testuser");
         requestParameters.add("password", "test");
         requestParameters.add("scope", "uid ascope");
@@ -129,12 +129,12 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     }
 
     @Test
-    public void authorizeWrongClient() {
+    public void authorizeWrongRedirectUri() {
 
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("response_type", "code");
         requestParameters.add("realm", "/services");
-        requestParameters.add("client_id", "testredirectclient");
+        requestParameters.add("client_id", "testauthcode");
         requestParameters.add("username", "testuser");
         requestParameters.add("password", "test");
         requestParameters.add("scope", "uid ascope");
@@ -155,7 +155,53 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         MultiValueMap<String, Object> requestParameters2 = new LinkedMultiValueMap<>();
         requestParameters2.add("grant_type", "authorization_code");
         requestParameters2.add("code", code);
-        // NOTE: we are using valid client credentials, but it's the wrong one (we used testredirectclient above!)
+        requestParameters2.add("redirect_uri", "https://evil.site.example.org");
+        // NOTE: we are using valid client credentials, but it's the wrong one (we used testauthcode above!)
+        String basicAuth = Base64.getEncoder().encodeToString(("testclient" + ':' + "test").getBytes(UTF_8));
+
+        RequestEntity<MultiValueMap<String, Object>> request2 = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .header("Authorization", "Basic " + basicAuth)
+                .body(requestParameters2);
+
+        try {
+            rest.exchange(request2, OIDCCreateTokenResponse.class);
+            fail("Token creation should have failed with 'client mismatch'");
+        } catch (HttpClientErrorException ex) {
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getResponseBodyAsString()).contains("Invalid authorization code: redirect_uri mismatch");
+        }
+    }
+
+    @Test
+    public void authorizeWrongClient() {
+
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "code");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testauthcode");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .body(requestParameters);
+
+        ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
+
+        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+
+        assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback?code=");
+        List<NameValuePair> params = URLEncodedUtils.parse(authResponse.getHeaders().getLocation(), "UTF-8");
+        String code = params.stream().filter(p -> p.getName().equals("code")).findFirst().get().getValue();
+
+        MultiValueMap<String, Object> requestParameters2 = new LinkedMultiValueMap<>();
+        requestParameters2.add("grant_type", "authorization_code");
+        requestParameters2.add("code", code);
+        requestParameters2.add("redirect_uri", requestParameters.getFirst("redirect_uri"));
+        // NOTE: we are using valid client credentials, but it's the wrong one (we used testauthcode above!)
         String basicAuth = Base64.getEncoder().encodeToString(("testclient" + ':' + "test").getBytes(UTF_8));
 
         RequestEntity<MultiValueMap<String, Object>> request2 = RequestEntity
@@ -178,7 +224,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("response_type", "code");
         requestParameters.add("realm", "/services");
-        requestParameters.add("client_id", "testredirectclient");
+        requestParameters.add("client_id", "testauthcode");
         requestParameters.add("username", "testuser");
         requestParameters.add("password", "test");
         requestParameters.add("scope", "uid ascope");
@@ -199,7 +245,8 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         MultiValueMap<String, Object> requestParameters2 = new LinkedMultiValueMap<>();
         requestParameters2.add("grant_type", "authorization_code");
         requestParameters2.add("code", code);
-        String basicAuth = Base64.getEncoder().encodeToString(("testredirectclient" + ':' + "test").getBytes(UTF_8));
+        requestParameters2.add("redirect_uri", requestParameters.getFirst("redirect_uri"));
+        String basicAuth = Base64.getEncoder().encodeToString(("testauthcode" + ':' + "test").getBytes(UTF_8));
 
         RequestEntity<MultiValueMap<String, Object>> request2 = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
