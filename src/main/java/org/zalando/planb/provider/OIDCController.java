@@ -2,10 +2,8 @@ package org.zalando.planb.provider;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jwt.JWTClaimsSet;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -18,10 +16,8 @@ import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.stream.Collectors.joining;
 import static org.slf4j.LoggerFactory.getLogger;
 import static org.zalando.planb.provider.Metric.trimSlash;
-import static org.zalando.planb.provider.ScopeProperties.SPACE;
 
 @RestController
 public class OIDCController {
@@ -96,6 +92,15 @@ public class OIDCController {
         return realmName;
     }
 
+    static OIDCCreateTokenResponse response(String accessToken, Set<String> scopes, String realmName) {
+        return new OIDCCreateTokenResponse(
+                accessToken,
+                scopes.contains("openid") ? accessToken : null,
+                JWTIssuer.EXPIRATION_TIME.getSeconds(),
+                ScopeProperties.join(scopes),
+                realmName);
+    }
+
     /**
      * https://bitbucket.org/b_c/jose4j/wiki/JWT%20Examples
      */
@@ -141,12 +146,7 @@ public class OIDCController {
             final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientCredentials.getClientId(), authCode.getScopes(), authCode.getClaims());
             metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
 
-            return new OIDCCreateTokenResponse(
-                    rawJWT,
-                    rawJWT,
-                    JWTIssuer.EXPIRATION_TIME.getSeconds(),
-                    authCode.getScopes().stream().collect(joining(SPACE)),
-                    realmName);
+            return response(rawJWT, authCode.getScopes(), realmName);
         } catch (Throwable t) {
             final String errorType = Optional.of(t)
                     .filter(e -> e instanceof RestException)
@@ -203,12 +203,7 @@ public class OIDCController {
             final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientCredentials.getClientId(), finalScopes, extraClaims);
             metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
 
-            return new OIDCCreateTokenResponse(
-                    rawJWT,
-                    rawJWT,
-                    JWTIssuer.EXPIRATION_TIME.getSeconds(),
-                    finalScopes.stream().collect(joining(SPACE)),
-                    realmName);
+            return response(rawJWT, finalScopes, realmName);
         } catch (Throwable t) {
             final String errorType = Optional.of(t)
                     .filter(e -> e instanceof RestException)

@@ -77,7 +77,8 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
                 "testclient", "test", "testuser", "test", "uid ascope");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getScope()).isEqualTo("uid ascope");
+        // NOTE: returned scopes are sorted
+        assertThat(response.getBody().getScope()).isEqualTo("ascope uid");
         assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
         assertThat(response.getBody().getRealm()).isEqualTo("/services");
 
@@ -172,7 +173,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
                 "testclient", "test", "testuser", "test", "hello world uid");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getScope()).isEqualTo("hello world uid");
+        assertThat(response.getBody().getScope()).isEqualTo("hello uid world");
     }
 
     @Test
@@ -223,7 +224,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
         final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "uid openid");
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getScope()).isEqualTo("uid openid");
+        assertThat(response.getBody().getScope()).isEqualTo("openid uid"); // scopes are sorted
         assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
         assertThat(response.getBody().getRealm()).isEqualTo("/customers");
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
@@ -237,7 +238,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(jwt.getJWTClaimsSet().getClaims()).containsOnlyKeys("sub", "realm", "iss", "iat", "exp", "scope");
         assertThat(jwt.getJWTClaimsSet().getStringClaim("realm")).isEqualTo("/customers");
         assertThat(jwt.getJWTClaimsSet().getStringClaim("iss")).isEqualTo("B");
-        assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("uid");
+        assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("uid", "openid");
     }
 
     @Test
