@@ -21,11 +21,6 @@ security:
 upstreamRealm:
   tokenInfoUrl: ${TOKENINFO_URL}
 
-logging:
-  level:
-    root: INFO
-#    org.apache.cxf: DEBUG
-
 cassandra:
   keyspace: provider
 
@@ -54,3 +49,5 @@ hystrix:
         requestVolumeThreshold: 20
         sleepWindowInMilliseconds: 4000
         errorThresholdPercentage: 50
+
+
