@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.zalando.planb.provider.realms.*;
 
@@ -22,6 +23,13 @@ public class RealmConfig implements BeanFactoryAware {
     private BeanFactory beanFactory;
 
     private static final Pattern HOST_WORD_BOUNDARY = Pattern.compile("[.-]");
+
+    private RealmProperties realmProperties;
+
+    @Autowired
+    public RealmConfig(RealmProperties realmProperties) {
+        this.realmProperties = realmProperties;
+    }
 
     public static String ensureLeadingSlash(String realmName) {
         return realmName.startsWith("/") ? realmName : "/" + realmName;
@@ -48,10 +56,11 @@ public class RealmConfig implements BeanFactoryAware {
 
     @PostConstruct
     void setup() {
-        // TODO: make this dynamically configurable
-        newRealm("/services", CassandraClientRealm.class, CassandraUserRealm.class);
-        newRealm("/customers", CassandraClientRealm.class, CustomerUserRealm.class);
-        newRealm("/employees", CassandraClientRealm.class, UpstreamUserRealm.class);
+        for (String realmName : realmProperties.getNames()) {
+            Class<? extends ClientRealm> clientImpl = realmProperties.getClientImpl(realmName, CassandraClientRealm.class);
+            Class<? extends UserRealm> userImpl = realmProperties.getUserImpl(realmName, CassandraUserRealm.class);
+            newRealm(realmName, clientImpl, userImpl);
+        }
     }
 
     static Optional<String> findRealmNameInHost(@NotNull final Set<String> realmNames, @NotNull final String host) {
