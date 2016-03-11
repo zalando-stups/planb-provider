@@ -4,7 +4,7 @@ import org.junit.Test;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.zalando.planb.provider.realms.Realm;
 
-import static org.assertj.core.api.StrictAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class RealmTest {
     @Test
