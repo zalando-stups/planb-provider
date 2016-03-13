@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.StrictAssertions.fail;
+import static org.zalando.planb.provider.AuthorizationCodeGrantFlowIT.parseURLParams;
 
 @SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
@@ -99,9 +100,7 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
         assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback?");
-        List<NameValuePair> nameValuePairs = URLEncodedUtils.parse(authResponse.getHeaders().getLocation(), "UTF-8");
-        Map<String, String> params = nameValuePairs.stream().collect(Collectors.groupingBy(NameValuePair::getName,
-                Collectors.reducing("", NameValuePair::getValue, (x, y) -> y)));
+        Map<String, String> params = parseURLParams(authResponse.getHeaders().getLocation());
         // http://tools.ietf.org/html/rfc6749#section-4.2.2
         // check required parameters
         assertThat(params).containsKey("access_token");

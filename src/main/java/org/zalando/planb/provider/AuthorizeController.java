@@ -3,7 +3,9 @@ package org.zalando.planb.provider;
 import com.google.common.collect.ImmutableSet;
 import com.nimbusds.jose.JOSEException;
 import org.apache.http.client.utils.URIBuilder;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.Scope;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.zalando.planb.provider.realms.ClientRealm;
 import org.zalando.planb.provider.realms.UserRealm;
+import org.zalando.planb.provider.realms.UserRealmAuthenticationException;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -22,6 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static java.lang.String.format;
+import static org.slf4j.LoggerFactory.getLogger;
 import static org.zalando.planb.provider.realms.ClientRealmAuthenticationException.clientNotFound;
 import static org.zalando.planb.provider.OIDCController.getRealmName;
 import static org.zalando.planb.provider.OIDCController.validateRedirectUri;
@@ -30,6 +34,8 @@ import static org.zalando.planb.provider.OIDCController.validateRedirectUri;
 public class AuthorizeController {
 
     static final Set<String> SUPPORTED_RESPONSE_TYPES = ImmutableSet.of("code", "token");
+
+    private final Logger log = getLogger(getClass());
 
     @Autowired
     private RealmConfig realms;
@@ -53,11 +59,13 @@ public class AuthorizeController {
                                  @RequestParam(value = "scope") Optional<String> scope,
                                  @RequestParam(value = "redirect_uri") Optional<URI> redirectUriParam,
                                  @RequestParam(value = "state") Optional<String> state,
+                                 @RequestParam(value = "error") Optional<String> error,
                                  @RequestHeader(value = "Host") Optional<String> hostHeader,
                                  Model model) {
 
         if (!SUPPORTED_RESPONSE_TYPES.contains(responseType)) {
-            throw new BadRequestException("Invalid response_type", "invalid_request", "Invalid response_type");
+            // see https://tools.ietf.org/html/rfc6749#section-4.2.2.1
+            throw new BadRequestException("Unsupported response_type", "unsupported_response_type", "Unsupported response_type");
         }
 
         final String realmName = getRealmName(realms, realmNameParam, hostHeader);
@@ -82,6 +90,7 @@ public class AuthorizeController {
         model.addAttribute("scope", scope.orElse(""));
         model.addAttribute("state", state.orElse(""));
         model.addAttribute("redirectUri", redirectUri.toString());
+        model.addAttribute("error", error.orElse(null));
 
         return "login";
     }
@@ -100,7 +109,7 @@ public class AuthorizeController {
             HttpServletResponse response) throws IOException, URISyntaxException, JOSEException {
 
         if (!SUPPORTED_RESPONSE_TYPES.contains(responseType)) {
-            throw new BadRequestException("Invalid response_type", "invalid_request", "Invalid response_type");
+            throw new BadRequestException("Unsupported response_type", "unsupported_response_type", "Unsupported response_type");
         }
 
         final String realmName = getRealmName(realms, realmNameParam, hostHeader);
@@ -125,22 +134,39 @@ public class AuthorizeController {
 
         UserRealm userRealm = realms.getUserRealm(realmName);
 
-        final Map<String, String> claims = userRealm.authenticate(username, password, finalScopes, defaultScopes);
-
+        Map<String, String> claims;
         URI redirect;
-        if ("code".equals(responseType)) {
 
-            final String code = cassandraAuthorizationCodeService.create(state.orElse(""), clientId, realmName, finalScopes, claims, redirectUri);
+        try {
+            claims = userRealm.authenticate(username, password, finalScopes, defaultScopes);
 
-            redirect = new URIBuilder(redirectUri).addParameter("code", code).addParameter("state", state.orElse("")).build();
-        } else {
-            String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientId, finalScopes, claims);
-            redirect = new URIBuilder(redirectUri).addParameter("access_token", rawJWT)
-                    .addParameter("token_type", "Bearer")
-                    .addParameter("expires_in", String.valueOf(JWTIssuer.EXPIRATION_TIME.getSeconds()))
-                    .addParameter("scope", ScopeProperties.join(scopes))
-                    .addParameter("state", state.orElse("")).build();
+            if ("code".equals(responseType)) {
+
+                final String code = cassandraAuthorizationCodeService.create(state.orElse(""), clientId, realmName, finalScopes, claims, redirectUri);
+
+                redirect = new URIBuilder(redirectUri).addParameter("code", code).addParameter("state", state.orElse("")).build();
+            } else {
+                String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientId, finalScopes, claims);
+                redirect = new URIBuilder(redirectUri).addParameter("access_token", rawJWT)
+                        .addParameter("token_type", "Bearer")
+                        .addParameter("expires_in", String.valueOf(JWTIssuer.EXPIRATION_TIME.getSeconds()))
+                        .addParameter("scope", ScopeProperties.join(finalScopes))
+                        .addParameter("state", state.orElse("")).build();
+            }
+        } catch (UserRealmAuthenticationException e) {
+            log.info("{} (status {} / {})", e.getMessage(), e.getStatusCode(), e.getClass().getSimpleName());
+            // redirect back to login form with error message
+            redirect = new URIBuilder("/oauth2/authorize")
+                    .addParameter("response_type", responseType)
+                    .addParameter("realm", realmName)
+                    .addParameter("client_id", clientId)
+                    .addParameter("scope", ScopeProperties.join(finalScopes))
+                    .addParameter("redirect_uri", redirectUri.toString())
+                    .addParameter("state", state.orElse(""))
+                    .addParameter("error", "access_denied")
+                    .build();
         }
+
         response.sendRedirect(redirect.toString());
     }
 }
