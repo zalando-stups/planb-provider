@@ -76,6 +76,9 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .value(CLIENT_SECRET_HASH, bindMarker(CLIENT_SECRET_HASH))
                 .value(SCOPES, bindMarker(SCOPES))
                 .value(IS_CONFIDENTIAL, bindMarker(IS_CONFIDENTIAL))
+                .value(NAME, bindMarker(NAME))
+                .value(DESCRIPTION, bindMarker(DESCRIPTION))
+                .value(REDIRECT_URIS, bindMarker(REDIRECT_URIS))
                 .value(CREATED_BY, bindMarker(CREATED_BY))
                 .value(LAST_MODIFIED_BY, bindMarker(LAST_MODIFIED_BY)))
                 .setConsistencyLevel(cassandraProperties.getWriteConsistencyLevel());
@@ -101,6 +104,9 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .setString(CLIENT_SECRET_HASH, Optional.ofNullable(data.getClientSecretHash()).orElseGet(existing::getClientSecretHash))
                 .setSet(SCOPES, Optional.ofNullable(data.getScopes()).filter(set -> !set.isEmpty()).orElseGet(existing::getScopes))
                 .setBool(IS_CONFIDENTIAL, Optional.ofNullable(data.isConfidential()).orElseGet(existing::isConfidential))
+                .setString(NAME, Optional.ofNullable(data.getName()).orElseGet(existing::getName))
+                .setString(DESCRIPTION, Optional.ofNullable(data.getDescription()).orElseGet(existing::getDescription))
+                .setSet(REDIRECT_URIS, Optional.ofNullable(data.getRedirectUris()).filter(set -> !set.isEmpty()).orElseGet(existing::getRedirectUris))
                 .setString(CREATED_BY, existing.getCreatedBy())
                 .setString(LAST_MODIFIED_BY, currentUser.get()));
     }
@@ -121,6 +127,9 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .setString(CLIENT_SECRET_HASH, client.getClientSecretHash())
                 .setSet(SCOPES, newHashSet(client.getScopes()))
                 .setBool(IS_CONFIDENTIAL, client.isConfidential())
+                .setString(NAME, client.getName())
+                .setString(DESCRIPTION, client.getDescription())
+                .setSet(REDIRECT_URIS, newHashSet(client.getRedirectUris()))
                 .setString(CREATED_BY, existingCreatedBy.orElseGet(currentUser))
                 .setString(LAST_MODIFIED_BY, currentUser.get()));
     }
