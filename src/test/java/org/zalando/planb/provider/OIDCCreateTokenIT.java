@@ -77,12 +77,13 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
                 "testclient", "test", "testuser", "test", "uid ascope");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getScope()).isEqualTo("uid ascope");
+        // NOTE: returned scopes are sorted
+        assertThat(response.getBody().getScope()).isEqualTo("ascope uid");
         assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
         assertThat(response.getBody().getRealm()).isEqualTo("/services");
 
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
-        assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
+        assertThat(response.getBody().getIdToken()).isNull();
     }
 
     @Test
@@ -153,7 +154,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(response.getBody().getRealm()).isEqualTo("/services");
 
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
-        assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
+        assertThat(response.getBody().getIdToken()).isNull();
     }
 
     @Test
@@ -172,7 +173,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
                 "testclient", "test", "testuser", "test", "hello world uid");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getScope()).isEqualTo("hello world uid");
+        assertThat(response.getBody().getScope()).isEqualTo("hello uid world");
     }
 
     @Test
@@ -180,7 +181,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         ResponseEntity<OIDCCreateTokenResponse> response = createToken("/services",
                 "testclient", "test", "testuser", "test", "uid ascope");
 
-        String jwt = response.getBody().getIdToken();
+        String jwt = response.getBody().getAccessToken();
 
         // fetch JWK
         HttpsJwks httpsJkws = new HttpsJwks("http://localhost:" + port + "/oauth2/connect/keys");
@@ -221,14 +222,14 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
                                 "    </soap:Body>\n" +
                                 "</soap:Envelope>")));
 
-        final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "uid");
+        final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "uid openid");
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getScope()).isEqualTo("uid");
+        assertThat(response.getBody().getScope()).isEqualTo("openid uid"); // scopes are sorted
         assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
         assertThat(response.getBody().getRealm()).isEqualTo("/customers");
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
         assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
-        assertThat(response.getBody().getAccessToken().length()).isLessThan(280);
+        assertThat(response.getBody().getAccessToken().length()).isLessThanOrEqualTo(280);
 
         final String customerNumber = "123456789";
         JWT jwt = JWTParser.parse(response.getBody().getAccessToken());
@@ -237,7 +238,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(jwt.getJWTClaimsSet().getClaims()).containsOnlyKeys("sub", "realm", "iss", "iat", "exp", "scope");
         assertThat(jwt.getJWTClaimsSet().getStringClaim("realm")).isEqualTo("/customers");
         assertThat(jwt.getJWTClaimsSet().getStringClaim("iss")).isEqualTo("B");
-        assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("uid");
+        assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("uid", "openid");
     }
 
     @Test
@@ -261,7 +262,8 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         final OIDCCreateTokenResponse body = response.getBody();
         assertThat(body).isNotNull();
-        assertThat(body.getScope()).isEmpty();
+        // "openid" scope is set as default for /customers realm (in application-it.yml)
+        assertThat(body.getScope()).isEqualTo("openid");
         final String accessToken = body.getAccessToken();
         assertThat(body.getTokenType()).isEqualTo("Bearer");
         assertThat(body.getRealm()).isEqualTo("/customers");

@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.*;
 
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
+import static java.util.stream.Collectors.joining;
 
 @ConfigurationProperties(prefix = "scope")
 public class ScopeProperties {
@@ -36,6 +37,10 @@ public class ScopeProperties {
                 .filter(s -> !s.isEmpty())
                 .map(ScopeProperties::splitScope)
                 .orElseGet(Collections::emptySet);
+    }
+
+    public static String join(Set<String> scopes) {
+        return scopes.stream().sorted().collect(joining(SPACE));
     }
 
     private static Set<String> splitScope(String scope) {

@@ -22,7 +22,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import static java.lang.String.format;
-import static java.util.stream.Collectors.joining;
 import static org.zalando.planb.provider.realms.ClientRealmAuthenticationException.clientNotFound;
 import static org.zalando.planb.provider.OIDCController.getRealmName;
 import static org.zalando.planb.provider.OIDCController.validateRedirectUri;
@@ -139,7 +138,7 @@ public class AuthorizeController {
             redirect = new URIBuilder(redirectUri).addParameter("access_token", rawJWT)
                     .addParameter("token_type", "Bearer")
                     .addParameter("expires_in", String.valueOf(JWTIssuer.EXPIRATION_TIME.getSeconds()))
-                    .addParameter("scope", scopes.stream().collect(joining(ScopeProperties.SPACE)))
+                    .addParameter("scope", ScopeProperties.join(scopes))
                     .addParameter("state", state.orElse("")).build();
         }
         response.sendRedirect(redirect.toString());

@@ -7,7 +7,7 @@ public class OIDCControllerTest {
 
     @Test(expected = RealmNotFoundException.class)
     public void realmNotFound() {
-        RealmConfig realms = new RealmConfig();
+        RealmConfig realms = new RealmConfig(null);
         OIDCController.getRealmName(realms, Optional.empty(), Optional.of("some.header.value"));
     }
 

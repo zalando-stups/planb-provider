@@ -227,7 +227,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         requestParameters.add("client_id", "testauthcode");
         requestParameters.add("username", "testuser");
         requestParameters.add("password", "test");
-        requestParameters.add("scope", "uid ascope");
+        requestParameters.add("scope", "uid ascope openid");
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity

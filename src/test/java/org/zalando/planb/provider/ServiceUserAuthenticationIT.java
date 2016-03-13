@@ -94,7 +94,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
         assertThat(tokenResponse.getTokenType()).isEqualTo("Bearer");
         assertThat(tokenResponse.getRealm()).isEqualTo("/services");
         assertThat(tokenResponse.getAccessToken()).isNotEmpty();
-        assertThat(tokenResponse.getAccessToken()).isEqualTo(tokenResponse.getIdToken());
+        assertThat(tokenResponse.getIdToken()).isNull();
         assertThat(tokenResponse.getAccessToken().split("\\.")).hasSize(3);
 
         // Get an access token for the newly created user using the second password
@@ -117,7 +117,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
         assertThat(tokenResponse2.getTokenType()).isEqualTo("Bearer");
         assertThat(tokenResponse2.getRealm()).isEqualTo("/services");
         assertThat(tokenResponse2.getAccessToken()).isNotEmpty();
-        assertThat(tokenResponse2.getAccessToken()).isEqualTo(tokenResponse2.getIdToken());
+        assertThat(tokenResponse2.getIdToken()).isNull();
         assertThat(tokenResponse2.getAccessToken().split("\\.")).hasSize(3);
 
         // check metrics
