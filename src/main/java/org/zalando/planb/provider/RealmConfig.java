@@ -6,7 +6,10 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.zalando.planb.provider.realms.*;
+import org.zalando.planb.provider.realms.CassandraClientRealm;
+import org.zalando.planb.provider.realms.CassandraUserRealm;
+import org.zalando.planb.provider.realms.ClientRealm;
+import org.zalando.planb.provider.realms.UserRealm;
 
 import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotNull;
@@ -65,11 +68,10 @@ public class RealmConfig implements BeanFactoryAware {
 
     static Optional<String> findRealmNameInHost(@NotNull final Set<String> realmNames, @NotNull final String host) {
         Set<String> hostParts = ImmutableSet.copyOf(HOST_WORD_BOUNDARY.split(host));
-        Optional<String> realmFromHost = realmNames.stream()
+        return realmNames.stream()
                 .filter(realm -> hostParts.contains(stripLeadingSlash(realm)))
                 .sorted()
                 .findFirst();
-        return realmFromHost;
     }
 
     Optional<String> findRealmNameInHost(@NotNull final String host) {

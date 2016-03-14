@@ -21,7 +21,6 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.joining;
-import static org.bouncycastle.util.encoders.Hex.toHexString;
 import static org.zalando.planb.provider.ScopeProperties.SPACE;
 
 @Component
@@ -59,8 +58,7 @@ public class UpstreamUserRealm implements UserRealm {
             }
         }
 
-        final String token = tokenResponse.getBody().replaceAll("\\s+", "");
-        return token;
+        return tokenResponse.getBody().replaceAll("\\s+", "");
     }
 
     @Override
