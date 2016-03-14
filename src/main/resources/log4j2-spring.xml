@@ -2,7 +2,7 @@
 <Configuration status="WARN">
     <!-- Shamelessly copied from /org/springframework/boot/logging/log4j2/log4j2.xml -->
     <Properties>
-        <Property name="LOG_PATTERN">%-5level [%t]%X{request} %c{1.} - %msg%n</Property>
+        <Property name="LOG_PATTERN">%-5level [%t]%notEmpty{ [%X{request}]} %c{1.} - %msg%n</Property>
     </Properties>
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT" follow="true">
