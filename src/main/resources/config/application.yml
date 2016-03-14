@@ -49,5 +49,3 @@ hystrix:
         requestVolumeThreshold: 20
         sleepWindowInMilliseconds: 4000
         errorThresholdPercentage: 50
-
-
