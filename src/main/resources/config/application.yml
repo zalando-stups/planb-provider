@@ -21,6 +21,15 @@ security:
 upstreamRealm:
   tokenInfoUrl: ${TOKENINFO_URL}
 
+realm:
+  names:
+    - "/services"
+    - "/employees"
+    - "/customers"
+  userImpl:
+    /employees: org.zalando.planb.provider.realms.UpstreamUserRealm
+    /customers: org.zalando.planb.provider.realms.CustomerUserRealm
+
 cassandra:
   keyspace: provider
 

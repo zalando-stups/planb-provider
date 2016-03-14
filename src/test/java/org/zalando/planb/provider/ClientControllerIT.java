@@ -3,6 +3,7 @@ package org.zalando.planb.provider;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.github.tomakehurst.wiremock.client.WireMock;
+import com.google.common.collect.ImmutableList;
 import org.assertj.core.api.Condition;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -200,6 +201,50 @@ public class ClientControllerIT extends AbstractSpringTest {
     }
 
     @Test
+    public void testCreateAndReplaceClientWithRedirectUris() throws Exception {
+        final URI uri = URI.create(basePath() + "/clients/employees/42");
+
+        // check that client doesn't exist before
+        assertThat(fetchClient("42", "/employees")).isNull();
+
+        final String hash = genHash("foo");
+
+        final Client body1 = new Client();
+        body1.setSecretHash(hash);
+        body1.setScopes(asList("read_foo", "read_bar"));
+        body1.setIsConfidential(false);
+        body1.setName("Test Client");
+        body1.setDescription("Test Descr");
+        body1.setRedirectUris(ImmutableList.of("https://example.org/auth"));
+
+        // user1 creates the client
+        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body1), Void.class)
+                .getStatusCode())
+                .isEqualTo(OK);
+
+        assertThat(fetchClient("42", "/employees"))
+                .isNotNull()
+                .has(valuesEqualTo(copyOf(body1).withCreatedBy(USER1).withLastModifiedBy(USER1).build()));
+
+        final Client body2 = new Client();
+        body2.setSecretHash(hash);
+        body2.setScopes(asList("read_team", "write_hello", "write_world"));
+        body2.setIsConfidential(false);
+        body2.setName("Test Client2");
+        body2.setDescription("Test Descr2");
+        body2.setRedirectUris(ImmutableList.of("https://example.com/auth2"));
+
+        // user2 updates the client. modifying all (non-key) columns
+        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER2_ACCESS_TOKEN).body(body2), Void.class)
+                .getStatusCode())
+                .isEqualTo(OK);
+
+        assertThat(fetchClient("42", "/employees"))
+                .isNotNull()
+                .has(valuesEqualTo(copyOf(body2).withCreatedBy(USER1).withLastModifiedBy(USER2).build()));
+    }
+
+    @Test
     public void testUpdateServicesClientNotFound() throws Exception {
         try {
             final URI uri = URI.create(basePath() + "/clients/services/not-found");
@@ -269,6 +314,9 @@ public class ClientControllerIT extends AbstractSpringTest {
                 new Condition<>(r -> Objects.equals(r.getString("client_secret_hash"), expected.getClientSecretHash()), "client_secret_hash = %s", expected.getClientSecretHash()),
                 new Condition<>(r -> Objects.equals(r.getBool("is_confidential"), expected.isConfidential()), "is_confidential = %s", expected.isConfidential()),
                 new Condition<>(r -> Objects.equals(r.getSet("scopes", String.class), newHashSet(expected.getScopes())), "scopes = %s", expected.getScopes()),
+                new Condition<>(r -> Objects.equals(r.getString("name"), expected.getName()), "name = %s", expected.getName()),
+                new Condition<>(r -> Objects.equals(r.getString("description"), expected.getDescription()), "description = %s", expected.getDescription()),
+                new Condition<>(r -> Objects.equals(r.getSet("redirect_uris", String.class), newHashSet(expected.getRedirectUris())), "redirect_uris = %s", expected.getRedirectUris()),
                 new Condition<>(r -> Objects.equals(r.getString("created_by"), expected.getCreatedBy()), "created_by = %s", expected.getCreatedBy()),
                 new Condition<>(r -> Objects.equals(r.getString("last_modified_by"), expected.getLastModifiedBy()), "last_modified_by = %s", expected.getLastModifiedBy()));
     }

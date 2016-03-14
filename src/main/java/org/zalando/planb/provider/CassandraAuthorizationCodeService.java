@@ -26,9 +26,6 @@ import static com.datastax.driver.core.querybuilder.QueryBuilder.bindMarker;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 import static java.time.ZonedDateTime.now;
 
-/**
- * Created by hjacobs on 3/3/16.
- */
 @Component
 public class CassandraAuthorizationCodeService {
 

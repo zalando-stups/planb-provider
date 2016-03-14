@@ -4,9 +4,6 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Created by hjacobs on 08.03.16.
- */
 public class CassandraAuthorizationCodeServiceTest {
 
     @Test

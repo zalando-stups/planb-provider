@@ -1,7 +1,9 @@
 package org.zalando.planb.provider;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class OIDCCreateTokenResponse {
     @JsonProperty("access_token")
     private String accessToken;
