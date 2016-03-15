@@ -63,6 +63,7 @@ public class ServiceUserAuthenticationIT extends AbstractSpringTest {
         http.exchange(put(URI.create("http://localhost:" + port + "/raw-sync/clients" + realm + "/" + clientId))
                 .contentType(APPLICATION_JSON)
                 .header(AUTHORIZATION, USER1_ACCESS_TOKEN)
+                .header("X-Forwarded-For", "0.0.8.15")
                 .body(client), Void.class);
 
         // Create the user

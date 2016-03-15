@@ -30,11 +30,6 @@ realm:
     /employees: org.zalando.planb.provider.realms.UpstreamUserRealm
     /customers: org.zalando.planb.provider.realms.CustomerUserRealm
 
-logging:
-  level:
-    root: INFO
-#    org.apache.cxf: DEBUG
-
 cassandra:
   keyspace: provider
 

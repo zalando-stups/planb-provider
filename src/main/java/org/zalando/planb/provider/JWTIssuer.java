@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 import org.zalando.planb.provider.realms.Realm;
 
 import java.time.Duration;
-import java.time.temporal.TemporalUnit;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
@@ -85,7 +84,7 @@ public class JWTIssuer {
             signingMetric.finish("planb.provider.jwt.signing." + signer.getAlgorithm().getName());
         }
 
-        final String maskedSubject = userRealm.maskSubject((String) claims.get(Realm.SUB));
+        final String maskedSubject = userRealm.maskSubject(claims.get(Realm.SUB));
         log.info("Issued JWT for '{}' requested by client {}/{}", maskedSubject, userRealm.getName(), clientId);
         return rawJWT;
     }

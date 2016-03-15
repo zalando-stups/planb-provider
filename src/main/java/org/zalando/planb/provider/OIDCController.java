@@ -86,10 +86,9 @@ public class OIDCController {
     }
 
     static String getRealmName(RealmConfig realms, Optional<String> realmNameParam, Optional<String> hostHeader) {
-        final String realmName = realmNameParam.orElseGet(() -> realms.findRealmNameInHost(hostHeader
+        return realmNameParam.orElseGet(() -> realms.findRealmNameInHost(hostHeader
                 .orElseThrow(() -> new BadRequestException("Missing realm parameter and no Host header.", "missing_realm", "Missing realm parameter and no Host header.")))
                 .orElseThrow(() -> new RealmNotFoundException(hostHeader.get())));
-        return realmName;
     }
 
     static OIDCCreateTokenResponse response(String accessToken, Set<String> scopes, String realmName) {

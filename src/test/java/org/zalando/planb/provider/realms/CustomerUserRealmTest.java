@@ -2,7 +2,7 @@ package org.zalando.planb.provider.realms;
 
 import org.junit.Test;
 
-import static org.assertj.core.api.StrictAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.zalando.planb.provider.realms.CustomerUserRealm.maskUsername;
 
 public class CustomerUserRealmTest {
