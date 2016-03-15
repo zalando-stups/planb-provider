@@ -51,3 +51,11 @@ CREATE TABLE provider.authorization_code (
     redirect_uri TEXT,          -- used redirect URI
     expires INT                 -- expiry date in seconds since epoch
 );
+
+CREATE TABLE provider.consent (
+    realm TEXT,                                     -- realm
+    username TEXT,                                  -- username
+    client_id TEXT,                                 -- client ID
+    scopes SET<TEXT>,                               -- consented scopes
+    PRIMARY KEY ((username, realm), client_id)
+);
