@@ -7,10 +7,9 @@ import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.Base64;
@@ -21,7 +20,7 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.joining;
-import static org.bouncycastle.util.encoders.Hex.toHexString;
+import static org.springframework.web.util.UriComponentsBuilder.fromHttpUrl;
 import static org.zalando.planb.provider.ScopeProperties.SPACE;
 
 @Component
@@ -39,16 +38,19 @@ public class UpstreamUserRealm implements UserRealm {
     }
 
     String getAccessToken(String username, String password, Set<String> scopes) {
-        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
-        requestParameters.add("realm", realmName);
-        requestParameters.add("scope", scopes.stream().collect(joining(SPACE)));
-        String basicAuth = Base64.getEncoder().encodeToString((username + ':' + password).getBytes(UTF_8));
+        final UriComponentsBuilder uriBuilder = fromHttpUrl(upstreamRealmProperties.getTokenServiceUrl());
+        uriBuilder.queryParam("realm", realmName);
+        if (scopes != null && !scopes.isEmpty()) {
+            uriBuilder.queryParam("scope", scopes.stream().collect(joining(SPACE)));
+        }
 
-        RequestEntity<Void> tokenRequest = RequestEntity
-                .get(URI.create(upstreamRealmProperties.getTokenServiceUrl()))
+        final String basicAuth = Base64.getEncoder().encodeToString((username + ':' + password).getBytes(UTF_8));
+
+        final RequestEntity<Void> tokenRequest = RequestEntity
+                .get(uriBuilder.build().toUri())
                 .header("Authorization", "Basic " + basicAuth).build();
 
-        ResponseEntity<String> tokenResponse;
+        final ResponseEntity<String> tokenResponse;
         try {
             tokenResponse = rest.exchange(tokenRequest, String.class);
         } catch (HttpClientErrorException ex) {
@@ -59,8 +61,7 @@ public class UpstreamUserRealm implements UserRealm {
             }
         }
 
-        final String token = tokenResponse.getBody().replaceAll("\\s+", "");
-        return token;
+        return tokenResponse.getBody().replaceAll("\\s+", "");
     }
 
     @Override

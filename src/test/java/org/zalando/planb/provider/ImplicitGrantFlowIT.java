@@ -1,8 +1,6 @@
 package org.zalando.planb.provider;
 
-import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.impl.client.HttpClients;
 import org.assertj.core.data.MapEntry;
 import org.junit.Test;
@@ -20,15 +18,10 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.StrictAssertions.fail;
+import static org.assertj.core.api.Assertions.fail;
 import static org.zalando.planb.provider.AuthorizationCodeGrantFlowIT.parseURLParams;
 
 @SpringApplicationConfiguration(classes = {Main.class})

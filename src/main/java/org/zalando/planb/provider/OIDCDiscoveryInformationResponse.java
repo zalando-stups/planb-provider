@@ -11,7 +11,7 @@ public class OIDCDiscoveryInformationResponse {
     public static final String AUTHORIZE_PATH = "/oauth2/authorize";
     public static final String KEYS_PATH = "/oauth2/connect/keys";
 
-    private final String issuer = "PlanB";
+    private static final String ISSUER = "PlanB";
 
     @JsonProperty("authorization_endpoint")
     private String authorizationEndpoint;
@@ -48,7 +48,7 @@ public class OIDCDiscoveryInformationResponse {
     }
 
     public String getIssuer() {
-        return issuer;
+        return ISSUER;
     }
 
     public String getJwksUri() {

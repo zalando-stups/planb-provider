@@ -23,12 +23,12 @@ import java.net.URI;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.reducing;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.StrictAssertions.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 @SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
@@ -205,9 +205,8 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
 
         List<NameValuePair> nameValuePairs = URLEncodedUtils.parse(uri, "UTF-8");
 
-        Map<String, String> params = nameValuePairs.stream().collect(Collectors.groupingBy(NameValuePair::getName,
-                Collectors.reducing("", NameValuePair::getValue, (x, y) -> y)));
-        return params;
+        return nameValuePairs.stream()
+                .collect(groupingBy(NameValuePair::getName, reducing("", NameValuePair::getValue, (x, y) -> y)));
     }
 
 
