@@ -10,7 +10,7 @@ INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_co
 
 INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential, created_by, last_modified_by)
     VALUES ('testclient', '/customers', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
-            {'uid', 'ascope', 'clientonly'}, true, '/services/user1', '/services/user1');
+            {'uid', 'ascope', 'clientonly', 'aud'}, true, '/services/user1', '/services/user1');
 
 INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential, redirect_uris, created_by, last_modified_by)
     VALUES ('testauthcode', '/services', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',

@@ -207,20 +207,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
     @Test
     public void testCreateCustomerToken() throws Exception {
-        stubFor(post(urlEqualTo("/ws/customerService?wsdl"))
-                .willReturn(aResponse()
-                        .withStatus(OK.value())
-                        .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
-                        .withBody("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
-                                "    <soap:Body>\n" +
-                                "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\">\n" +
-                                "            <return>\n" +
-                                "                <customerNumber>123456789</customerNumber>\n" +
-                                "                <loginResult>SUCCESS</loginResult>\n" +
-                                "            </return>\n" +
-                                "        </ns2:authenticateResponse>\n" +
-                                "    </soap:Body>\n" +
-                                "</soap:Envelope>")));
+        final String customerNumber = stubCustomerService();
 
         final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "uid openid");
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -231,7 +218,6 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
         assertThat(response.getBody().getAccessToken().length()).isLessThanOrEqualTo(280);
 
-        final String customerNumber = "123456789";
         JWT jwt = JWTParser.parse(response.getBody().getAccessToken());
         assertThat(jwt.getHeader().toJSONObject()).containsOnlyKeys("kid", "alg");
         assertThat(jwt.getJWTClaimsSet().getSubject()).isEqualTo(customerNumber);
@@ -241,8 +227,8 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("uid", "openid");
     }
 
-    @Test
-    public void testCreateCustomerTokenNoScope() throws Exception {
+    String stubCustomerService() {
+        final String customerNumber = "123456789";
         stubFor(post(urlEqualTo("/ws/customerService?wsdl"))
                 .willReturn(aResponse()
                         .withStatus(OK.value())
@@ -251,15 +237,20 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
                                 "    <soap:Body>\n" +
                                 "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\">\n" +
                                 "            <return>\n" +
-                                "                <customerNumber>123456789</customerNumber>\n" +
+                                "                <customerNumber>" + customerNumber + "</customerNumber>\n" +
                                 "                <loginResult>SUCCESS</loginResult>\n" +
                                 "            </return>\n" +
                                 "        </ns2:authenticateResponse>\n" +
                                 "    </soap:Body>\n" +
                                 "</soap:Envelope>")));
+        return customerNumber;
+    }
+
+    @Test
+    public void testCreateCustomerTokenNoScope() throws Exception {
+        stubCustomerService();
 
         final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", null);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         final OIDCCreateTokenResponse body = response.getBody();
         assertThat(body).isNotNull();
         // "openid" scope is set as default for /customers realm (in application-it.yml)
@@ -269,6 +260,20 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(body.getRealm()).isEqualTo("/customers");
         assertThat(accessToken).isNotEmpty();
         assertThat(accessToken).isEqualTo(body.getIdToken());
+    }
+
+    @Test
+    public void testCreateCustomerTokenWithAudScope() throws Exception {
+        final String customerNumber = stubCustomerService();
+
+        final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "aud");
+        assertThat(response.getBody().getScope()).isEqualTo("aud");
+        assertThat(response.getBody().getRealm()).isEqualTo("/customers");
+
+        JWT jwt = JWTParser.parse(response.getBody().getAccessToken());
+        assertThat(jwt.getJWTClaimsSet().getSubject()).isEqualTo(customerNumber);
+        assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("aud");
+        assertThat(jwt.getJWTClaimsSet().getStringClaim("aud")).isEqualTo("testclient");
     }
 
     @Test
