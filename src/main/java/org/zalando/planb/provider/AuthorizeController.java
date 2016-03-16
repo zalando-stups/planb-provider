@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.View;
+import org.springframework.web.servlet.view.RedirectView;
 import org.zalando.planb.provider.realms.ClientRealm;
 import org.zalando.planb.provider.realms.UserRealm;
 import org.zalando.planb.provider.realms.UserRealmAuthenticationException;
@@ -20,6 +23,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -48,6 +52,9 @@ public class AuthorizeController {
 
     @Autowired
     private CassandraAuthorizationCodeService cassandraAuthorizationCodeService;
+
+    @Autowired
+    private CassandraConsentService cassandraConsentService;
 
     /**
      * Authorization Request, see http://tools.ietf.org/html/rfc6749#section-4.1.1
@@ -96,7 +103,7 @@ public class AuthorizeController {
     }
 
     @RequestMapping(value = "/oauth2/authorize", method = RequestMethod.POST)
-    void authorize(
+    ModelAndView authorize(
             @RequestParam(value = "response_type", required = true) String responseType,
             @RequestParam(value = "realm") Optional<String> realmNameParam,
             @RequestParam(value = "client_id", required = true) String clientId,
@@ -105,8 +112,8 @@ public class AuthorizeController {
             @RequestParam(value = "state") Optional<String> state,
             @RequestParam(value = "username", required = true) String username,
             @RequestParam(value = "password", required = true) String password,
-            @RequestHeader(value = "Host") Optional<String> hostHeader,
-            HttpServletResponse response) throws IOException, URISyntaxException, JOSEException {
+            @RequestParam(value = "decision") Optional<String> decision,
+            @RequestHeader(value = "Host") Optional<String> hostHeader) throws IOException, URISyntaxException, JOSEException {
 
         if (!SUPPORTED_RESPONSE_TYPES.contains(responseType)) {
             throw new BadRequestException("Unsupported response_type", "unsupported_response_type", "Unsupported response_type");
@@ -140,7 +147,29 @@ public class AuthorizeController {
         try {
             claims = userRealm.authenticate(username, password, finalScopes, defaultScopes);
 
-            if ("code".equals(responseType)) {
+            Set<String> consentedScopes;
+
+            if ("allow".equals(decision.orElse("none"))) {
+                cassandraConsentService.store(username, userRealm.getName(), clientId, finalScopes);
+                consentedScopes = finalScopes;
+            } else {
+                consentedScopes = cassandraConsentService.getConsentedScopes(username, userRealm.getName(), clientId);
+            }
+
+            if (!consentedScopes.containsAll(finalScopes)) {
+                Map<String, String> model = new HashMap<>();
+                model.put("responseType", responseType);
+                model.put("realm", realmName);
+                model.put("clientId", clientId);
+                model.put("scope", ScopeProperties.join(finalScopes));
+                model.put("redirectUri", redirectUri.toString());
+                model.put("state", state.orElse(""));
+                // TODO: it's a poor idea to pass user credentials in hidden form fields
+                model.put("username", username);
+                model.put("password", password);
+                return new ModelAndView("consent", model);
+
+            } else if ("code".equals(responseType)) {
 
                 final String code = cassandraAuthorizationCodeService.create(state.orElse(""), clientId, realmName, finalScopes, claims, redirectUri);
 
@@ -167,6 +196,6 @@ public class AuthorizeController {
                     .build();
         }
 
-        response.sendRedirect(redirect.toString());
+        return new ModelAndView(new RedirectView(redirect.toString()));
     }
 }

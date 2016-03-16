@@ -88,6 +88,11 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
                 .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
                 .body(requestParameters);
 
+        ResponseEntity<String> loginResponse = rest.exchange(request, String.class);
+        assertThat(loginResponse.getBody()).contains("value=\"allow\"");
+
+        requestParameters.add("decision", "allow");
+
         ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
 
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);

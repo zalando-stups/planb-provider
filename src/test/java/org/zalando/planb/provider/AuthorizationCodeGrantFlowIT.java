@@ -1,11 +1,13 @@
 package org.zalando.planb.provider;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.impl.client.HttpClients;
 import org.assertj.core.data.MapEntry;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
@@ -29,6 +31,7 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.reducing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.offset;
 
 @SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
@@ -36,6 +39,9 @@ import static org.assertj.core.api.Assertions.fail;
 public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     @Value("${local.server.port}")
     private int port;
+
+    @Autowired
+    CassandraConsentService cassandraConsentService;
 
 
     private final HttpClient httpClient = HttpClients.custom().disableRedirectHandling().build();
@@ -113,6 +119,8 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
 
     @Test
     public void authorizeWrongRedirectUri() {
+        // assume prior user consent
+        cassandraConsentService.store("testuser", "/services", "testauthcode", ImmutableSet.of("uid", "ascope"));
 
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("response_type", "code");
@@ -158,6 +166,8 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
 
     @Test
     public void authorizeWrongClient() {
+        // assume prior user consent
+        cassandraConsentService.store("testuser", "/services", "testauthcode", ImmutableSet.of("uid", "ascope"));
 
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("response_type", "code");
@@ -258,7 +268,17 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
                 .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
                 .body(requestParameters);
 
+        ResponseEntity<String> loginResponse = rest.exchange(request, String.class);
+        assertThat(loginResponse.getBody()).contains("value=\"allow\"");
+
+        requestParameters.add("decision", "allow");
+
+        request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .body(requestParameters);
+
         ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
+
 
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
