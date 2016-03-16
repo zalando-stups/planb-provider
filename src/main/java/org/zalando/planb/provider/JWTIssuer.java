@@ -24,6 +24,7 @@ public class JWTIssuer {
 
     // we just need one char to identify ourselves as "Plan B Provider" (Base64 has 33% overhead)
     private static final String ISSUER = "B";
+    private static final String AUTHORIZED_PARTY = "azp";
 
     public static final Duration EXPIRATION_TIME = Duration.ofHours(8);
 
@@ -70,6 +71,12 @@ public class JWTIssuer {
                 .claim("realm", userRealm.getName())
                 .claim("scope", scopes);
         claims.forEach(claimsBuilder::claim);
+        if (scopes.contains(AUTHORIZED_PARTY)) {
+            // http://openid.net/specs/openid-connect-core-1_0.html#IDToken
+            // Authorized party - the party to which the ID Token was issued.
+            // If present, it MUST contain the OAuth 2.0 Client ID of this party.
+            claimsBuilder.claim(AUTHORIZED_PARTY, clientId);
+        }
         final JWTClaimsSet jwtClaims = claimsBuilder.build();
 
         // sign JWT
