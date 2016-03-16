@@ -149,6 +149,7 @@ public class AuthorizeController {
 
             Set<String> consentedScopes;
 
+            // TODO: redirect to callback URL if decision is "deny" (error=access_denied)
             if ("allow".equals(decision.orElse("none"))) {
                 cassandraConsentService.store(username, userRealm.getName(), clientId, finalScopes);
                 consentedScopes = finalScopes;
