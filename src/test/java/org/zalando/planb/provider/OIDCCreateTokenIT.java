@@ -263,17 +263,17 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
     }
 
     @Test
-    public void testCreateCustomerTokenWithAudScope() throws Exception {
+    public void testCreateCustomerTokenWithAzpScope() throws Exception {
         final String customerNumber = stubCustomerService();
 
-        final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "aud");
-        assertThat(response.getBody().getScope()).isEqualTo("aud");
+        final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "azp");
+        assertThat(response.getBody().getScope()).isEqualTo("azp");
         assertThat(response.getBody().getRealm()).isEqualTo("/customers");
 
         JWT jwt = JWTParser.parse(response.getBody().getAccessToken());
         assertThat(jwt.getJWTClaimsSet().getSubject()).isEqualTo(customerNumber);
-        assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("aud");
-        assertThat(jwt.getJWTClaimsSet().getStringClaim("aud")).isEqualTo("testclient");
+        assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("azp");
+        assertThat(jwt.getJWTClaimsSet().getStringClaim("azp")).isEqualTo("testclient");
     }
 
     @Test
