@@ -22,12 +22,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 
 import org.springframework.test.context.ActiveProfiles;
 
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import com.datastax.driver.core.Session;
 
@@ -78,10 +78,11 @@ public class ConsentControllerIT extends AbstractSpringTest {
 
         assertThat(readConsent(TEST_USERNAME, TEST_REALM, TEST_CLIENT)).isNotEmpty();
 
-
         // consents were found
-        assertThat(restTemplate.exchange(get(uri).header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), String.class)
-                .getStatusCode()).isEqualTo(OK);
+        ResponseEntity<String> response = restTemplate.exchange(get(uri).header(AUTHORIZATION, USER1_ACCESS_TOKEN)
+                    .build(), String.class);
+        assertThat(response.getStatusCode()).isEqualTo(OK);
+        assertThat(response.getBody().equals("{[scope1,scope2]}"));
 
         // consents were revoked
         assertThat(restTemplate.exchange(delete(uri).header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), Void.class)

@@ -46,36 +46,55 @@ public class CassandraConsentService {
     }
 
     private void prepareStatements() {
-        findOne = session.prepare(select().column(SCOPES).from(CONSENT).where(eq(USERNAME, bindMarker(USERNAME))).and(
-                                 eq(REALM, bindMarker(REALM))).and(eq(CLIENT_ID, bindMarker(CLIENT_ID))))
-                         .setConsistencyLevel(cassandraProperties.getReadConsistencyLevel());
+        findOne = session.prepare(select()
+                .column(SCOPES)
+                .from(CONSENT)
+                .where(eq(USERNAME, bindMarker(USERNAME)))
+                .and(eq(REALM, bindMarker(REALM)))
+                .and(eq(CLIENT_ID, bindMarker(CLIENT_ID))))
+                .setConsistencyLevel(cassandraProperties.getReadConsistencyLevel());
 
-        upsert = session.prepare(insertInto(CONSENT).value(USERNAME, bindMarker(USERNAME)).value(REALM,
-                                bindMarker(REALM)).value(CLIENT_ID, bindMarker(CLIENT_ID)).value(SCOPES,
-                                bindMarker(SCOPES))).setConsistencyLevel(
-                            cassandraProperties.getWriteConsistencyLevel());
+        upsert = session.prepare(insertInto(CONSENT)
+                .value(USERNAME, bindMarker(USERNAME))
+                .value(REALM, bindMarker(REALM))
+                .value(CLIENT_ID, bindMarker(CLIENT_ID))
+                .value(SCOPES, bindMarker(SCOPES)))
+                .setConsistencyLevel(cassandraProperties.getWriteConsistencyLevel());
 
-        deleteOne = session.prepare(delete().all().from(CONSENT).where(eq(USERNAME, bindMarker(USERNAME))).and(
-                                   eq(REALM, bindMarker(REALM))).and(eq(CLIENT_ID, bindMarker(CLIENT_ID))))
-                           .setConsistencyLevel(cassandraProperties.getWriteConsistencyLevel());
+        deleteOne = session.prepare(delete()
+                .all()
+                .from(CONSENT)
+                .where(eq(USERNAME, bindMarker(USERNAME)))
+                .and(eq(REALM, bindMarker(REALM)))
+                .and(eq(CLIENT_ID, bindMarker(CLIENT_ID))))
+                .setConsistencyLevel(cassandraProperties.getWriteConsistencyLevel());
     }
 
     public void store(final String username, final String realm, final String clientId, final Set<String> scopes) {
 
-        session.execute(upsert.bind().setString(USERNAME, username).setString(REALM, realm).setString(CLIENT_ID,
-                clientId).setSet(SCOPES, scopes));
+        session.execute(upsert.bind()
+                .setString(USERNAME, username)
+                .setString(REALM, realm)
+                .setString(CLIENT_ID,clientId).setSet(SCOPES, scopes));
     }
 
     public Set<String> getConsentedScopes(final String username, final String realm, final String clientId) {
 
-        return Optional.ofNullable(findOne.bind().setString(USERNAME, username).setString(REALM, realm).setString(
-                               CLIENT_ID, clientId)).map(session::execute).map(ResultSet::one).map(r ->
-                    r.getSet(SCOPES, String.class)).orElse(Collections.emptySet());
+        return Optional.ofNullable(findOne.bind()
+                .setString(USERNAME, username)
+                .setString(REALM, realm)
+                .setString(CLIENT_ID, clientId))
+                .map(session::execute)
+                .map(ResultSet::one)
+                .map(r -> r.getSet(SCOPES, String.class))
+                .orElse(Collections.emptySet());
     }
 
     public void withdraw(final String username, final String realm, final String clientId) {
-        session.execute(deleteOne.bind().setString(USERNAME, username).setString(REALM, realm).setString(CLIENT_ID,
-                clientId));
+        session.execute(deleteOne.bind()
+                .setString(USERNAME, username)
+                .setString(REALM, realm)
+                .setString(CLIENT_ID, clientId));
     }
 
 }
