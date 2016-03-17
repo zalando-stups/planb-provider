@@ -74,7 +74,6 @@ public class ConsentControllerIT extends AbstractSpringTest {
     @Test
     public void testGetAndDeleteConsents() throws Exception {
         final URI uri = URI.create(String.format("%s/%s/%s/%s", basePath(), TEST_REALM, TEST_USERNAME, TEST_CLIENT));
-        System.out.println("URI:" + uri.toString());
 
         assertThat(readConsent(TEST_USERNAME, TEST_REALM, TEST_CLIENT)).isNotEmpty();
 
@@ -82,7 +81,7 @@ public class ConsentControllerIT extends AbstractSpringTest {
         ResponseEntity<String> response = restTemplate.exchange(get(uri).header(AUTHORIZATION, USER1_ACCESS_TOKEN)
                     .build(), String.class);
         assertThat(response.getStatusCode()).isEqualTo(OK);
-        assertThat(response.getBody().equals("{[scope1,scope2]}"));
+        assertThat(response.getBody().equals("{\"scopes\":[\"scope1\",\"scope2\"]}"));
 
         // consents were revoked
         assertThat(restTemplate.exchange(delete(uri).header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), Void.class)

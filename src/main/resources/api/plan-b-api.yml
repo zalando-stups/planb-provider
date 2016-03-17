@@ -144,9 +144,7 @@ paths:
         200:
           description: The stored consent has successfully been obtained
           schema:
-            type: array
-            items:
-              type: string
+            $ref:  '#/definitions/Consent'
 
     delete:
       summary: delete consents
@@ -251,3 +249,12 @@ definitions:
       password_hash:
         type: string
         description: Base64-encoded Bcrypt hash of the password
+
+  Consent:
+    type: object
+    properties:
+      scopes:
+        type: array
+        items:
+          type: string
+          description: Stored consents
