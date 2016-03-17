@@ -1,5 +1,11 @@
 package org.zalando.planb.provider;
 
+import static com.datastax.driver.core.querybuilder.QueryBuilder.bindMarker;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.delete;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.insertInto;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.select;
+
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
@@ -13,12 +19,6 @@ import org.springframework.stereotype.Component;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
-
-import static com.datastax.driver.core.querybuilder.QueryBuilder.bindMarker;
-import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
-import static com.datastax.driver.core.querybuilder.QueryBuilder.insertInto;
-import static com.datastax.driver.core.querybuilder.QueryBuilder.select;
 
 @Component
 public class CassandraConsentService {
@@ -55,8 +55,8 @@ public class CassandraConsentService {
                                 bindMarker(SCOPES))).setConsistencyLevel(
                             cassandraProperties.getWriteConsistencyLevel());
 
-        deleteOne = session.prepare(QueryBuilder.delete().all().from(CONSENT).where(eq(USERNAME, bindMarker(USERNAME)))
-                                   .and(eq(REALM, bindMarker(REALM))).and(eq(CLIENT_ID, bindMarker(CLIENT_ID))))
+        deleteOne = session.prepare(delete().all().from(CONSENT).where(eq(USERNAME, bindMarker(USERNAME))).and(
+                                   eq(REALM, bindMarker(REALM))).and(eq(CLIENT_ID, bindMarker(CLIENT_ID))))
                            .setConsistencyLevel(cassandraProperties.getWriteConsistencyLevel());
     }
 
@@ -71,6 +71,11 @@ public class CassandraConsentService {
         return Optional.ofNullable(findOne.bind().setString(USERNAME, username).setString(REALM, realm).setString(
                                CLIENT_ID, clientId)).map(session::execute).map(ResultSet::one).map(r ->
                     r.getSet(SCOPES, String.class)).orElse(Collections.emptySet());
+    }
+
+    public void withdraw(final String username, final String realm, final String clientId) {
+        session.execute(deleteOne.bind().setString(USERNAME, username).setString(REALM, realm).setString(CLIENT_ID,
+                clientId));
     }
 
 }

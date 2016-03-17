@@ -20,23 +20,53 @@ import com.google.common.collect.ImmutableSet;
 @ActiveProfiles("it")
 public class CassandraConsentServiceIT extends AbstractSpringTest {
 
+    private static final String SCOPE_1 = "scope1";
+    private static final String SCOPE_2 = "scope2";
+    private static final ImmutableSet<String> SCOPES = ImmutableSet.of(SCOPE_1, SCOPE_2);
+    private static final String TEST_USERNAME = "test";
+    private static final String TEST_REALM = "realm";
+    private static final String TEST_CLIENT = "client";
+
     @Autowired
     CassandraConsentService cassandraConsentService;
 
     @Test
     public void storeAndReadConsent() {
-        cassandraConsentService.store("test", "realmtest", "client", ImmutableSet.of("scope1", "scope2"));
+        cassandraConsentService.store(TEST_USERNAME, TEST_REALM, TEST_CLIENT, SCOPES);
 
-        Set<String> scopes = cassandraConsentService.getConsentedScopes("test", "realmtest", "client");
+        Set<String> scopes = cassandraConsentService.getConsentedScopes(TEST_USERNAME, TEST_REALM, TEST_CLIENT);
 
-        assertThat(scopes).containsExactly("scope1", "scope2");
+        assertThat(scopes).containsExactly(SCOPE_1, SCOPE_2);
     }
 
     @Test
     public void readEmptyConsent() {
-        Set<String> scopes = cassandraConsentService.getConsentedScopes("test", "realmtest", "nonexistingclient");
-
+        Set<String> scopes = cassandraConsentService.getConsentedScopes(TEST_USERNAME, TEST_REALM, "nonexistingclient");
         assertThat(scopes).isEmpty();
+    }
+
+    @Test
+    public void storeAndWithdrawAllConsents() {
+        cassandraConsentService.store(TEST_USERNAME, TEST_REALM, TEST_CLIENT, SCOPES);
+
+        Set<String> scopes = cassandraConsentService.getConsentedScopes(TEST_USERNAME, TEST_REALM, TEST_CLIENT);
+        assertThat(scopes).containsExactly(SCOPE_1, SCOPE_2);
+
+        cassandraConsentService.withdraw(TEST_USERNAME, TEST_REALM, TEST_CLIENT);
+        scopes = cassandraConsentService.getConsentedScopes(TEST_USERNAME, TEST_REALM, TEST_CLIENT);
+        assertThat(scopes).isEmpty();
+    }
+
+    @Test
+    public void storeAndWithdrawlSingleConsent() {
+        cassandraConsentService.store(TEST_USERNAME, TEST_REALM, TEST_CLIENT, SCOPES);
+
+        Set<String> scopes = cassandraConsentService.getConsentedScopes(TEST_USERNAME, TEST_REALM, TEST_CLIENT);
+        assertThat(scopes).containsExactly(SCOPE_1, SCOPE_2);
+
+        cassandraConsentService.store(TEST_USERNAME, TEST_REALM, TEST_CLIENT, ImmutableSet.of(SCOPE_1));
+        scopes = cassandraConsentService.getConsentedScopes(TEST_USERNAME, TEST_REALM, TEST_CLIENT);
+        assertThat(scopes).containsExactly(SCOPE_1);
     }
 
 }
