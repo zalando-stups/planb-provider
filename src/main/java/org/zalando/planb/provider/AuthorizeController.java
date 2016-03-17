@@ -149,8 +149,13 @@ public class AuthorizeController {
 
             Set<String> consentedScopes;
 
-            // TODO: redirect to callback URL if decision is "deny" (error=access_denied)
-            if ("allow".equals(decision.orElse("none"))) {
+            if ("deny".equals(decision.orElse("none"))) {
+                // redirect user to callback URL if decision is "deny" (error=access_denied)
+                // see http://tools.ietf.org/html/rfc6749#section-4.1.2.1
+                redirect = new URIBuilder(redirectUri).addParameter("error", "access_denied").addParameter("state", state.orElse("")).build();
+                return new ModelAndView(new RedirectView(redirect.toString()));
+            } else if ("allow".equals(decision.orElse("none"))) {
+                // save user consent
                 cassandraConsentService.store(username, userRealm.getName(), clientId, finalScopes);
                 consentedScopes = finalScopes;
             } else {
@@ -158,7 +163,11 @@ public class AuthorizeController {
             }
 
             if (!consentedScopes.containsAll(finalScopes)) {
-                Map<String, String> model = new HashMap<>();
+                Map<String, Object> model = new HashMap<>();
+                model.put("clientName", clientData.getName());
+                model.put("clientDescription", clientData.getDescription());
+                model.put("scopes", finalScopes);
+
                 model.put("responseType", responseType);
                 model.put("realm", realmName);
                 model.put("clientId", clientId);

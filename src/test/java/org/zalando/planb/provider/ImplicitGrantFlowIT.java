@@ -107,4 +107,34 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
         assertThat(params).containsKey("scope");
         assertThat(params).containsKey("state");
     }
+
+    @Test
+    public void denyConsent() {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "token");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testimplicit");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .body(requestParameters);
+
+        ResponseEntity<String> loginResponse = rest.exchange(request, String.class);
+        assertThat(loginResponse.getBody()).contains("value=\"deny\"");
+
+        requestParameters.add("decision", "deny");
+
+        ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
+
+        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+
+        assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback?");
+        Map<String, String> params = parseURLParams(authResponse.getHeaders().getLocation());
+        assertThat(params).contains(MapEntry.entry("error", "access_denied"));
+        assertThat(params).containsKey("state");
+    }
 }
