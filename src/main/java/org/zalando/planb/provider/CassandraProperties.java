@@ -22,6 +22,7 @@ public class CassandraProperties {
     private ConsistencyLevel readConsistencyLevel = ONE;
     private Optional<String> username = Optional.empty();
     private Optional<String> password = Optional.empty();
+    private String healthCheckQuery = "SELECT release_version FROM system.local;";
 
     public String getKeyspace() {
         return keyspace;
@@ -85,5 +86,13 @@ public class CassandraProperties {
 
     public void setPassword(Optional<String> password) {
         this.password = password;
+    }
+
+    public String getHealthCheckQuery() {
+        return healthCheckQuery;
+    }
+
+    public void setHealthCheckQuery(String healthCheckQuery) {
+        this.healthCheckQuery = healthCheckQuery;
     }
 }
