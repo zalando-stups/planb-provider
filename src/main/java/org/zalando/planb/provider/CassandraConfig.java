@@ -2,6 +2,7 @@ package org.zalando.planb.provider;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.policies.EC2MultiRegionAddressTranslator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -19,6 +20,7 @@ public class CassandraConfig {
         final Cluster.Builder builder = Cluster.builder();
 
         builder.addContactPoints(cassandra.getContactPoints().split(","));
+        builder.withAddressTranslator(new EC2MultiRegionAddressTranslator());
         builder.withClusterName(cassandra.getClusterName());
         builder.withPort(cassandra.getPort());
         builder.build();
