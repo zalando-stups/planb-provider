@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -133,6 +134,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .accept(MediaType.TEXT_HTML)
                 .body(requestParameters);
 
         ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
@@ -180,6 +182,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .accept(MediaType.TEXT_HTML)
                 .body(requestParameters);
 
         ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
@@ -234,6 +237,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .accept(MediaType.TEXT_HTML)
                 .body(requestParameters);
 
         ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
@@ -266,6 +270,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .accept(MediaType.TEXT_HTML)
                 .body(requestParameters);
 
         ResponseEntity<String> loginResponse = rest.exchange(request, String.class);
@@ -275,6 +280,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
 
         request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .accept(MediaType.TEXT_HTML)
                 .body(requestParameters);
 
         ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);

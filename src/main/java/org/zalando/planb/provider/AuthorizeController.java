@@ -6,12 +6,10 @@ import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.Scope;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.view.RedirectView;
@@ -102,6 +100,34 @@ public class AuthorizeController {
         return "login";
     }
 
+    @RequestMapping(value = "/oauth2/authorize", method = RequestMethod.POST, produces = "application/json")
+    @ResponseBody
+    AuthorizeResponse authorizeJson(
+            @RequestParam(value = "response_type", required = true) String responseType,
+            @RequestParam(value = "realm") Optional<String> realmNameParam,
+            @RequestParam(value = "client_id", required = true) String clientId,
+            @RequestParam(value = "scope") Optional<String> scope,
+            @RequestParam(value = "redirect_uri") URI redirectUri,
+            @RequestParam(value = "state") Optional<String> state,
+            @RequestParam(value = "username", required = true) String username,
+            @RequestParam(value = "password", required = true) String password,
+            @RequestParam(value = "decision") Optional<String> decision,
+            @RequestHeader(value = "Host") Optional<String> hostHeader
+    ) throws IOException, URISyntaxException, JOSEException {
+        ModelAndView modelView = authorize(responseType, realmNameParam, clientId, scope, redirectUri, state, username, password, decision, hostHeader);
+
+        AuthorizeResponse response = new AuthorizeResponse();
+
+        if (modelView.getView() instanceof  RedirectView) {
+            response.setRedirect(((RedirectView)modelView.getView()).getUrl());
+        } else {
+            response.setClientName((String) modelView.getModel().get("clientName"));
+            response.setClientDescription((String) modelView.getModel().get("clientDescription"));
+            response.setScopes((Set<String>) modelView.getModel().get("scopes"));
+        }
+        return response;
+    }
+
     @RequestMapping(value = "/oauth2/authorize", method = RequestMethod.POST)
     ModelAndView authorize(
             @RequestParam(value = "response_type", required = true) String responseType,
@@ -113,7 +139,8 @@ public class AuthorizeController {
             @RequestParam(value = "username", required = true) String username,
             @RequestParam(value = "password", required = true) String password,
             @RequestParam(value = "decision") Optional<String> decision,
-            @RequestHeader(value = "Host") Optional<String> hostHeader) throws IOException, URISyntaxException, JOSEException {
+            @RequestHeader(value = "Host") Optional<String> hostHeader
+            ) throws IOException, URISyntaxException, JOSEException {
 
         if (!SUPPORTED_RESPONSE_TYPES.contains(responseType)) {
             throw new BadRequestException("Unsupported response_type", "unsupported_response_type", "Unsupported response_type");
@@ -163,6 +190,8 @@ public class AuthorizeController {
             }
 
             if (!consentedScopes.containsAll(finalScopes)) {
+                // return JSON object with "scopes" property if "Accept" header specifies "application/json"
+                // see http://tools.ietf.org/html/rfc7231#section-5.3.2
                 Map<String, Object> model = new HashMap<>();
                 model.put("clientName", clientData.getName());
                 model.put("clientDescription", clientData.getDescription());
@@ -185,6 +214,9 @@ public class AuthorizeController {
 
                 redirect = new URIBuilder(redirectUri).addParameter("code", code).addParameter("state", state.orElse("")).build();
             } else {
+                // TODO: return JSON object with "redirect" property if "Accept" header specifies "application/json"
+                // see http://tools.ietf.org/html/rfc7231#section-5.3.2
+
                 String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientId, finalScopes, claims);
                 redirect = new URIBuilder(redirectUri).addParameter("access_token", rawJWT)
                         .addParameter("token_type", "Bearer")
