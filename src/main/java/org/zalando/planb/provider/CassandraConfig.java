@@ -26,7 +26,6 @@ public class CassandraConfig {
         final Cluster.Builder builder = Cluster.builder();
 
         builder.addContactPoints(cassandra.getContactPoints().split(","));
-        builder.withAddressTranslator(new EC2MultiRegionAddressTranslator());
         addressTranslator.ifPresent(builder::withAddressTranslator);
         builder.withClusterName(cassandra.getClusterName());
         builder.withPort(cassandra.getPort());
