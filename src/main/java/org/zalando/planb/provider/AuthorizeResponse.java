@@ -1,51 +1,51 @@
 package org.zalando.planb.provider;
 
+import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.Set;
+import lombok.Data;
 
+@Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AuthorizeResponse {
 
     @JsonProperty("client_name")
-    String clientName;
+    private String clientName;
+
     @JsonProperty("client_description")
-    String clientDescription;
+    private String clientDescription;
+
     @JsonProperty("scopes")
-    Set<String> scopes;
+    private Set<String> scopes;
+
     @JsonProperty("redirect")
-    String redirect;
+    private String redirect;
 
-    public Set<String> getScopes() {
-        return scopes;
-    }
+    @JsonIgnore
+    private String responseType;
 
-    public void setScopes(Set<String> scopes) {
-        this.scopes = scopes;
-    }
+    @JsonIgnore
+    private String scope;
 
-    public String getRedirect() {
-        return redirect;
-    }
+    @JsonIgnore
+    private String realm;
 
-    public void setRedirect(String redirect) {
-        this.redirect = redirect;
-    }
+    @JsonIgnore
+    private String state;
 
-    public String getClientName() {
-        return clientName;
-    }
+    @JsonIgnore
+    private String clientId;
 
-    public void setClientName(String clientName) {
-        this.clientName = clientName;
-    }
+    @JsonIgnore
+    private boolean isConsentNeeded;
 
-    public String getClientDescription() {
-        return clientDescription;
-    }
+    @JsonIgnore
+    private String username;
 
-    public void setClientDescription(String clientDescription) {
-        this.clientDescription = clientDescription;
-    }
+    @JsonIgnore
+    private String password;
+
 }
