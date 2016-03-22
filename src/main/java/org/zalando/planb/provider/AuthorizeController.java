@@ -178,13 +178,9 @@ public class AuthorizeController {
         final ClientRealm clientRealm = realms.getClientRealm(realmName);
         final ClientData clientData = clientRealm.get(clientId).orElseThrow(() -> clientNotFound(clientId, realmName));
 
-        if (tokenResponseForConfidentialClient(responseType, clientData)) {
-            throw new BadRequestException(format("Invalid response_type 'token' for confidential client %s", clientId),
-                "invalid_request", "Invalid response_type 'token' for confidential client");
-        }
-
         // make sure (again!) that the redirect_uri was configured in the client
         validateRedirectUri(realmName, clientId, clientData, redirectUri);
+        checkNonConfidentialClientForImplicitCodeGrant(clientId, responseType, clientData.isConfidential());
 
         final Set<String> scopes = ScopeProperties.split(scope);
         final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);
@@ -193,7 +189,6 @@ public class AuthorizeController {
         final AuthorizeResponse authorizeResponse = new AuthorizeResponse();
 
         URI redirect;
-
         try {
             final Map<String, String> claims = userRealm.authenticate(username, password, finalScopes, defaultScopes);
             final Optional<Set<String>> consentedScopes = storeOrGetConsentedScopes(decision, username, clientId,
@@ -205,23 +200,16 @@ public class AuthorizeController {
             }
 
             if (!allScopesAreConsented(consentedScopes, finalScopes)) {
-
                 // return JSON object with "scopes" property if "Accept" header specifies "application/json"
                 // see http://tools.ietf.org/html/rfc7231#section-5.3.2
                 return generateConsentNeededResponse(clientData, finalScopes, realmName, clientId, redirectUri,
                         username, password, responseType, state);
             }
-
-            // generate scope based on grant type
-            if (isAuthorizationCodeGrant(responseType)) {
-                redirect = generateCodeResponseURI(realmName, state, clientId, finalScopes, claims, redirectUri);
-            } else { // implicit grant
-
-                // see http://tools.ietf.org/html/rfc7231#section-5.3.2
-                redirect = generateTokenResponseURI(userRealm, state, clientId, finalScopes, claims, redirectUri);
+            else {
+                redirect = generateRedirectURIbasedOnGrantType(responseType, realmName, userRealm, state, clientId, finalScopes, claims, redirectUri);
             }
-        } catch (UserRealmAuthenticationException e) {
 
+        } catch (UserRealmAuthenticationException e) {
             // redirect back to login form with error message
             log.info("{} (status {} / {})", e.getMessage(), e.getStatusCode(), e.getClass().getSimpleName());
             redirect = generateLoginFormURI(realmName, responseType, state, clientId, finalScopes, redirectUri);
@@ -261,8 +249,13 @@ public class AuthorizeController {
         return consentedScopes.get().containsAll(finalScopes);
     }
 
-    private boolean tokenResponseForConfidentialClient(final String responseType, final ClientData clientData) {
-        return isImplicitGrant(responseType) && clientData.isConfidential();
+    private void checkNonConfidentialClientForImplicitCodeGrant(final String clientId, final String responseType, final boolean isConfidential) {
+
+        if (isImplicitGrant(responseType) && isConfidential){
+            throw new BadRequestException(format("Invalid response_type 'token' for confidential client %s", clientId),
+                    "invalid_request", "Invalid response_type 'token' for confidential client");
+        }
+
     }
 
     private boolean isAuthorizationCodeGrant(final String responseType) {
@@ -328,6 +321,20 @@ public class AuthorizeController {
         model.addAttribute(ERROR, error.orElse(null));
     }
 
+    private URI generateRedirectURIbasedOnGrantType(final String responseType, final String realmName,
+                                                    final UserRealm userRealm, final Optional<String> state,
+                                                    final String clientId, final Set<String> finalScopes,
+                                                    final Map<String, String> claims, final URI redirectUri)
+            throws URISyntaxException, JOSEException {
+
+        if (isAuthorizationCodeGrant(responseType)) {
+            return generateCodeResponseURI(realmName, state, clientId, finalScopes, claims, redirectUri);
+        } else { // implicit grant
+            // see http://tools.ietf.org/html/rfc7231#section-5.3.2
+            return generateTokenResponseURI(userRealm, state, clientId, finalScopes, claims, redirectUri);
+        }
+    }
+
     private URI generateCodeResponseURI(final String realmName, final Optional<String> state, final String clientId,
             final Set<String> finalScopes, final Map<String, String> claims, final URI redirectUri)
         throws URISyntaxException {
@@ -340,6 +347,7 @@ public class AuthorizeController {
     private URI generateTokenResponseURI(final UserRealm userRealm, final Optional<String> state, final String clientId,
             final Set<String> finalScopes, final Map<String, String> claims, final URI redirectUri)
         throws URISyntaxException, JOSEException {
+
         final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientId, finalScopes, claims);
         return new URIBuilder(redirectUri).addParameter(ACCESS_TOKEN, rawJWT).addParameter(TOKEN_TYPE, BEARER)
                                           .addParameter(EXPIRES_IN,
@@ -389,4 +397,6 @@ public class AuthorizeController {
         authorizeResponse.setRedirect(redirect.toString());
         return authorizeResponse;
     }
+
+
 }
