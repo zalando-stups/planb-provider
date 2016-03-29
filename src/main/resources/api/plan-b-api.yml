@@ -129,6 +129,37 @@ paths:
         201:
           description: The password has successfully been saved
 
+  /consents/{realm}/{username}/{client_id}:
+    get:
+      summary: obtain consents
+      description: |
+        Obtain the stored consents for a given realm, user and client id
+      tags:
+        - Consents
+      parameters:
+        - $ref: '#/parameters/Realm'
+        - $ref: '#/parameters/Username'
+        - $ref: '#/parameters/ClientId'
+      responses:
+        200:
+          description: The stored consent has successfully been obtained
+          schema:
+            $ref:  '#/definitions/Consent'
+
+    delete:
+      summary: delete consents
+      description: |
+       Delete consents for a given realm, user and client id
+      tags:
+        - Consents
+      parameters:
+        - $ref: '#/parameters/Username'
+        - $ref: '#/parameters/Realm'
+        - $ref: '#/parameters/ClientId'
+      responses:
+        204:
+          description: The consent has successfully been withdrawn
+
 parameters:
 
   Realm:
@@ -139,6 +170,18 @@ parameters:
 
   Id:
     name: id
+    in: path
+    required: true
+    type: string
+
+  ClientId:
+    name: client_id
+    in: path
+    required: true
+    type: string
+
+  Username:
+    name: username
     in: path
     required: true
     type: string
@@ -206,3 +249,12 @@ definitions:
       password_hash:
         type: string
         description: Base64-encoded Bcrypt hash of the password
+
+  Consent:
+    type: object
+    properties:
+      scopes:
+        type: array
+        items:
+          type: string
+          description: Stored consents

@@ -4,10 +4,12 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.assertj.core.data.MapEntry;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -30,6 +32,9 @@ import static org.zalando.planb.provider.AuthorizationCodeGrantFlowIT.parseURLPa
 public class ImplicitGrantFlowIT extends AbstractSpringTest {
     @Value("${local.server.port}")
     private int port;
+
+    @Autowired
+    CassandraConsentService cassandraConsentService;
 
 
     private final HttpClient httpClient = HttpClients.custom().disableRedirectHandling().build();
@@ -86,7 +91,13 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
                 .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .accept(MediaType.TEXT_HTML)
                 .body(requestParameters);
+
+        ResponseEntity<String> loginResponse = rest.exchange(request, String.class);
+        assertThat(loginResponse.getBody()).contains("value=\"allow\"");
+
+        requestParameters.add("decision", "allow");
 
         ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
 
@@ -100,6 +111,75 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
         assertThat(params).contains(MapEntry.entry("token_type", "Bearer"));
         assertThat(params).contains(MapEntry.entry("expires_in", "28800")); // 8 hours
         assertThat(params).containsKey("scope");
+        assertThat(params).containsKey("state");
+    }
+
+    @Test
+    public void authorizeConsentAsJson() {
+        cassandraConsentService.withdraw("testuser", "/services", "testimplicit");
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "token");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testimplicit");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .accept(MediaType.APPLICATION_JSON)
+                .body(requestParameters);
+
+        ResponseEntity<AuthorizeResponse> loginResponse = rest.exchange(request, AuthorizeResponse.class);
+        assertThat(loginResponse.getBody().getScopes()).containsExactly("uid", "ascope");
+
+        requestParameters.add("decision", "allow");
+
+        ResponseEntity<AuthorizeResponse> authResponse = rest.exchange(request, AuthorizeResponse.class);
+
+        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        assertThat(authResponse.getBody().getRedirect()).startsWith("https://myapp.example.org/callback?");
+        Map<String, String> params = parseURLParams(URI.create(authResponse.getBody().getRedirect()));
+        // http://tools.ietf.org/html/rfc6749#section-4.2.2
+        // check required parameters
+        assertThat(params).containsKey("access_token");
+        assertThat(params).contains(MapEntry.entry("token_type", "Bearer"));
+        assertThat(params).contains(MapEntry.entry("expires_in", "28800")); // 8 hours
+        assertThat(params).containsKey("scope");
+        assertThat(params).containsKey("state");
+    }
+
+    @Test
+    public void denyConsent() {
+        cassandraConsentService.withdraw("testuser", "/services", "testimplicit");
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "token");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testimplicit");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .accept(MediaType.TEXT_HTML)
+                .body(requestParameters);
+
+        ResponseEntity<String> loginResponse = rest.exchange(request, String.class);
+        assertThat(loginResponse.getBody()).contains("value=\"deny\"");
+
+        requestParameters.add("decision", "deny");
+
+        ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
+
+        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+
+        assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback?");
+        Map<String, String> params = parseURLParams(authResponse.getHeaders().getLocation());
+        assertThat(params).contains(MapEntry.entry("error", "access_denied"));
         assertThat(params).containsKey("state");
     }
 }
