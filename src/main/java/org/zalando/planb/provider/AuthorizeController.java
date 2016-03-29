@@ -4,6 +4,7 @@ import static java.lang.String.format;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
+import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 import static org.zalando.planb.provider.OIDCController.getRealmName;
 import static org.zalando.planb.provider.OIDCController.validateRedirectUri;
 import static org.zalando.planb.provider.realms.ClientRealmAuthenticationException.clientNotFound;
@@ -13,11 +14,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Supplier;
 
+import com.google.common.collect.Collections2;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.utils.URIBuilder;
 
 import org.slf4j.Logger;
@@ -46,46 +47,51 @@ import com.google.common.collect.ImmutableSet;
 
 import com.nimbusds.jose.JOSEException;
 
+@Slf4j
 @Controller
-@RequestMapping(path = AuthorizeController.AUTHORIZE_ENDPOINT)
+@RequestMapping(path = "/oauth2/authorize")
 public class AuthorizeController {
 
-    // TODO: extract to a constant class
-    private static final String ACCESS_DENIED_ERROR = "access_denied";
-    private static final String ACCESS_TOKEN = "access_token";
-    private static final String ALLOW = "allow";
-    private static final String BEARER = "Bearer";
-    private static final String CLIENT_DESCRIPTION = "clientDescription";
-    private static final String CLIENT_ID = "clientId";
-    private static final String CLIENT_ID_SNAKECASE = "client_id";
-    private static final String CLIENT_NAME = "clientName";
-    private static final String CODE = "code";
-    private static final String CONSENT = "consent";
-    private static final String DECISION = "decision";
-    private static final String DEFAULT_DECISION = "none";
-    private static final String DENY = "deny";
-    private static final String EMPTY = "";
-    private static final String ERROR = "error";
-    private static final String EXPIRES_IN = "expires_in";
-    private static final String HOST = "Host";
-    private static final String PASSWORD = "password";
-    private static final String REALM = "realm";
-    private static final String REDIRECT_URI = "redirectUri";
-    private static final String REDIRECT_URI_SNAKECASE = "redirect_uri";
-    private static final String RESPONSE_TYPE = "responseType";
-    private static final String RESPONSE_TYPE_SNAKECASE = "response_type";
-    private static final String SCOPE = "scope";
-    private static final String SCOPES = "scopes";
-    private static final String STATE = "state";
-    private static final String TOKEN = "token";
-    private static final String TOKEN_TYPE = "token_type";
-    private static final String USERNAME = "username";
+    private static final String EMPTY_STRING = "";
+    private static final String HEADER_HOST = "Host";
     private static final String LOGIN_FORM = "login";
 
-    private final Logger log = getLogger(getClass());
+    private static final String MODEL_CLIENT_DESCRIPTION = "clientDescription";
+    private static final String MODEL_CLIENT_ID = "clientId";
+    private static final String MODEL_CLIENT_NAME = "clientName";
+    private static final String MODEL_CONSENT = "consent";
+    private static final String MODEL_ERROR = "error";
+    private static final String MODEL_PASSWORD = "password";
+    private static final String MODEL_REALM = "realm";
+    private static final String MODEL_REDIRECT_URI = "redirectUri";
+    private static final String MODEL_RESPONSE_TYPE = "responseType";
+    private static final String MODEL_SCOPE = "scope";
+    private static final String MODEL_SCOPES = "scopes";
+    private static final String MODEL_STATE = "state";
+    private static final String MODEL_USERNAME = "username";
 
-    static final Set<String> SUPPORTED_RESPONSE_TYPES = ImmutableSet.of(CODE, TOKEN);
-    static final String AUTHORIZE_ENDPOINT = "/oauth2/authorize";
+    private static final String PARAM_ACCESS_TOKEN = "access_token";
+    private static final String PARAM_CLIENT_ID = "client_id";
+    private static final String PARAM_DECISION = "decision";
+    private static final String PARAM_DECISION_ALLOW = "allow";
+    private static final String PARAM_DECISION_DENY = "deny";
+    private static final String PARAM_DECISION_DEFAULT = "none";
+    private static final String PARAM_ERROR = "error";
+    private static final String PARAM_ERROR_ACCESS_DENIED = "access_denied";
+    private static final String PARAM_EXPIRES_IN = "expires_in";
+    private static final String PARAM_PASSWORD = "password";
+    private static final String PARAM_REALM = "realm";
+    private static final String PARAM_REDIRECT_URI = "redirect_uri";
+    private static final String PARAM_RESPONSE_TYPE = "response_type";
+    private static final String PARAM_RESPONSE_TYPE_CODE = "code";
+    private static final String PARAM_SCOPE = "scope";
+    private static final String PARAM_RESPONSE_TYPE_TOKEN = "token";
+    private static final String PARAM_STATE = "state";
+    private static final String PARAM_TOKEN_TYPE = "token_type";
+    private static final String PARAM_TOKEN_TYPE_BEARER = "Bearer";
+    private static final String PARAM_USERNAME = "username";
+
+    static final Set<String> SUPPORTED_RESPONSE_TYPES = ImmutableSet.of(PARAM_RESPONSE_TYPE_CODE, PARAM_RESPONSE_TYPE_TOKEN);
 
     @Autowired
     private RealmConfig realms;
@@ -106,14 +112,14 @@ public class AuthorizeController {
      * Authorization Request, see http://tools.ietf.org/html/rfc6749#section-4.1.1.
      */
     @RequestMapping
-    String showAuthorizationForm(@RequestParam(value = REALM) final Optional<String> realmNameParam,
-            @RequestParam(value = RESPONSE_TYPE_SNAKECASE, required = true) final String responseType,
-            @RequestParam(value = CLIENT_ID_SNAKECASE, required = true) final String clientId,
-            @RequestParam(value = SCOPE) final Optional<String> scope,
-            @RequestParam(value = REDIRECT_URI_SNAKECASE) final Optional<URI> redirectUriParam,
-            @RequestParam(value = STATE) final Optional<String> state,
-            @RequestParam(value = ERROR) final Optional<String> error,
-            @RequestHeader(value = HOST) final Optional<String> hostHeader, final Model model) {
+    String showAuthorizationForm(@RequestParam(value = PARAM_REALM) final Optional<String> realmNameParam,
+                                 @RequestParam(value = PARAM_RESPONSE_TYPE) final String responseType,
+                                 @RequestParam(value = PARAM_CLIENT_ID) final String clientId,
+                                 @RequestParam(value = PARAM_SCOPE) final Optional<String> scope,
+                                 @RequestParam(value = PARAM_REDIRECT_URI) final Optional<URI> redirectUriParam,
+                                 @RequestParam(value = PARAM_STATE) final Optional<String> state,
+                                 @RequestParam(value = PARAM_ERROR) final Optional<String> error,
+                                 @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader, final Model model) {
 
         if (!SUPPORTED_RESPONSE_TYPES.contains(responseType)) {
 
@@ -155,16 +161,16 @@ public class AuthorizeController {
     @RequestMapping(method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     AuthorizeResponse authorizeAsJson(
-            @RequestParam(value = RESPONSE_TYPE_SNAKECASE, required = true) final String responseType,
-            @RequestParam(value = REALM) final Optional<String> realmNameParam,
-            @RequestParam(value = CLIENT_ID_SNAKECASE, required = true) final String clientId,
-            @RequestParam(value = SCOPE) final Optional<String> scope,
-            @RequestParam(value = REDIRECT_URI_SNAKECASE) final URI redirectUri,
-            @RequestParam(value = STATE) final Optional<String> state,
-            @RequestParam(value = USERNAME, required = true) final String username,
-            @RequestParam(value = PASSWORD, required = true) final String password,
-            @RequestParam(value = DECISION) final Optional<String> decision,
-            @RequestHeader(value = HOST) final Optional<String> hostHeader) throws IOException, URISyntaxException,
+            @RequestParam(value = PARAM_RESPONSE_TYPE) final String responseType,
+            @RequestParam(value = PARAM_REALM) final Optional<String> realmNameParam,
+            @RequestParam(value = PARAM_CLIENT_ID) final String clientId,
+            @RequestParam(value = PARAM_SCOPE) final Optional<String> scope,
+            @RequestParam(value = PARAM_REDIRECT_URI) final URI redirectUri,
+            @RequestParam(value = PARAM_STATE) final Optional<String> state,
+            @RequestParam(value = PARAM_USERNAME) final String username,
+            @RequestParam(value = PARAM_PASSWORD) final String password,
+            @RequestParam(value = PARAM_DECISION) final Optional<String> decision,
+            @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader) throws IOException, URISyntaxException,
         JOSEException {
 
         if (!SUPPORTED_RESPONSE_TYPES.contains(responseType)) {
@@ -221,16 +227,16 @@ public class AuthorizeController {
 
     @RequestMapping(method = RequestMethod.POST)
     ModelAndView authorizeAsModel(
-            @RequestParam(value = RESPONSE_TYPE_SNAKECASE, required = true) final String responseType,
-            @RequestParam(value = REALM) final Optional<String> realmNameParam,
-            @RequestParam(value = CLIENT_ID_SNAKECASE, required = true) final String clientId,
-            @RequestParam(value = SCOPE) final Optional<String> scope,
-            @RequestParam(value = REDIRECT_URI_SNAKECASE) final URI redirectUri,
-            @RequestParam(value = STATE) final Optional<String> state,
-            @RequestParam(value = USERNAME, required = true) final String username,
-            @RequestParam(value = PASSWORD, required = true) final String password,
-            @RequestParam(value = DECISION) final Optional<String> decision,
-            @RequestHeader(value = HOST) final Optional<String> hostHeader) throws IOException, URISyntaxException,
+            @RequestParam(value = PARAM_RESPONSE_TYPE) final String responseType,
+            @RequestParam(value = PARAM_REALM) final Optional<String> realmNameParam,
+            @RequestParam(value = PARAM_CLIENT_ID) final String clientId,
+            @RequestParam(value = PARAM_SCOPE) final Optional<String> scope,
+            @RequestParam(value = PARAM_REDIRECT_URI) final URI redirectUri,
+            @RequestParam(value = PARAM_STATE) final Optional<String> state,
+            @RequestParam(value = PARAM_USERNAME) final String username,
+            @RequestParam(value = PARAM_PASSWORD) final String password,
+            @RequestParam(value = PARAM_DECISION) final Optional<String> decision,
+            @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader) throws IOException, URISyntaxException,
         JOSEException {
         final AuthorizeResponse authorizeResponse = authorizeAsJson(responseType, realmNameParam, clientId, scope,
                 redirectUri, state, username, password, decision, hostHeader);
@@ -246,7 +252,7 @@ public class AuthorizeController {
     }
 
     private boolean allScopesAreConsented(final Optional<Set<String>> consentedScopes, final Set<String> finalScopes) {
-        return consentedScopes.get().containsAll(finalScopes);
+        return consentedScopes.isPresent() && consentedScopes.get().containsAll(finalScopes);
     }
 
     private void checkNonConfidentialClientForImplicitCodeGrant(final String clientId, final String responseType, final boolean isConfidential) {
@@ -259,26 +265,26 @@ public class AuthorizeController {
     }
 
     private boolean isAuthorizationCodeGrant(final String responseType) {
-        return CODE.equals(responseType);
+        return PARAM_RESPONSE_TYPE_CODE.equals(responseType);
     }
 
     private boolean isImplicitGrant(final String responseType) {
-        return TOKEN.equals(responseType);
+        return PARAM_RESPONSE_TYPE_TOKEN.equals(responseType);
     }
 
     private Optional<Set<String>> storeOrGetConsentedScopes(final Optional<String> decision, final String username,
             final String clientId, final UserRealm userRealm, final Set<String> finalScopes) throws URISyntaxException {
         Optional<Set<String>> consentedScopes = Optional.empty();
 
-        switch (decision.orElse(DEFAULT_DECISION)) {
+        switch (decision.orElse(PARAM_DECISION_DEFAULT)) {
 
-            case ALLOW :
+            case PARAM_DECISION_ALLOW:
                 // save user consent
                 cassandraConsentService.store(username, userRealm.getName(), clientId, finalScopes);
                 consentedScopes = Optional.of(finalScopes);
                 break;
 
-            case DENY :
+            case PARAM_DECISION_DENY:
                 // redirect user to callback URL if decision is "deny" (error=access_denied)
                 // see http://tools.ietf.org/html/rfc6749#section-4.1.2.1
                 break;
@@ -294,31 +300,31 @@ public class AuthorizeController {
 
     private ModelAndView generateConsentScopesView(final AuthorizeResponse authorizeResponse) {
         final Map<String, Object> model = new HashMap<>();
-        model.put(CLIENT_NAME, authorizeResponse.getClientName());
-        model.put(CLIENT_DESCRIPTION, authorizeResponse.getClientDescription());
-        model.put(SCOPES, authorizeResponse.getScopes());
-        model.put(RESPONSE_TYPE, authorizeResponse.getResponseType());
-        model.put(REALM, authorizeResponse.getRealm());
-        model.put(CLIENT_ID, authorizeResponse.getClientId());
-        model.put(SCOPE, authorizeResponse.getScope());
-        model.put(REDIRECT_URI, authorizeResponse.getRedirect());
-        model.put(STATE, authorizeResponse.getState());
+        model.put(MODEL_CLIENT_NAME, authorizeResponse.getClientName());
+        model.put(MODEL_CLIENT_DESCRIPTION, authorizeResponse.getClientDescription());
+        model.put(MODEL_SCOPES, authorizeResponse.getScopes());
+        model.put(MODEL_RESPONSE_TYPE, authorizeResponse.getResponseType());
+        model.put(MODEL_REALM, authorizeResponse.getRealm());
+        model.put(MODEL_CLIENT_ID, authorizeResponse.getClientId());
+        model.put(MODEL_SCOPE, authorizeResponse.getScope());
+        model.put(MODEL_REDIRECT_URI, authorizeResponse.getRedirect());
+        model.put(MODEL_STATE, authorizeResponse.getState());
         // TODO: it's a poor idea to pass user credentials in hidden form fields
-        model.put(USERNAME, authorizeResponse.getUsername());
-        model.put(PASSWORD, authorizeResponse.getPassword());
-        return new ModelAndView(CONSENT, model);
+        model.put(MODEL_USERNAME, authorizeResponse.getUsername());
+        model.put(MODEL_PASSWORD, authorizeResponse.getPassword());
+        return new ModelAndView(MODEL_CONSENT, model);
     }
 
     private void updateModelForLogin(final Model model, final String responseType, final String realmName,
             final String clientId, final Optional<String> scope, final Optional<String> state, final URI redirectUri,
             final Optional<String> error) {
-        model.addAttribute(RESPONSE_TYPE, responseType);
-        model.addAttribute(REALM, realmName);
-        model.addAttribute(CLIENT_ID, clientId);
-        model.addAttribute(SCOPE, scope.orElse(EMPTY));
-        model.addAttribute(STATE, state.orElse(EMPTY));
-        model.addAttribute(REDIRECT_URI, redirectUri.toString());
-        model.addAttribute(ERROR, error.orElse(null));
+        model.addAttribute(MODEL_RESPONSE_TYPE, responseType);
+        model.addAttribute(MODEL_REALM, realmName);
+        model.addAttribute(MODEL_CLIENT_ID, clientId);
+        model.addAttribute(MODEL_SCOPE, scope.orElse(EMPTY_STRING));
+        model.addAttribute(MODEL_STATE, state.orElse(EMPTY_STRING));
+        model.addAttribute(MODEL_REDIRECT_URI, redirectUri.toString());
+        model.addAttribute(MODEL_ERROR, error.orElse(null));
     }
 
     private URI generateRedirectURIbasedOnGrantType(final String responseType, final String realmName,
@@ -338,10 +344,10 @@ public class AuthorizeController {
     private URI generateCodeResponseURI(final String realmName, final Optional<String> state, final String clientId,
             final Set<String> finalScopes, final Map<String, String> claims, final URI redirectUri)
         throws URISyntaxException {
-        final String code = cassandraAuthorizationCodeService.create(state.orElse(EMPTY), clientId, realmName,
+        final String code = cassandraAuthorizationCodeService.create(state.orElse(EMPTY_STRING), clientId, realmName,
                 finalScopes, claims, redirectUri);
 
-        return new URIBuilder(redirectUri).addParameter(CODE, code).addParameter(STATE, state.orElse(EMPTY)).build();
+        return new URIBuilder(redirectUri).addParameter(PARAM_RESPONSE_TYPE_CODE, code).addParameter(PARAM_STATE, state.orElse(EMPTY_STRING)).build();
     }
 
     private URI generateTokenResponseURI(final UserRealm userRealm, final Optional<String> state, final String clientId,
@@ -349,23 +355,24 @@ public class AuthorizeController {
         throws URISyntaxException, JOSEException {
 
         final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientId, finalScopes, claims);
-        return new URIBuilder(redirectUri).addParameter(ACCESS_TOKEN, rawJWT).addParameter(TOKEN_TYPE, BEARER)
-                                          .addParameter(EXPIRES_IN,
+        return new URIBuilder(redirectUri).addParameter(PARAM_ACCESS_TOKEN, rawJWT).addParameter(PARAM_TOKEN_TYPE, PARAM_TOKEN_TYPE_BEARER)
+                                          .addParameter(PARAM_EXPIRES_IN,
                                               String.valueOf(JWTIssuer.EXPIRATION_TIME.getSeconds()))
-                                          .addParameter(SCOPE, ScopeProperties.join(finalScopes))
-                                          .addParameter(STATE, state.orElse(EMPTY)).build();
+                                          .addParameter(PARAM_SCOPE, ScopeProperties.join(finalScopes))
+                                          .addParameter(PARAM_STATE, state.orElse(EMPTY_STRING)).build();
     }
 
     private URI generateLoginFormURI(final String realmName, final String responseType, final Optional<String> state,
             final String clientId, final Set<String> finalScopes, final URI redirectUri) throws URISyntaxException,
         JOSEException {
-        return new URIBuilder(AUTHORIZE_ENDPOINT).addParameter(RESPONSE_TYPE_SNAKECASE, responseType)
-                                                 .addParameter(REALM, realmName)
-                                                 .addParameter(CLIENT_ID_SNAKECASE, clientId)
-                                                 .addParameter(SCOPE, ScopeProperties.join(finalScopes))
-                                                 .addParameter(REDIRECT_URI_SNAKECASE, redirectUri.toString())
-                                                 .addParameter(STATE, state.orElse(EMPTY))
-                                                 .addParameter(ERROR, ACCESS_DENIED_ERROR).build();
+        return new URIBuilder(linkTo(AuthorizeController.class).toUri().getPath())
+                                                    .addParameter(PARAM_RESPONSE_TYPE, responseType)
+                                                    .addParameter(PARAM_REALM, realmName)
+                                                    .addParameter(PARAM_CLIENT_ID, clientId)
+                                                    .addParameter(PARAM_SCOPE, ScopeProperties.join(finalScopes))
+                                                    .addParameter(PARAM_REDIRECT_URI, redirectUri.toString())
+                                                    .addParameter(PARAM_STATE, state.orElse(EMPTY_STRING))
+                                                    .addParameter(PARAM_ERROR, PARAM_ERROR_ACCESS_DENIED).build();
     }
 
     private AuthorizeResponse generateConsentNeededResponse(final ClientData clientData, final Set<String> finalScopes,
@@ -379,7 +386,7 @@ public class AuthorizeController {
         authorizeResponse.setScopes(finalScopes);
         authorizeResponse.setClientId(clientId);
         authorizeResponse.setResponseType(responseType);
-        authorizeResponse.setState(state.orElse(EMPTY));
+        authorizeResponse.setState(state.orElse(EMPTY_STRING));
         authorizeResponse.setScope(ScopeProperties.join(finalScopes));
         authorizeResponse.setRealm(realmName);
         authorizeResponse.setConsentNeeded(true);
@@ -392,8 +399,8 @@ public class AuthorizeController {
     private AuthorizeResponse noConsentedScopesResponse(final URI redirectUri, final Optional<String> state)
         throws URISyntaxException {
         final AuthorizeResponse authorizeResponse = new AuthorizeResponse();
-        final URI redirect = new URIBuilder(redirectUri).addParameter(ERROR, ACCESS_DENIED_ERROR)
-                                                        .addParameter(STATE, state.orElse(EMPTY)).build();
+        final URI redirect = new URIBuilder(redirectUri).addParameter(PARAM_ERROR, PARAM_ERROR_ACCESS_DENIED)
+                                                        .addParameter(PARAM_STATE, state.orElse(EMPTY_STRING)).build();
         authorizeResponse.setRedirect(redirect.toString());
         return authorizeResponse;
     }

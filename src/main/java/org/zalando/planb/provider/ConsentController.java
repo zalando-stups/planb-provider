@@ -45,7 +45,7 @@ public class ConsentController implements ConsentsApi {
     public ResponseEntity<Void> consentsRealmUsernameClientIdDelete(@PathVariable("username") final String username,
             @PathVariable("realm") final String realm,
             @PathVariable("client_id") final String clientId) {
-        log.info("Withdrawl stored consents for user {} on realm {}, application id {}", username, realm, clientId);
+        log.info("Withdrawing stored consents for user {} on realm {}, application id {}", username, realm, clientId);
         cassandraConsentService.withdraw(username, realm, clientId);
 
         return new ResponseEntity<>(NO_CONTENT);

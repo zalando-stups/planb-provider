@@ -24,6 +24,9 @@ public class AuthorizeResponse {
     @JsonProperty("redirect")
     private String redirect;
 
+    @JsonProperty("consent_needed")
+    private boolean isConsentNeeded;
+
     @JsonIgnore
     private String responseType;
 
@@ -38,9 +41,6 @@ public class AuthorizeResponse {
 
     @JsonIgnore
     private String clientId;
-
-    @JsonIgnore
-    private boolean isConsentNeeded;
 
     @JsonIgnore
     private String username;
