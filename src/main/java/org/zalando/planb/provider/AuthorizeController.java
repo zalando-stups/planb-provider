@@ -15,13 +15,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import java.util.*;
-import java.util.function.Supplier;
 
-import com.google.common.collect.Collections2;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.utils.URIBuilder;
-
-import org.slf4j.Logger;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -106,7 +102,7 @@ public class AuthorizeController {
     private CassandraAuthorizationCodeService cassandraAuthorizationCodeService;
 
     @Autowired
-    private CassandraConsentService cassandraConsentService;
+    private ConsentService consentService;
 
     /**
      * Authorization Request, see http://tools.ietf.org/html/rfc6749#section-4.1.1.
@@ -280,7 +276,7 @@ public class AuthorizeController {
 
             case PARAM_DECISION_ALLOW:
                 // save user consent
-                cassandraConsentService.store(username, userRealm.getName(), clientId, finalScopes);
+                consentService.store(username, userRealm.getName(), clientId, finalScopes);
                 consentedScopes = Optional.of(finalScopes);
                 break;
 
@@ -290,7 +286,7 @@ public class AuthorizeController {
                 break;
 
             default :
-                consentedScopes = Optional.of(cassandraConsentService.getConsentedScopes(username, userRealm.getName(),
+                consentedScopes = Optional.of(consentService.getConsentedScopes(username, userRealm.getName(),
                             clientId));
                 break;
         }
