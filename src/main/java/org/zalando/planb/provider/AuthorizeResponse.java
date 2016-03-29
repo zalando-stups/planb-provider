@@ -6,10 +6,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class AuthorizeResponse {
 
     @JsonProperty("client_name")
@@ -25,7 +31,7 @@ public class AuthorizeResponse {
     private String redirect;
 
     @JsonProperty("consent_needed")
-    private boolean isConsentNeeded;
+    private boolean consentNeeded;
 
     @JsonIgnore
     private String responseType;

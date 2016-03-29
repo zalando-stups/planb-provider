@@ -32,7 +32,6 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.reducing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.Assertions.offset;
 
 @SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
@@ -42,8 +41,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     private int port;
 
     @Autowired
-    CassandraConsentService cassandraConsentService;
-
+    private ConsentService consentService;
 
     private final HttpClient httpClient = HttpClients.custom().disableRedirectHandling().build();
 
@@ -121,7 +119,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     @Test
     public void authorizeWrongRedirectUri() {
         // assume prior user consent
-        cassandraConsentService.store("testuser", "/services", "testauthcode", ImmutableSet.of("uid", "ascope"));
+        consentService.store("testuser", "/services", "testauthcode", ImmutableSet.of("uid", "ascope"));
 
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("response_type", "code");
@@ -169,7 +167,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     @Test
     public void authorizeWrongClient() {
         // assume prior user consent
-        cassandraConsentService.store("testuser", "/services", "testauthcode", ImmutableSet.of("uid", "ascope"));
+        consentService.store("testuser", "/services", "testauthcode", ImmutableSet.of("uid", "ascope"));
 
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("response_type", "code");
@@ -224,7 +222,33 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
 
 
     @Test
-    public void authorizeWrongCredentials() {
+    public void authorizeWrongUserCredentialsAsJson() {
+
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "code");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testauthcode");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "wrongpass");
+        requestParameters.add("scope", "uid ascope openid");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .accept(MediaType.APPLICATION_JSON)
+                .body(requestParameters);
+
+        try {
+            rest.exchange(request, Void.class);
+        } catch (HttpClientErrorException ex) {
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getResponseBodyAsString()).contains("invalid_grant");
+        }
+
+    }
+
+    @Test
+    public void authorizeWrongUserCredentialsAsHTML() {
 
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("response_type", "code");

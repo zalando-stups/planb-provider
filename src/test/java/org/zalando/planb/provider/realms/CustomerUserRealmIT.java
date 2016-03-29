@@ -10,8 +10,6 @@ import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.zalando.planb.provider.AbstractSpringTest;
 import org.zalando.planb.provider.Main;
-import org.zalando.planb.provider.realms.CustomerUserRealm;
-import org.zalando.planb.provider.realms.RealmAuthenticationException;
 
 import java.util.Map;
 
