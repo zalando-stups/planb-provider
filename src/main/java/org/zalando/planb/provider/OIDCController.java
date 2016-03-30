@@ -4,7 +4,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Joiner;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.jwk.JWK;
-import org.slf4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -14,12 +14,11 @@ import java.net.URI;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.slf4j.LoggerFactory.getLogger;
 import static org.zalando.planb.provider.Metric.trimSlash;
 
 @RestController
+@Slf4j
 public class OIDCController {
 
     private static final Joiner COMMA_SEPARATED = Joiner.on(",");
@@ -27,9 +26,6 @@ public class OIDCController {
     private static final Base64.Decoder BASE_64_DECODER = Base64.getDecoder();
 
     private static final String BASIC_AUTH_PREFIX = "Basic ";
-
-
-    private final Logger log = getLogger(getClass());
 
     @Autowired
     private RealmConfig realms;
@@ -72,16 +68,6 @@ public class OIDCController {
             return new ClientCredentials(clientId.get(), clientSecret.get());
         } else {
             return getClientCredentials(authorization);
-        }
-    }
-
-    /*
-     * Check the given Redirect URI against the ones configured for the given client.
-     * Throw BAD REQUEST exception if it does not match.
-     */
-    static void validateRedirectUri(String realm, String clientId, ClientData clientData, URI redirectUri) {
-        if (!clientData.getRedirectUris().contains(redirectUri.toString())) {
-            throw new BadRequestException(format("Redirect URI mismatch for client %s/%s", realm, clientId), "invalid_request", "Redirect URI mismatch");
         }
     }
 
