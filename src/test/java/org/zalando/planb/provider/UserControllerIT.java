@@ -29,17 +29,22 @@ import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.Assert.fail;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
-import static org.springframework.http.HttpStatus.*;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.RequestEntity.delete;
-import static org.springframework.http.RequestEntity.*;
+import static org.springframework.http.RequestEntity.patch;
+import static org.springframework.http.RequestEntity.post;
 import static org.springframework.http.RequestEntity.put;
-import static org.zalando.planb.provider.UserData.copyOf;
+import static org.zalando.planb.provider.UserData.builderOf;
+import static org.zalando.planb.provider.UserData.toUserPasswordHashSet;
 
 @SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
@@ -84,12 +89,10 @@ public class UserControllerIT extends AbstractSpringTest {
 
         assertThat(fetchUser("4711", "/services"))
                 .isNotNull()
-                .has(valuesEqualTo(copyOf(body1)
-                        .withCreatedBy(USER1)
-                        .withLastModifiedBy(USER1)
-                        .withPasswordHashes(body1.getPasswordHashes().stream()
-                                .map(h -> new UserPasswordHash(h, USER1))
-                                .collect(toList()))
+                .has(valuesEqualTo(builderOf(body1)
+                        .createdBy(USER1)
+                        .lastModifiedBy(USER1)
+                        .passwordHashes(toUserPasswordHashSet(body1.getPasswordHashes(), USER1))
                         .build()));
 
         final User body2 = new User();
@@ -103,12 +106,10 @@ public class UserControllerIT extends AbstractSpringTest {
 
         assertThat(fetchUser("4711", "/services"))
                 .isNotNull()
-                .has(valuesEqualTo(copyOf(body2)
-                        .withCreatedBy(USER1)
-                        .withLastModifiedBy(USER2)
-                        .withPasswordHashes(body2.getPasswordHashes().stream()
-                                .map(h -> new UserPasswordHash(h, USER2))
-                                .collect(toList()))
+                .has(valuesEqualTo(builderOf(body2)
+                        .createdBy(USER1)
+                        .lastModifiedBy(USER2)
+                        .passwordHashes(toUserPasswordHashSet(body2.getPasswordHashes(), USER2))
                         .build()));
     }
 
@@ -196,11 +197,11 @@ public class UserControllerIT extends AbstractSpringTest {
 
         assertThat(fetchUser("1234", "/services"))
                 .isNotNull()
-                .has(valuesEqualTo(new UserData.Builder()
-                        .withScopes(initialScopes)
-                        .withPasswordHashes(newPasswordHashes.stream().map(h -> new UserPasswordHash(h, USER2)).collect(toList()))
-                        .withCreatedBy(USER1)
-                        .withLastModifiedBy(USER2)
+                .has(valuesEqualTo(UserData.builder()
+                        .scopes(initialScopes)
+                        .passwordHashes(toUserPasswordHashSet(newPasswordHashes, USER2))
+                        .createdBy(USER1)
+                        .lastModifiedBy(USER2)
                         .build()));
 
         // when the scopes are updated
@@ -213,11 +214,11 @@ public class UserControllerIT extends AbstractSpringTest {
 
         assertThat(fetchUser("1234", "/services"))
                 .isNotNull()
-                .has(valuesEqualTo(new UserData.Builder()
-                        .withScopes(newScopes)
-                        .withPasswordHashes(newPasswordHashes.stream().map(h -> new UserPasswordHash(h, USER2)).collect(toList()))
-                        .withCreatedBy(USER1)
-                        .withLastModifiedBy(USER1)
+                .has(valuesEqualTo(UserData.builder()
+                        .scopes(newScopes)
+                        .passwordHashes(toUserPasswordHashSet(newPasswordHashes, USER2))
+                        .createdBy(USER1)
+                        .lastModifiedBy(USER1)
                         .build()));
     }
 

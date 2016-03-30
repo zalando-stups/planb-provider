@@ -103,7 +103,7 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .setString(CLIENT_ID, clientId)
                 .setString(CLIENT_SECRET_HASH, Optional.ofNullable(data.getClientSecretHash()).orElseGet(existing::getClientSecretHash))
                 .setSet(SCOPES, Optional.ofNullable(data.getScopes()).filter(set -> !set.isEmpty()).orElseGet(existing::getScopes))
-                .setBool(IS_CONFIDENTIAL, Optional.ofNullable(data.isConfidential()).orElseGet(existing::isConfidential))
+                .setBool(IS_CONFIDENTIAL, Optional.ofNullable(data.getConfidential()).orElseGet(existing::getConfidential))
                 .setString(NAME, Optional.ofNullable(data.getName()).orElseGet(existing::getName))
                 .setString(DESCRIPTION, Optional.ofNullable(data.getDescription()).orElseGet(existing::getDescription))
                 .setSet(REDIRECT_URIS, Optional.ofNullable(data.getRedirectUris()).filter(set -> !set.isEmpty()).orElseGet(existing::getRedirectUris))
@@ -126,7 +126,7 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .setString(CLIENT_ID, clientId)
                 .setString(CLIENT_SECRET_HASH, client.getClientSecretHash())
                 .setSet(SCOPES, newHashSet(client.getScopes()))
-                .setBool(IS_CONFIDENTIAL, client.isConfidential())
+                .setBool(IS_CONFIDENTIAL, client.getConfidential())
                 .setString(NAME, client.getName())
                 .setString(DESCRIPTION, client.getDescription())
                 .setSet(REDIRECT_URIS, newHashSet(client.getRedirectUris()))
@@ -143,16 +143,15 @@ public class CassandraClientRealm implements ClientManagedRealm {
     }
 
     private static ClientData toClient(Row row) {
-        return new ClientData(
-                row.getString(CLIENT_SECRET_HASH),
-                row.getSet(SCOPES, String.class),
-                row.getBool(IS_CONFIDENTIAL),
-                row.getString(NAME),
-                row.getString(DESCRIPTION),
-                row.getSet(REDIRECT_URIS, String.class),
-                row.getString(CREATED_BY),
-                row.getString(LAST_MODIFIED_BY)
-
-        );
+        return ClientData.builder()
+                .clientSecretHash(row.getString(CLIENT_SECRET_HASH))
+                .scopes(row.getSet(SCOPES, String.class))
+                .confidential(row.getBool(IS_CONFIDENTIAL))
+                .name(row.getString(NAME))
+                .description(row.getString(DESCRIPTION))
+                .redirectUris(row.getSet(REDIRECT_URIS, String.class))
+                .createdBy(row.getString(CREATED_BY))
+                .lastModifiedBy(row.getString(LAST_MODIFIED_BY))
+                .build();
     }
 }

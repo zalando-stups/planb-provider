@@ -133,7 +133,15 @@ public class CassandraAuthorizationCodeService {
     }
 
     private static AuthorizationCode toAuthorizationCode(Row row) {
-        return new AuthorizationCode(row.getString(CODE), row.getString(STATE), row.getString(CLIENT_ID), row.getString(REALM), row.getSet(SCOPES, String.class), row.getMap(CLAIMS, String.class, String.class), URI.create(row.getString(REDIRECT_URI)));
+        return AuthorizationCode.builder()
+                .code(row.getString(CODE))
+                .state(row.getString(STATE))
+                .clientId(row.getString(CLIENT_ID))
+                .realm(row.getString(REALM))
+                .scopes(row.getSet(SCOPES, String.class))
+                .claims(row.getMap(CLAIMS, String.class, String.class))
+                .redirectUri(URI.create(row.getString(REDIRECT_URI)))
+                .build();
     }
 
 

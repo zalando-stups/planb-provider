@@ -194,7 +194,7 @@ public class AuthorizeController {
 
         // make sure (again!) that the redirect_uri was configured in the client
         validateRedirectUri(realmName, clientId, clientData, redirectUri);
-        checkNonConfidentialClientForImplicitCodeGrant(clientId, responseType, clientData.isConfidential());
+        checkNonConfidentialClientForImplicitCodeGrant(clientId, responseType, clientData.getConfidential());
 
         final Set<String> scopes = ScopeProperties.split(scope);
         final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);

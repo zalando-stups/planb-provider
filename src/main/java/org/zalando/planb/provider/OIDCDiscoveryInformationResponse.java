@@ -2,10 +2,15 @@ package org.zalando.planb.provider;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 // see http://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
+@Getter
+@NoArgsConstructor
 public class OIDCDiscoveryInformationResponse {
 
     public static final String AUTHORIZE_PATH = "/oauth2/authorize";
@@ -38,36 +43,8 @@ public class OIDCDiscoveryInformationResponse {
             "ES512"
     );
 
-    protected OIDCDiscoveryInformationResponse() {
-    }
-
     public OIDCDiscoveryInformationResponse(String proto, String hostname) {
         authorizationEndpoint = proto + "://" + hostname + AUTHORIZE_PATH;
-
         jwksUri = proto + "://" + hostname + KEYS_PATH;
-    }
-
-    public String getIssuer() {
-        return ISSUER;
-    }
-
-    public String getJwksUri() {
-        return jwksUri;
-    }
-
-    public String getAuthorizationEndpoint() {
-        return authorizationEndpoint;
-    }
-
-    public List<String> getResponseTypesSupported() {
-        return responseTypesSupported;
-    }
-
-    public List<String> getSubjectTypesSupported() {
-        return subjectTypesSupported;
-    }
-
-    public List<String> getIdTokenSigningAlgValuesSupported() {
-        return idTokenSigningAlgValuesSupported;
     }
 }

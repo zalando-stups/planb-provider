@@ -30,12 +30,17 @@ import static org.assertj.core.api.Assertions.allOf;
 import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
 import static org.junit.Assert.fail;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
-import static org.springframework.http.HttpStatus.*;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.RequestEntity.delete;
-import static org.springframework.http.RequestEntity.*;
+import static org.springframework.http.RequestEntity.patch;
 import static org.springframework.http.RequestEntity.put;
-import static org.zalando.planb.provider.ClientData.copyOf;
+import static org.zalando.planb.provider.ClientData.builderOf;
 
 
 @SpringApplicationConfiguration(classes = { Main.class })
@@ -183,7 +188,7 @@ public class ClientControllerIT extends AbstractSpringTest {
 
         assertThat(fetchClient("4711", "/customers"))
                 .isNotNull()
-                .has(valuesEqualTo(copyOf(body1).withCreatedBy(USER1).withLastModifiedBy(USER1).build()));
+                .has(valuesEqualTo(builderOf(body1).createdBy(USER1).lastModifiedBy(USER1).build()));
 
         final Client body2 = new Client();
         body2.setSecretHash(hash);
@@ -197,7 +202,7 @@ public class ClientControllerIT extends AbstractSpringTest {
 
         assertThat(fetchClient("4711", "/customers"))
                 .isNotNull()
-                .has(valuesEqualTo(copyOf(body2).withCreatedBy(USER1).withLastModifiedBy(USER2).build()));
+                .has(valuesEqualTo(builderOf(body2).createdBy(USER1).lastModifiedBy(USER2).build()));
     }
 
     @Test
@@ -224,7 +229,7 @@ public class ClientControllerIT extends AbstractSpringTest {
 
         assertThat(fetchClient("42", "/employees"))
                 .isNotNull()
-                .has(valuesEqualTo(copyOf(body1).withCreatedBy(USER1).withLastModifiedBy(USER1).build()));
+                .has(valuesEqualTo(builderOf(body1).createdBy(USER1).lastModifiedBy(USER1).build()));
 
         final Client body2 = new Client();
         body2.setSecretHash(hash);
@@ -241,7 +246,7 @@ public class ClientControllerIT extends AbstractSpringTest {
 
         assertThat(fetchClient("42", "/employees"))
                 .isNotNull()
-                .has(valuesEqualTo(copyOf(body2).withCreatedBy(USER1).withLastModifiedBy(USER2).build()));
+                .has(valuesEqualTo(builderOf(body2).createdBy(USER1).lastModifiedBy(USER2).build()));
     }
 
     @Test
@@ -285,7 +290,7 @@ public class ClientControllerIT extends AbstractSpringTest {
         // then changes only this change is reflected in data storage
         service1234.setSecretHash(newSecretHash);
         assertThat(fetchClient("1234", "/services"))
-                .has(valuesEqualTo(copyOf(service1234).withCreatedBy(USER1).withLastModifiedBy(USER1).build()));
+                .has(valuesEqualTo(builderOf(service1234).createdBy(USER1).lastModifiedBy(USER1).build()));
 
         // when the scopes are updated
         final List<String> newScopes = asList("mickey", "mouse", "donald", "duck");
@@ -296,7 +301,7 @@ public class ClientControllerIT extends AbstractSpringTest {
         // then this change is also reflected in data storage
         service1234.setScopes(newScopes);
         assertThat(fetchClient("1234", "/services"))
-                .has(valuesEqualTo(copyOf(service1234).withCreatedBy(USER1).withLastModifiedBy(USER2).build()));
+                .has(valuesEqualTo(builderOf(service1234).createdBy(USER1).lastModifiedBy(USER2).build()));
 
         // and when finally the confidential flag is updated
         final Client body3 = new Client();
@@ -306,13 +311,13 @@ public class ClientControllerIT extends AbstractSpringTest {
         // then this change is also reflected in data storage
         service1234.setIsConfidential(false);
         assertThat(fetchClient("1234", "/services"))
-                .has(valuesEqualTo(copyOf(service1234).withCreatedBy(USER1).withLastModifiedBy(USER1).build()));
+                .has(valuesEqualTo(builderOf(service1234).createdBy(USER1).lastModifiedBy(USER1).build()));
     }
 
     private Condition<? super Row> valuesEqualTo(ClientData expected) {
         return allOf(
                 new Condition<>(r -> Objects.equals(r.getString("client_secret_hash"), expected.getClientSecretHash()), "client_secret_hash = %s", expected.getClientSecretHash()),
-                new Condition<>(r -> Objects.equals(r.getBool("is_confidential"), expected.isConfidential()), "is_confidential = %s", expected.isConfidential()),
+                new Condition<>(r -> Objects.equals(r.getBool("is_confidential"), expected.getConfidential()), "is_confidential = %s", expected.getConfidential()),
                 new Condition<>(r -> Objects.equals(r.getSet("scopes", String.class), newHashSet(expected.getScopes())), "scopes = %s", expected.getScopes()),
                 new Condition<>(r -> Objects.equals(r.getString("name"), expected.getName()), "name = %s", expected.getName()),
                 new Condition<>(r -> Objects.equals(r.getString("description"), expected.getDescription()), "description = %s", expected.getDescription()),
