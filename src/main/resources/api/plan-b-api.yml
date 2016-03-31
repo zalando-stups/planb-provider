@@ -5,6 +5,8 @@ info:
   description: API for managing clients, users and their credentials
   version: "1.0"
 
+basePath: "/raw-sync"
+
 securityDefinitions:
   oauth2:
     type: oauth2
@@ -18,7 +20,7 @@ security:
     - uid
 
 paths:
-  /raw-sync/clients/{realm}/{id}:
+  /clients/{realm}/{id}:
     put:
       summary: Save client
       description: |
@@ -89,7 +91,7 @@ paths:
           schema:
             $ref:  '#/definitions/Error'
 
-  /raw-sync/users/{realm}/{id}:
+  /users/{realm}/{id}:
     put:
       summary: Save user
       description: |
@@ -160,7 +162,7 @@ paths:
           schema:
             $ref:  '#/definitions/Error'
 
-  /raw-sync/users/{realm}/{id}/password:
+  /users/{realm}/{id}/password:
     post:
       summary: add password
       description: |
@@ -221,7 +223,7 @@ paths:
           description: Unauthorized request
           schema:
             $ref:  '#/definitions/Error'
-            
+
 parameters:
 
   Realm:
