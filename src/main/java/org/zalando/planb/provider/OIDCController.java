@@ -40,7 +40,7 @@ public class OIDCController {
     private MetricRegistry metricRegistry;
 
     @Autowired
-    private ScopeProperties scopeProperties;
+    private ScopeService scopeService;
 
     @Autowired
     private CassandraAuthorizationCodeService cassandraAuthorizationCodeService;
@@ -82,7 +82,7 @@ public class OIDCController {
                 .accessToken(accessToken)
                 .idToken(scopes.contains("openid") ? accessToken : (String)null)
                 .expiresIn(JWTIssuer.EXPIRATION_TIME.getSeconds())
-                .scope(ScopeProperties.join(scopes))
+                .scope(ScopeService.join(scopes))
                 .realm(realmName)
                 .build();
     }
@@ -177,8 +177,8 @@ public class OIDCController {
             UserRealm userRealm = realms.getUserRealm(realmName);
 
             // parse requested scopes
-            final Set<String> scopes = ScopeProperties.split(scope);
-            final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);
+            final Set<String> scopes = ScopeService.split(scope);
+            final Set<String> defaultScopes = scopeService.getDefaultScopesForClient(clientRealm, clientIdParam);
             final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
 
             final ClientCredentials clientCredentials = getClientCredentials(authorization, clientIdParam, clientSecretParam);

@@ -82,9 +82,6 @@ public class AuthorizeController {
     private RealmConfig realms;
 
     @Autowired
-    private ScopeProperties scopeProperties;
-
-    @Autowired
     private JWTIssuer jwtIssuer;
 
     @Autowired
@@ -92,6 +89,9 @@ public class AuthorizeController {
 
     @Autowired
     private ConsentService consentService;
+
+    @Autowired
+    private ScopeService scopeService;
 
     /**
      * Authorization Request, see http://tools.ietf.org/html/rfc6749#section-4.1.1.
@@ -196,8 +196,8 @@ public class AuthorizeController {
         validateRedirectUri(realmName, clientId, clientData, redirectUri);
         checkNonConfidentialClientForImplicitCodeGrant(clientId, responseType, clientData.getConfidential());
 
-        final Set<String> scopes = ScopeProperties.split(scope);
-        final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);
+        final Set<String> scopes = ScopeService.split(scope);
+        final Set<String> defaultScopes = scopeService.getDefaultScopesForClient(clientRealm, clientData);
         final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
         final UserRealm userRealm = realms.getUserRealm(realmName);
 
@@ -363,7 +363,7 @@ public class AuthorizeController {
         final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientId, finalScopes, claims);
         return new URIBuilder(redirectUri).addParameter(PARAM_ACCESS_TOKEN, rawJWT).addParameter(PARAM_TOKEN_TYPE, PARAM_TOKEN_TYPE_BEARER)
                 .addParameter(PARAM_EXPIRES_IN, String.valueOf(JWTIssuer.EXPIRATION_TIME.getSeconds()))
-                .addParameter(PARAM_SCOPE, ScopeProperties.join(finalScopes))
+                .addParameter(PARAM_SCOPE, ScopeService.join(finalScopes))
                 .addParameter(PARAM_STATE, state.orElse(EMPTY_STRING)).build();
     }
 
@@ -374,7 +374,7 @@ public class AuthorizeController {
                 .addParameter(PARAM_RESPONSE_TYPE, responseType)
                 .addParameter(PARAM_REALM, realmName.orElse(EMPTY_STRING))
                 .addParameter(PARAM_CLIENT_ID, clientId)
-                .addParameter(PARAM_SCOPE, ScopeProperties.join(ScopeProperties.split(finalScopes)))
+                .addParameter(PARAM_SCOPE, ScopeService.get(finalScopes))
                 .addParameter(PARAM_REDIRECT_URI, redirectUri.toString())
                 .addParameter(PARAM_STATE, state.orElse(EMPTY_STRING))
                 .addParameter(PARAM_ERROR, PARAM_ERROR_ACCESS_DENIED).build();
@@ -393,7 +393,7 @@ public class AuthorizeController {
                 .responseType(responseType)
                 .state(state.orElse(EMPTY_STRING))
                 .scopes(finalScopes)
-                .scope(ScopeProperties.join(finalScopes))
+                .scope(ScopeService.join(finalScopes))
                 .realm(realmName)
                 .consentNeeded(true)
                 .username(username)

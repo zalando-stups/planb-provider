@@ -27,6 +27,7 @@ public class CassandraClientRealm implements ClientManagedRealm {
     private static final String CLIENT_SECRET_HASH = "client_secret_hash";
     private static final String IS_CONFIDENTIAL = "is_confidential";
     private static final String SCOPES = "scopes";
+    private static final String DEFAULT_SCOPES = "default_scopes";
     private static final String NAME = "name";
     private static final String DESCRIPTION = "description";
     private static final String REDIRECT_URIS = "redirect_uris";
@@ -59,6 +60,7 @@ public class CassandraClientRealm implements ClientManagedRealm {
         findOne = session.prepare(select()
                 .column(CLIENT_SECRET_HASH)
                 .column(SCOPES)
+                .column(DEFAULT_SCOPES)
                 .column(IS_CONFIDENTIAL)
                 .column(NAME)
                 .column(DESCRIPTION)
@@ -75,6 +77,7 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .value(REALM, realmName)
                 .value(CLIENT_SECRET_HASH, bindMarker(CLIENT_SECRET_HASH))
                 .value(SCOPES, bindMarker(SCOPES))
+                .value(DEFAULT_SCOPES, bindMarker(DEFAULT_SCOPES))
                 .value(IS_CONFIDENTIAL, bindMarker(IS_CONFIDENTIAL))
                 .value(NAME, bindMarker(NAME))
                 .value(DESCRIPTION, bindMarker(DESCRIPTION))
@@ -103,6 +106,7 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .setString(CLIENT_ID, clientId)
                 .setString(CLIENT_SECRET_HASH, Optional.ofNullable(data.getClientSecretHash()).orElseGet(existing::getClientSecretHash))
                 .setSet(SCOPES, Optional.ofNullable(data.getScopes()).filter(set -> !set.isEmpty()).orElseGet(existing::getScopes))
+                .setSet(DEFAULT_SCOPES, Optional.ofNullable(data.getDefaultScopes()).filter(set -> !set.isEmpty()).orElseGet(existing::getDefaultScopes))
                 .setBool(IS_CONFIDENTIAL, Optional.ofNullable(data.getConfidential()).orElseGet(existing::getConfidential))
                 .setString(NAME, Optional.ofNullable(data.getName()).orElseGet(existing::getName))
                 .setString(DESCRIPTION, Optional.ofNullable(data.getDescription()).orElseGet(existing::getDescription))
@@ -126,6 +130,7 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .setString(CLIENT_ID, clientId)
                 .setString(CLIENT_SECRET_HASH, client.getClientSecretHash())
                 .setSet(SCOPES, newHashSet(client.getScopes()))
+                .setSet(DEFAULT_SCOPES, newHashSet(client.getDefaultScopes()))
                 .setBool(IS_CONFIDENTIAL, client.getConfidential())
                 .setString(NAME, client.getName())
                 .setString(DESCRIPTION, client.getDescription())
@@ -146,6 +151,7 @@ public class CassandraClientRealm implements ClientManagedRealm {
         return ClientData.builder()
                 .clientSecretHash(row.getString(CLIENT_SECRET_HASH))
                 .scopes(row.getSet(SCOPES, String.class))
+                .defaultScopes(row.getSet(DEFAULT_SCOPES, String.class))
                 .confidential(row.getBool(IS_CONFIDENTIAL))
                 .name(row.getString(NAME))
                 .description(row.getString(DESCRIPTION))

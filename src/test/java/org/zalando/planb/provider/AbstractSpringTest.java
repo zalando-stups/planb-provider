@@ -2,11 +2,20 @@ package org.zalando.planb.provider;
 
 import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.client.HttpClients;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.junit4.rules.SpringClassRule;
 import org.springframework.test.context.junit4.rules.SpringMethodRule;
+import org.springframework.web.client.RestTemplate;
+
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
@@ -108,4 +117,6 @@ public abstract class AbstractSpringTest {
                 .withHeader(AUTHORIZATION, equalTo(SERVER_ERROR_ACCESS_TOKEN))
                 .willReturn(aResponse().withStatus(INTERNAL_SERVER_ERROR.value())));
     }
+
+
 }

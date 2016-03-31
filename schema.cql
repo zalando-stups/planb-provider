@@ -6,6 +6,7 @@ CREATE TABLE provider.client (
     realm TEXT,                      -- Data pool this entity belongs to
     client_secret_hash TEXT,         -- Bcrypt hash of the client secret
     scopes SET<TEXT>,                -- scopes this client is allowed to request
+    default_scopes SET<TEXT>,        -- default requested scopes in case the client does not provide them explicitly
     is_confidential BOOLEAN,         -- whether the client is confidential or not (non-confidential clients should only be allowed to use the implicit flow)
     name TEXT,                       -- client's human readable name (shown on authorization consent form)
     description TEXT,                -- client's human readable description (for consent form)

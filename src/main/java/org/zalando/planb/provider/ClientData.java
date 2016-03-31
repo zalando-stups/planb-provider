@@ -15,6 +15,7 @@ public class ClientData {
 
     private String clientSecretHash;
     private Set<String> scopes;
+    private Set<String> defaultScopes;
     private Boolean confidential;
     private String name;
     private String description;
@@ -30,6 +31,7 @@ public class ClientData {
         return ClientData.builder()
                 .clientSecretHash(client.getSecretHash())
                 .scopes(ImmutableSet.copyOf(client.getScopes()))
+                .defaultScopes(ImmutableSet.copyOf(client.getDefaultScopes()))
                 .confidential(client.getIsConfidential())
                 .name(client.getName())
                 .description(client.getDescription())

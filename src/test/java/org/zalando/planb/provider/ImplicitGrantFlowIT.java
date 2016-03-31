@@ -1,53 +1,38 @@
 package org.zalando.planb.provider;
 
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.assertj.core.data.MapEntry;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.SpringApplicationConfiguration;
-import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.zalando.planb.provider.AuthorizationCodeGrantFlowIT.parseURLParams;
 
-@SpringApplicationConfiguration(classes = {Main.class})
-@WebIntegrationTest(randomPort = true)
 @ActiveProfiles("it")
-public class ImplicitGrantFlowIT extends AbstractSpringTest {
-    @Value("${local.server.port}")
-    private int port;
+public class ImplicitGrantFlowIT extends AbstractOauthTest {
 
     @Autowired
-    CassandraConsentService cassandraConsentService;
-
-
-    private final HttpClient httpClient = HttpClients.custom().disableRedirectHandling().build();
-
-    private final RestTemplate rest = new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient));
+    private CassandraConsentService cassandraConsentService;
 
     @Test
-    public void showLoginForm() {
+    public void showLoginForm() throws URISyntaxException {
         RequestEntity<Void> request = RequestEntity
-                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=token&client_id=testimplicit&redirect_uri=https://myapp.example.org/callback&state=mystate"))
+                .get(getAuthorizeUrl("token", "/services", "testimplicit", "https://myapp.example.org/callback", "mystate"))
                 .build();
 
-        ResponseEntity<String> response = rest.exchange(request, String.class);
+        ResponseEntity<String> response = getRestTemplate().exchange(request, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("<form");
@@ -66,11 +51,11 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .post(getAuthorizeUrl())
                 .body(requestParameters);
 
         try {
-            rest.exchange(request, Void.class);
+            getRestTemplate().exchange(request, Void.class);
             fail("Implicit Grant flow should only be allowed for non-confidential clients");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -90,16 +75,16 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .post(getAuthorizeUrl())
                 .accept(MediaType.TEXT_HTML)
                 .body(requestParameters);
 
-        ResponseEntity<String> loginResponse = rest.exchange(request, String.class);
+        ResponseEntity<String> loginResponse = getRestTemplate().exchange(request, String.class);
         assertThat(loginResponse.getBody()).contains("value=\"allow\"");
 
         requestParameters.add("decision", "allow");
 
-        ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
+        ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
@@ -127,16 +112,16 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .post(getAuthorizeUrl())
                 .accept(MediaType.APPLICATION_JSON)
                 .body(requestParameters);
 
-        ResponseEntity<AuthorizeResponse> loginResponse = rest.exchange(request, AuthorizeResponse.class);
+        ResponseEntity<AuthorizeResponse> loginResponse = getRestTemplate().exchange(request, AuthorizeResponse.class);
         assertThat(loginResponse.getBody().getScopes()).containsExactly("uid", "ascope");
 
         requestParameters.add("decision", "allow");
 
-        ResponseEntity<AuthorizeResponse> authResponse = rest.exchange(request, AuthorizeResponse.class);
+        ResponseEntity<AuthorizeResponse> authResponse = getRestTemplate().exchange(request, AuthorizeResponse.class);
 
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
@@ -164,16 +149,16 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .post(getAuthorizeUrl())
                 .accept(MediaType.TEXT_HTML)
                 .body(requestParameters);
 
-        ResponseEntity<String> loginResponse = rest.exchange(request, String.class);
+        ResponseEntity<String> loginResponse = getRestTemplate().exchange(request, String.class);
         assertThat(loginResponse.getBody()).contains("value=\"deny\"");
 
         requestParameters.add("decision", "deny");
 
-        ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
+        ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
