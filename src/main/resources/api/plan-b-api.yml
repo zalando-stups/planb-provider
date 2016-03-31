@@ -221,6 +221,7 @@ paths:
           description: Unauthorized request
           schema:
             $ref:  '#/definitions/Error'
+            
 parameters:
 
   Realm:
