@@ -1,6 +1,8 @@
 package org.zalando.planb.provider;
 
-import com.google.common.collect.ImmutableSet;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 import org.zalando.planb.provider.api.User;
 
 import java.util.Collection;
@@ -11,43 +13,27 @@ import static com.google.common.collect.Maps.newHashMapWithExpectedSize;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toSet;
 
+@Getter
+@AllArgsConstructor
+@Builder
 public class UserData {
 
-    private final Set<UserPasswordHash> passwordHashes;
-    private final Map<String, String> scopes;
-    private final String createdBy;
-    private final String lastModifiedBy;
+    private Set<UserPasswordHash> passwordHashes;
+    private Map<String, String> scopes;
+    private String createdBy;
+    private String lastModifiedBy;
 
-    public UserData(Set<UserPasswordHash> passwordHashes, Map<String, String> scopes, String createdBy, String lastModifiedBy) {
-        this.passwordHashes = passwordHashes;
-        this.scopes = scopes;
-        this.createdBy = createdBy;
-        this.lastModifiedBy = lastModifiedBy;
+    public static UserData copyOf(final User user) {
+        return builderOf(user).build();
     }
 
-    public Set<UserPasswordHash> getPasswordHashes() {
-        return passwordHashes;
+    public static UserData.UserDataBuilder builderOf(final User user) {
+        return UserData.builder()
+                .passwordHashes(toUserPasswordHashSet(user.getPasswordHashes()))
+                .scopes(scopesMap(user));
     }
 
-    public Map<String, String> getScopes() {
-        return scopes;
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public String getLastModifiedBy() {
-        return lastModifiedBy;
-    }
-
-    public static Builder copyOf(User user) {
-        return new Builder()
-                .withPasswordHashes(user.getPasswordHashes())
-                .withScopes(scopesMap(user));
-    }
-
-    private static Map<String, String> scopesMap(User user) {
+    private static Map<String, String> scopesMap(final User user) {
         final Map<?, ?> scopes = (Map<?, ?>) user.getScopes();
         if (scopes == null) {
             return emptyMap();
@@ -58,40 +44,12 @@ public class UserData {
         }
     }
 
-    public static class Builder {
-
-        private Set<UserPasswordHash> passwordHashes;
-        private Map<String, String> scopes;
-        private String createdBy;
-        private String lastModifiedBy;
-
-        public UserData build() {
-            return new UserData(passwordHashes, scopes, createdBy, lastModifiedBy);
-        }
-
-        public Builder withPasswordHashes(Collection<String> passwordHashes) {
-            this.passwordHashes = passwordHashes.stream().map(UserPasswordHash::new).collect(toSet());
-            return this;
-        }
-
-        public Builder withPasswordHashes(Iterable<UserPasswordHash> passwordHashes) {
-            this.passwordHashes = ImmutableSet.copyOf(passwordHashes);
-            return this;
-        }
-
-        public Builder withScopes(Map<String, String> scopes) {
-            this.scopes = scopes;
-            return this;
-        }
-
-        public Builder withCreatedBy(String createdBy) {
-            this.createdBy = createdBy;
-            return this;
-        }
-
-        public Builder withLastModifiedBy(String lastModifiedBy) {
-            this.lastModifiedBy = lastModifiedBy;
-            return this;
-        }
+    public static Set<UserPasswordHash> toUserPasswordHashSet(Collection<String> passwordHashes) {
+        return passwordHashes.stream().map(UserPasswordHash::new).collect(toSet());
     }
+
+    public static Set<UserPasswordHash> toUserPasswordHashSet(Collection<String> passwordHashes, String createdBy) {
+        return passwordHashes.stream().map(h -> new UserPasswordHash(h, createdBy)).collect(toSet());
+    }
+
 }

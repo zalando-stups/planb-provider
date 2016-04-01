@@ -39,7 +39,7 @@ public class UserController implements UsersApi {
             @RequestBody User user) {
         log.info("Create or replace user /{}/{}: {}", realm, id, user);
         user.getPasswordHashes().stream().forEach(x -> validateBCryptHash("user password", x));
-        getUserManagedRealm(realm).createOrReplace(id, UserData.copyOf(user).build());
+        getUserManagedRealm(realm).createOrReplace(id, UserData.copyOf(user));
         return new ResponseEntity<>(OK);
     }
 
@@ -59,7 +59,7 @@ public class UserController implements UsersApi {
             @RequestBody User user) {
         log.info("Update user /{}/{}: {}", realm, id, user);
         user.getPasswordHashes().stream().forEach(x -> validateBCryptHash("user password", x));
-        getUserManagedRealm(realm).update(id, UserData.copyOf(user).build());
+        getUserManagedRealm(realm).update(id, UserData.copyOf(user));
         return new ResponseEntity<>(OK);
     }
 

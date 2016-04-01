@@ -2,25 +2,20 @@ package org.zalando.planb.provider;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.utils.URLEncodedUtils;
-import org.apache.http.impl.client.HttpClients;
 import org.assertj.core.data.MapEntry;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.util.Base64;
@@ -33,27 +28,19 @@ import static java.util.stream.Collectors.reducing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
-@SpringApplicationConfiguration(classes = {Main.class})
-@WebIntegrationTest(randomPort = true)
 @ActiveProfiles("it")
-public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
-    @Value("${local.server.port}")
-    private int port;
-
+public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
+    
     @Autowired
     private ConsentService consentService;
-
-    private final HttpClient httpClient = HttpClients.custom().disableRedirectHandling().build();
-
-    private final RestTemplate rest = new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient));
 
     @Test
     public void showLoginForm() {
         RequestEntity<Void> request = RequestEntity
-                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=code&client_id=testauthcode&redirect_uri=https://myapp.example.org/callback&state=mystate"))
+                .get(getAuthorizeUrl("code", "/services", "testauthcode", "https://myapp.example.org/callback", "mystate"))
                 .build();
 
-        ResponseEntity<String> response = rest.exchange(request, String.class);
+        ResponseEntity<String> response = getRestTemplate().exchange(request, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("<form");
@@ -63,11 +50,11 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     @Test
     public void invalidResponseType() {
         RequestEntity<Void> request = RequestEntity
-                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=foo&client_id=testauthcode"))
+                .get(getAuthorizeUrl("foo", "/services", "testauthcode", "https://myapp.example.org/callback", ""))
                 .build();
 
         try {
-            ResponseEntity<String> response = rest.exchange(request, String.class);
+            ResponseEntity<String> response = getRestTemplate().exchange(request, String.class);
             fail("GET should have thrown Bad Request");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -78,11 +65,11 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
     @Test
     public void redirectUriMissing() {
         RequestEntity<Void> request = RequestEntity
-                .get(URI.create("http://localhost:" + port + "/oauth2/authorize?realm=/services&response_type=code&client_id=testclient"))
+                .get(getAuthorizeUrl("code", "/services", "testclient", "", ""))
                 .build();
 
         try {
-            ResponseEntity<String> response = rest.exchange(request, String.class);
+            ResponseEntity<String> response = getRestTemplate().exchange(request, String.class);
             fail("GET should have thrown Bad Request");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -103,11 +90,11 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         requestParameters.add("redirect_uri", "https://wrong.redirect.uri.example.org/callback");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .post(getAuthorizeUrl())
                 .body(requestParameters);
 
         try {
-            ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
+            ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
             fail("POST should have thrown Bad Request");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -131,11 +118,11 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .post(getAuthorizeUrl())
                 .accept(MediaType.TEXT_HTML)
                 .body(requestParameters);
 
-        ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
+        ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
@@ -151,12 +138,12 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         String basicAuth = Base64.getEncoder().encodeToString(("testclient" + ':' + "test").getBytes(UTF_8));
 
         RequestEntity<MultiValueMap<String, Object>> request2 = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .post(getAccessTokenUri())
                 .header("Authorization", "Basic " + basicAuth)
                 .body(requestParameters2);
 
         try {
-            rest.exchange(request2, OIDCCreateTokenResponse.class);
+            getRestTemplate().exchange(request2, OIDCCreateTokenResponse.class);
             fail("Token creation should have failed with 'client mismatch'");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -179,11 +166,11 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .post(getAuthorizeUrl())
                 .accept(MediaType.TEXT_HTML)
                 .body(requestParameters);
 
-        ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
+        ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
@@ -199,12 +186,12 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         String basicAuth = Base64.getEncoder().encodeToString(("testclient" + ':' + "test").getBytes(UTF_8));
 
         RequestEntity<MultiValueMap<String, Object>> request2 = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .post(getAccessTokenUri())
                 .header("Authorization", "Basic " + basicAuth)
                 .body(requestParameters2);
 
         try {
-            rest.exchange(request2, OIDCCreateTokenResponse.class);
+            getRestTemplate().exchange(request2, OIDCCreateTokenResponse.class);
             fail("Token creation should have failed with 'client mismatch'");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -234,12 +221,12 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .post(getAuthorizeUrl())
                 .accept(MediaType.APPLICATION_JSON)
                 .body(requestParameters);
 
         try {
-            rest.exchange(request, Void.class);
+            getRestTemplate().exchange(request, Void.class);
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(ex.getResponseBodyAsString()).contains("invalid_grant");
@@ -260,11 +247,11 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .post(getAuthorizeUrl())
                 .accept(MediaType.TEXT_HTML)
                 .body(requestParameters);
 
-        ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
+        ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
@@ -293,21 +280,21 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .post(getAuthorizeUrl())
                 .accept(MediaType.TEXT_HTML)
                 .body(requestParameters);
 
-        ResponseEntity<String> loginResponse = rest.exchange(request, String.class);
+        ResponseEntity<String> loginResponse = getRestTemplate().exchange(request, String.class);
         assertThat(loginResponse.getBody()).contains("value=\"allow\"");
 
         requestParameters.add("decision", "allow");
 
         request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .post(getAuthorizeUrl())
                 .accept(MediaType.TEXT_HTML)
                 .body(requestParameters);
 
-        ResponseEntity<Void> authResponse = rest.exchange(request, Void.class);
+        ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
 
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
@@ -323,11 +310,11 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
         String basicAuth = Base64.getEncoder().encodeToString(("testauthcode" + ':' + "test").getBytes(UTF_8));
 
         RequestEntity<MultiValueMap<String, Object>> request2 = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .post(getAccessTokenUri())
                 .header("Authorization", "Basic " + basicAuth)
                 .body(requestParameters2);
 
-        ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request2, OIDCCreateTokenResponse.class);
+        ResponseEntity<OIDCCreateTokenResponse> response = getRestTemplate().exchange(request2, OIDCCreateTokenResponse.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getScope()).contains("uid");
         assertThat(response.getBody().getScope()).contains("ascope");
@@ -339,7 +326,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractSpringTest {
 
         // test that we cannot use the same code twice
         try {
-            rest.exchange(request2, OIDCCreateTokenResponse.class);
+            getRestTemplate().exchange(request2, OIDCCreateTokenResponse.class);
             fail("Authorization code should have been invalidated");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);

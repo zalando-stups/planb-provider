@@ -14,7 +14,7 @@ public interface ClientManagedRealm extends ClientRealm {
             throws ClientRealmAuthenticationException, ClientRealmAuthorizationException {
         final ClientData client = get(clientId).orElseThrow(() -> clientNotFound(clientId, getName()));
 
-        if (!client.isConfidential()) {
+        if (!client.getConfidential()) {
             // TODO: non-confidential clients have no client secret,
             // i.e. we do not really authenticate anything here
             // Consider linking clients to users for the Resource Owner Password Credentials flow?

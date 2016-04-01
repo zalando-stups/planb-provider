@@ -1,20 +1,15 @@
 package org.zalando.planb.provider;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
+@Builder
 public class ClientCredentials {
 
-    String clientId;
-    String clientSecret;
+    private String clientId;
+    private String clientSecret;
 
-    public ClientCredentials(String clientId, String clientSecret) {
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public String getClientSecret() {
-        return clientSecret;
-    }
 }

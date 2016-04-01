@@ -283,6 +283,10 @@ definitions:
         type: array
         items:
           type: string
+      default_scopes:
+        type: array
+        items:
+          type: string
       is_confidential:
         type: boolean
       name:
