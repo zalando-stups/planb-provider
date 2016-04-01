@@ -36,6 +36,14 @@ paths:
       responses:
         200:
           description: Client has been saved
+        400:
+          description: Bad request
+          schema:
+            $ref:  '#/definitions/Error'
+        401:
+          description: Unauthorized request
+          schema:
+            $ref:  '#/definitions/Error'
 
     patch:
       summary: Save client properties
@@ -52,6 +60,14 @@ paths:
       responses:
         200:
           description: Client has been updated
+        400:
+          description: Bad request
+          schema:
+            $ref:  '#/definitions/Error'
+        401:
+          description: Unauthorized request
+          schema:
+            $ref:  '#/definitions/Error'
 
     delete:
       summary: Delete a client
@@ -66,6 +82,14 @@ paths:
       responses:
         200:
           description: Client has been deleted
+        400:
+          description: Bad request
+          schema:
+            $ref:  '#/definitions/Error'
+        401:
+          description: Unauthorized request
+          schema:
+            $ref:  '#/definitions/Error'
 
   /users/{realm}/{id}:
     put:
@@ -83,6 +107,14 @@ paths:
       responses:
         200:
           description: User has been saved
+        400:
+          description: Bad request
+          schema:
+            $ref:  '#/definitions/Error'
+        401:
+          description: Unauthorized request
+          schema:
+            $ref:  '#/definitions/Error'
 
     patch:
       summary: Save user properties
@@ -99,6 +131,14 @@ paths:
       responses:
         200:
           description: User has been updated
+        400:
+          description: Bad request
+          schema:
+            $ref:  '#/definitions/Error'
+        401:
+          description: Unauthorized request
+          schema:
+            $ref:  '#/definitions/Error'
 
     delete:
       summary: Delete a user
@@ -113,6 +153,14 @@ paths:
       responses:
         200:
           description: User has been deleted
+        400:
+          description: Bad request
+          schema:
+            $ref:  '#/definitions/Error'
+        401:
+          description: Unauthorized request
+          schema:
+            $ref:  '#/definitions/Error'
 
   /users/{realm}/{id}/password:
     post:
@@ -128,6 +176,14 @@ paths:
       responses:
         201:
           description: The password has successfully been saved
+        400:
+          description: Bad request
+          schema:
+            $ref:  '#/definitions/Error'
+        401:
+          description: Unauthorized request
+          schema:
+            $ref:  '#/definitions/Error'
 
   /consents/{realm}/{username}/{client_id}:
     get:
@@ -145,6 +201,10 @@ paths:
           description: The stored consent has successfully been obtained
           schema:
             $ref:  '#/definitions/Consent'
+        401:
+          description: Unauthorized request
+          schema:
+            $ref:  '#/definitions/Error'
 
     delete:
       summary: delete consents
@@ -159,6 +219,10 @@ paths:
       responses:
         204:
           description: The consent has successfully been withdrawn
+        401:
+          description: Unauthorized request
+          schema:
+            $ref:  '#/definitions/Error'
 
 parameters:
 
@@ -258,3 +322,10 @@ definitions:
         items:
           type: string
           description: Stored consents
+
+  Error:
+    properties:
+      error:
+        type: string
+      error_description:
+        type: string
