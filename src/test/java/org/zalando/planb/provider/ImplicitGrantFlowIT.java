@@ -210,11 +210,11 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .post(URI.create("http://localhost:" + getPort() + "/oauth2/authorize"))
                 .accept(MediaType.APPLICATION_JSON)
                 .body(requestParameters);
 
-        ResponseEntity<AuthorizeResponse> loginResponse = rest.exchange(request, AuthorizeResponse.class);
+        ResponseEntity<AuthorizeResponse> loginResponse = getRestTemplate().exchange(request, AuthorizeResponse.class);
         assertThat(loginResponse.getBody().getClientName()).isEqualTo("Test Customer App");
         assertThat(loginResponse.getBody().getScopes()).containsExactly("uid", "read-customer-profile");
     }
@@ -233,11 +233,11 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .post(URI.create("http://localhost:" + getPort() + "/oauth2/authorize"))
                 .body(requestParameters);
 
         try {
-            rest.exchange(request, Void.class);
+            getRestTemplate().exchange(request, Void.class);
             fail("Implicit Grant flow should restrict scopes by client");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
