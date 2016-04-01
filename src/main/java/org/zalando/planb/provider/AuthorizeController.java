@@ -199,6 +199,9 @@ public class AuthorizeController {
         final Set<String> scopes = ScopeProperties.split(scope);
         final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);
         final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
+        // IMPORTANT: make sure that the requested scopes are allowed by the client
+        // (implicit flow does not authenticate the client, so it would not be checked otherwise)
+        clientRealm.validateScopes(clientId, clientData, finalScopes, defaultScopes);
         final UserRealm userRealm = realms.getUserRealm(realmName);
 
         URI redirect;
