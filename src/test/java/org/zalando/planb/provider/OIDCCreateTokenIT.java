@@ -276,6 +276,37 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         assertThat(jwt.getJWTClaimsSet().getStringClaim("azp")).isEqualTo("testclient");
     }
 
+    /**
+     * Verify https://github.com/zalando/planb-provider/issues/86
+     */
+    @Test
+    public void createCustomerTokenWithCustomScope() throws Exception {
+        final String customerNumber = stubCustomerService();
+
+        final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "ascope");
+        assertThat(response.getBody().getScope()).isEqualTo("ascope");
+        assertThat(response.getBody().getRealm()).isEqualTo("/customers");
+
+        JWT jwt = JWTParser.parse(response.getBody().getAccessToken());
+        assertThat(jwt.getJWTClaimsSet().getSubject()).isEqualTo(customerNumber);
+        assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("ascope");
+    }
+
+    /**
+     * Verify https://github.com/zalando/planb-provider/issues/86
+     */
+    @Test
+    public void createCustomerTokenWithScopeForbiddenByClient() throws Exception {
+        stubCustomerService();
+
+        try {
+            createToken("/customers", "testclient", "test", "testcustomer", "test", "invalidscope");
+        } catch (HttpClientErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
+            assertThat(getErrorResponseMap(e)).contains(entry("error", "invalid_scope"));
+        }
+    }
+
     @Test
     public void unknownRealm() throws IOException {
         try {
