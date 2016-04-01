@@ -23,14 +23,7 @@ public interface ClientManagedRealm extends ClientRealm {
             throw wrongClientSecret(clientId, getName());
         }
 
-        final Set<String> missingScopes = scopes.stream()
-                .filter(scope -> !defaultScopes.contains(scope))
-                .filter(scope -> !client.getScopes().contains(scope))
-                .collect(toSet());
-
-        if (!missingScopes.isEmpty()) {
-            throw new ClientRealmAuthorizationException(clientId, getName(), missingScopes);
-        }
+        validateScopes(clientId, client, scopes, defaultScopes);
     }
 
     void update(String clientId, ClientData data) throws NotFoundException;
