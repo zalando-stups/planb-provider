@@ -206,6 +206,32 @@ public class ImplicitGrantFlowIT extends AbstractSpringTest {
         return customerNumber;
     }
 
+    /**
+     * Verify https://github.com/zalando/planb-provider/issues/86
+     */
+    @Test
+    public void customerScopeAllowedByClient() {
+        final String customerNumber = stubCustomerService();
+
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "token");
+        requestParameters.add("realm", "/customers");
+        requestParameters.add("client_id", "testcustomerimplicit");
+        requestParameters.add("username", "test@example.org");
+        requestParameters.add("password", "mypass");
+        requestParameters.add("scope", "uid read-customer-profile");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(URI.create("http://localhost:" + port + "/oauth2/authorize"))
+                .accept(MediaType.APPLICATION_JSON)
+                .body(requestParameters);
+
+        ResponseEntity<AuthorizeResponse> loginResponse = rest.exchange(request, AuthorizeResponse.class);
+        assertThat(loginResponse.getBody().getClientName()).isEqualTo("Test Customer App");
+        assertThat(loginResponse.getBody().getScopes()).containsExactly("uid", "read-customer-profile");
+    }
+
     @Test
     public void customerScopeForbiddenByClient() {
         stubCustomerService();

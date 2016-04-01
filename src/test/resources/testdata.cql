@@ -24,9 +24,9 @@ INSERT INTO provider.user (username, realm, password_hashes, scopes, created_by,
     VALUES ('testuser', '/services', { {password_hash: '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K', created: 123, created_by: 'testdata.cql'} },
             {'uid': 'uidval', 'ascope': 'ascopeval', 'useronly': 'useronlyval', 'openid': 'yes'}, '/services/user1', '/services/user1');
 
-INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential, redirect_uris, created_by, last_modified_by)
+INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential, name, redirect_uris, created_by, last_modified_by)
     VALUES ('testcustomerimplicit', '/customers', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
-            {'uid', 'read-customer-profile'}, false, {'https://myapp.example.org/callback'}, '/services/user1', '/services/user1');
+            {'uid', 'read-customer-profile'}, false, 'Test Customer App', {'https://myapp.example.org/callback'}, '/services/user1', '/services/user1');
 
 -- default keys
 
