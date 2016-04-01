@@ -28,16 +28,4 @@ public class CustomerResponse {
         return loginResult;
     }
 
-    @SuppressWarnings("unused")
-    public List<Object> getIgnoredElements() {
-        return ignoredElements;
-    }
-
-    @Override
-    public String toString() {
-        return toStringHelper(this)
-                .add("customerNumber", customerNumber)
-                .add("loginResult", loginResult)
-                .toString();
-    }
 }

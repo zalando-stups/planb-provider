@@ -27,6 +27,7 @@ public class CassandraClientRealm implements ClientManagedRealm {
     private static final String CLIENT_SECRET_HASH = "client_secret_hash";
     private static final String IS_CONFIDENTIAL = "is_confidential";
     private static final String SCOPES = "scopes";
+    private static final String DEFAULT_SCOPES = "default_scopes";
     private static final String NAME = "name";
     private static final String DESCRIPTION = "description";
     private static final String REDIRECT_URIS = "redirect_uris";
@@ -59,6 +60,7 @@ public class CassandraClientRealm implements ClientManagedRealm {
         findOne = session.prepare(select()
                 .column(CLIENT_SECRET_HASH)
                 .column(SCOPES)
+                .column(DEFAULT_SCOPES)
                 .column(IS_CONFIDENTIAL)
                 .column(NAME)
                 .column(DESCRIPTION)
@@ -75,6 +77,7 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .value(REALM, realmName)
                 .value(CLIENT_SECRET_HASH, bindMarker(CLIENT_SECRET_HASH))
                 .value(SCOPES, bindMarker(SCOPES))
+                .value(DEFAULT_SCOPES, bindMarker(DEFAULT_SCOPES))
                 .value(IS_CONFIDENTIAL, bindMarker(IS_CONFIDENTIAL))
                 .value(NAME, bindMarker(NAME))
                 .value(DESCRIPTION, bindMarker(DESCRIPTION))
@@ -103,7 +106,8 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .setString(CLIENT_ID, clientId)
                 .setString(CLIENT_SECRET_HASH, Optional.ofNullable(data.getClientSecretHash()).orElseGet(existing::getClientSecretHash))
                 .setSet(SCOPES, Optional.ofNullable(data.getScopes()).filter(set -> !set.isEmpty()).orElseGet(existing::getScopes))
-                .setBool(IS_CONFIDENTIAL, Optional.ofNullable(data.isConfidential()).orElseGet(existing::isConfidential))
+                .setSet(DEFAULT_SCOPES, Optional.ofNullable(data.getDefaultScopes()).filter(set -> !set.isEmpty()).orElseGet(existing::getDefaultScopes))
+                .setBool(IS_CONFIDENTIAL, Optional.ofNullable(data.getConfidential()).orElseGet(existing::getConfidential))
                 .setString(NAME, Optional.ofNullable(data.getName()).orElseGet(existing::getName))
                 .setString(DESCRIPTION, Optional.ofNullable(data.getDescription()).orElseGet(existing::getDescription))
                 .setSet(REDIRECT_URIS, Optional.ofNullable(data.getRedirectUris()).filter(set -> !set.isEmpty()).orElseGet(existing::getRedirectUris))
@@ -126,7 +130,8 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .setString(CLIENT_ID, clientId)
                 .setString(CLIENT_SECRET_HASH, client.getClientSecretHash())
                 .setSet(SCOPES, newHashSet(client.getScopes()))
-                .setBool(IS_CONFIDENTIAL, client.isConfidential())
+                .setSet(DEFAULT_SCOPES, newHashSet(client.getDefaultScopes()))
+                .setBool(IS_CONFIDENTIAL, client.getConfidential())
                 .setString(NAME, client.getName())
                 .setString(DESCRIPTION, client.getDescription())
                 .setSet(REDIRECT_URIS, newHashSet(client.getRedirectUris()))
@@ -143,16 +148,16 @@ public class CassandraClientRealm implements ClientManagedRealm {
     }
 
     private static ClientData toClient(Row row) {
-        return new ClientData(
-                row.getString(CLIENT_SECRET_HASH),
-                row.getSet(SCOPES, String.class),
-                row.getBool(IS_CONFIDENTIAL),
-                row.getString(NAME),
-                row.getString(DESCRIPTION),
-                row.getSet(REDIRECT_URIS, String.class),
-                row.getString(CREATED_BY),
-                row.getString(LAST_MODIFIED_BY)
-
-        );
+        return ClientData.builder()
+                .clientSecretHash(row.getString(CLIENT_SECRET_HASH))
+                .scopes(row.getSet(SCOPES, String.class))
+                .defaultScopes(row.getSet(DEFAULT_SCOPES, String.class))
+                .confidential(row.getBool(IS_CONFIDENTIAL))
+                .name(row.getString(NAME))
+                .description(row.getString(DESCRIPTION))
+                .redirectUris(row.getSet(REDIRECT_URIS, String.class))
+                .createdBy(row.getString(CREATED_BY))
+                .lastModifiedBy(row.getString(LAST_MODIFIED_BY))
+                .build();
     }
 }

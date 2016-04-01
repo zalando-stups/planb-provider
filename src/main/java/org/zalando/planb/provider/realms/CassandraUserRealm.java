@@ -156,11 +156,11 @@ public class CassandraUserRealm implements UserManagedRealm {
     }
 
     private UserData toUser(Row row) {
-        return new UserData.Builder()
-                .withPasswordHashes(row.getSet(PASSWORD_HASHES, UserPasswordHash.class))
-                .withScopes(row.getMap(SCOPES, String.class, String.class))
-                .withCreatedBy(row.getString(CREATED_BY))
-                .withLastModifiedBy(row.getString(LAST_MODIFIED_BY))
+        return UserData.builder()
+                .passwordHashes(row.getSet(PASSWORD_HASHES, UserPasswordHash.class))
+                .scopes(row.getMap(SCOPES, String.class, String.class))
+                .createdBy(row.getString(CREATED_BY))
+                .lastModifiedBy(row.getString(LAST_MODIFIED_BY))
                 .build();
     }
 }

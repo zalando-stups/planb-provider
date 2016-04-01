@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.ConfigFileApplicationContextInitializer;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.rules.SpringClassRule;
@@ -23,7 +24,7 @@ public class ScopePropertiesTest {
     public final SpringMethodRule springMethodRule = new SpringMethodRule();
 
     @Autowired
-    private ScopeProperties scopeProperties;
+    private ScopeService scopeService;
 
     @BeforeClass
     public static void setUpSystemProperties() {
@@ -38,19 +39,20 @@ public class ScopePropertiesTest {
     }
 
     @Test
-    public void testDefaultScopes() throws Exception {
-        assertThat(scopeProperties.getDefaultScopes("unknown-realm")).isEmpty();
-        assertThat(scopeProperties.getDefaultScopes("foo")).containsOnly("bar", "name");
-        assertThat(scopeProperties.getDefaultScopes("hello")).isEmpty();
-        assertThat(scopeProperties.getDefaultScopes("/customers")).containsOnly("email");
-        assertThat(scopeProperties.getDefaultScopes("customers")).containsOnly("email");
-        assertThat(scopeProperties.getDefaultScopes("services")).containsOnly("id", "team");
-        assertThat(scopeProperties.getDefaultScopes("foobar")).containsOnly("id", "team");
-        assertThat(scopeProperties.getDefaultScopes("Foobar")).containsOnly("id", "team");
-        assertThat(scopeProperties.getDefaultScopes("fooBar")).containsOnly("id", "team");
+    public void testDefaultScopeByRealm() throws Exception {
+        assertThat(scopeService.getDefaultScopesByRealm("unknown-realm")).isEmpty();
+        assertThat(scopeService.getDefaultScopesByRealm("foo")).containsOnly("bar", "name");
+        assertThat(scopeService.getDefaultScopesByRealm("hello")).isEmpty();
+        assertThat(scopeService.getDefaultScopesByRealm("/customers")).containsOnly("email");
+        assertThat(scopeService.getDefaultScopesByRealm("customers")).containsOnly("email");
+        assertThat(scopeService.getDefaultScopesByRealm("services")).containsOnly("id", "team");
+        assertThat(scopeService.getDefaultScopesByRealm("foobar")).containsOnly("id", "team");
+        assertThat(scopeService.getDefaultScopesByRealm("Foobar")).containsOnly("id", "team");
+        assertThat(scopeService.getDefaultScopesByRealm("fooBar")).containsOnly("id", "team");
     }
 
     @Configuration
+    @Import(ScopeService.class)
     @EnableConfigurationProperties(ScopeProperties.class)
     static class TestConfig {
     }

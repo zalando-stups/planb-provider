@@ -2,7 +2,7 @@ package org.zalando.planb.provider;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Joiner;
-import com.nimbusds.jose.*;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWK;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +40,7 @@ public class OIDCController {
     private MetricRegistry metricRegistry;
 
     @Autowired
-    private ScopeProperties scopeProperties;
+    private ScopeService scopeService;
 
     @Autowired
     private CassandraAuthorizationCodeService cassandraAuthorizationCodeService;
@@ -60,12 +60,12 @@ public class OIDCController {
                         "Malformed or missing Authorization header.",
                         "invalid_client",
                         "Client authentication failed"));
-        return new ClientCredentials(basicAuth[0], basicAuth[1]);
+        return ClientCredentials.builder().clientId(basicAuth[0]).clientSecret(basicAuth[1]).build();
     }
 
     public static ClientCredentials getClientCredentials(Optional<String> authorization, Optional<String> clientId, Optional<String> clientSecret) throws RealmAuthenticationException {
         if (clientId.isPresent() && clientSecret.isPresent()) {
-            return new ClientCredentials(clientId.get(), clientSecret.get());
+            return ClientCredentials.builder().clientId(clientId.get()).clientSecret(clientSecret.get()).build();
         } else {
             return getClientCredentials(authorization);
         }
@@ -78,12 +78,13 @@ public class OIDCController {
     }
 
     static OIDCCreateTokenResponse response(String accessToken, Set<String> scopes, String realmName) {
-        return new OIDCCreateTokenResponse(
-                accessToken,
-                scopes.contains("openid") ? accessToken : null,
-                JWTIssuer.EXPIRATION_TIME.getSeconds(),
-                ScopeProperties.join(scopes),
-                realmName);
+        return OIDCCreateTokenResponse.builder()
+                .accessToken(accessToken)
+                .idToken(scopes.contains("openid") ? accessToken : (String)null)
+                .expiresIn(JWTIssuer.EXPIRATION_TIME.getSeconds())
+                .scope(ScopeService.join(scopes))
+                .realm(realmName)
+                .build();
     }
 
     /**
@@ -176,8 +177,8 @@ public class OIDCController {
             UserRealm userRealm = realms.getUserRealm(realmName);
 
             // parse requested scopes
-            final Set<String> scopes = ScopeProperties.split(scope);
-            final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);
+            final Set<String> scopes = ScopeService.split(scope);
+            final Set<String> defaultScopes = scopeService.getDefaultScopesForClient(clientRealm, clientIdParam);
             final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
 
             final ClientCredentials clientCredentials = getClientCredentials(authorization, clientIdParam, clientSecretParam);

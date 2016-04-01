@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.zalando.planb.provider.ScopeService;
 
 import java.net.URI;
 import java.util.Base64;
@@ -19,9 +20,7 @@ import java.util.Set;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.joining;
 import static org.springframework.web.util.UriComponentsBuilder.fromHttpUrl;
-import static org.zalando.planb.provider.ScopeProperties.SPACE;
 
 @Component
 @Scope("prototype")
@@ -41,7 +40,7 @@ public class UpstreamUserRealm implements UserRealm {
         final UriComponentsBuilder uriBuilder = fromHttpUrl(upstreamRealmProperties.getTokenServiceUrl());
         uriBuilder.queryParam("realm", realmName);
         if (scopes != null && !scopes.isEmpty()) {
-            uriBuilder.queryParam("scope", scopes.stream().collect(joining(SPACE)));
+            uriBuilder.queryParam("scope", ScopeService.join(scopes));
         }
 
         final String basicAuth = Base64.getEncoder().encodeToString((username + ':' + password).getBytes(UTF_8));

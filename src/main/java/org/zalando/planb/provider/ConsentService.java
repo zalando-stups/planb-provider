@@ -2,7 +2,6 @@ package org.zalando.planb.provider;
 
 import java.util.Set;
 
-
 public interface ConsentService {
 
     void store(final String username, final String realm, final String clientId, final Set<String> scopes);
