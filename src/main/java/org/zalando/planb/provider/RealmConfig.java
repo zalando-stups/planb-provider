@@ -74,8 +74,19 @@ public class RealmConfig implements BeanFactoryAware {
                 .findFirst();
     }
 
+    static Optional<String> findRealmNameInRealm(@NotNull final Set<String> realmNames, @NotNull final String realm) {
+        return realmNames.stream()
+                .filter(r -> stripLeadingSlash(realm).equals(stripLeadingSlash(r)))
+                .sorted()
+                .findFirst();
+    }
+
     Optional<String> findRealmNameInHost(@NotNull final String host) {
         return findRealmNameInHost(clientRealms.keySet(), host);
+    }
+
+    Optional<String> findRealmNameInRealm(@NotNull final String realm) {
+        return findRealmNameInRealm(clientRealms.keySet(), realm);
     }
 
     UserRealm getUserRealm(String name) {

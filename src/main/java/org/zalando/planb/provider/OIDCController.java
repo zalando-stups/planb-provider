@@ -77,6 +77,11 @@ public class OIDCController {
                 .orElseThrow(() -> new RealmNotFoundException(hostHeader.get())));
     }
 
+    static String getRealmName(RealmConfig realms, String realmNameParam) {
+        return  realms.findRealmNameInRealm(realmNameParam)
+                .orElseThrow(() -> new RealmNotFoundException(realmNameParam));
+    }
+
     static OIDCCreateTokenResponse response(String accessToken, Set<String> scopes, String realmName) {
         return OIDCCreateTokenResponse.builder()
                 .accessToken(accessToken)
