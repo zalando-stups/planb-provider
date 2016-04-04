@@ -24,8 +24,10 @@ public class ConsentControllerIT extends AbstractOauthTest {
     private static final String SCOPE_1 = "scope1";
     private static final String SCOPE_2 = "scope2";
     private static final ImmutableSet<String> SCOPES = ImmutableSet.of(SCOPE_1, SCOPE_2);
-    private static final String TEST_USERNAME = "test";
-    private static final String TEST_REALM = "realm";
+    private static final String TEST_USERNAME_1 = "test1";
+    private static final String TEST_USERNAME_2 = "test2";
+    private static final String TEST_REALM = "customers";
+    private static final String TEST_REALM_WITH_SLASH = "/customers";
     private static final String TEST_CLIENT = "client";
 
     @SuppressWarnings("SpringJavaAutowiredMembersInspection")
@@ -37,19 +39,34 @@ public class ConsentControllerIT extends AbstractOauthTest {
 
     @Before
     public void storeConsent() {
-        cassandraConsentService.store(TEST_USERNAME, TEST_REALM, TEST_CLIENT, SCOPES);
+        cassandraConsentService.store(TEST_USERNAME_1, TEST_REALM, TEST_CLIENT, SCOPES);
+        cassandraConsentService.store(TEST_USERNAME_2, TEST_REALM_WITH_SLASH, TEST_CLIENT, SCOPES);
     }
 
     @After
     public void cleanupConsent() {
-        cassandraConsentService.withdraw(TEST_USERNAME, TEST_REALM, TEST_CLIENT);
+        cassandraConsentService.withdraw(TEST_USERNAME_1, TEST_REALM, TEST_CLIENT);
+        cassandraConsentService.withdraw(TEST_USERNAME_2, TEST_REALM_WITH_SLASH, TEST_CLIENT);
     }
 
     @Test
-    public void testGetAndDeleteConsents() throws Exception {
-        final URI uri = URI.create(String.format("%s/%s/%s/%s", getConsentsBaseUri(), TEST_REALM, TEST_USERNAME, TEST_CLIENT));
+    public void testGetAndWithdrawConsents() throws Exception {
+        readAndWithdrawConsent(TEST_REALM, TEST_CLIENT, TEST_USERNAME_1);
+    }
 
-        assertThat(readConsent(TEST_USERNAME, TEST_REALM, TEST_CLIENT)).isNotEmpty();
+    @Test
+    public void testGetAndWithdrawConsentsLeadingSlash() throws Exception {
+        readAndWithdrawConsent(TEST_REALM_WITH_SLASH, TEST_CLIENT, TEST_USERNAME_2);
+    }
+
+    private Set<String> readConsent(final String username, final String realm, final String client) {
+        return cassandraConsentService.getConsentedScopes(username, realm, client);
+    }
+
+    private void readAndWithdrawConsent(final String realm, final String client, final String username) throws Exception {
+        URI uri = URI.create(String.format("%s/%s/%s/%s", getConsentsBaseUri(), realm, username, client));
+
+        assertThat(readConsent(username, realm, client)).isNotEmpty();
 
         // consents were found
         ResponseEntity<String> response = getRestTemplate().exchange(get(uri).header(AUTHORIZATION, USER1_ACCESS_TOKEN)
@@ -60,10 +77,5 @@ public class ConsentControllerIT extends AbstractOauthTest {
         // consents were revoked
         assertThat(getRestTemplate().exchange(delete(uri).header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), Void.class)
                 .getStatusCode()).isEqualTo(NO_CONTENT);
-
-    }
-
-    private Set<String> readConsent(final String username, final String realm, final String client) {
-        return cassandraConsentService.getConsentedScopes(username, realm, client);
     }
 }
