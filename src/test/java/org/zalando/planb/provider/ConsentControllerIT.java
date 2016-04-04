@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.net.URI;
 import java.util.Set;
@@ -57,6 +58,16 @@ public class ConsentControllerIT extends AbstractOauthTest {
     @Test
     public void testGetAndWithdrawConsentsLeadingSlash() throws Exception {
         readAndWithdrawConsent(TEST_REALM_WITH_SLASH, TEST_CLIENT, TEST_USERNAME_2);
+    }
+
+    @Test(expected = HttpClientErrorException.class)
+    public void testRealmSubstringDoesNotMatch(){
+        URI uri = URI.create(String.format("%s/%s/%s/%s", getConsentsBaseUri(), TEST_REALM.substring(0, 3), TEST_USERNAME_1, TEST_CLIENT));
+        assertThat(readConsent(TEST_USERNAME_1, TEST_REALM, TEST_CLIENT)).isNotEmpty();
+        assertThat(readConsent(TEST_USERNAME_1, TEST_REALM.substring(0, 3), TEST_CLIENT)).isEmpty();
+
+        // Invalid Realm
+        getRestTemplate().exchange(get(uri).header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), String.class);
     }
 
     private Set<String> readConsent(final String username, final String realm, final String client) {

@@ -76,7 +76,7 @@ public class RealmConfig implements BeanFactoryAware {
 
     static Optional<String> findRealmNameInRealm(@NotNull final Set<String> realmNames, @NotNull final String realm) {
         return realmNames.stream()
-                .filter(r -> realm.contains(stripLeadingSlash(r)))
+                .filter(r -> stripLeadingSlash(realm).equals(stripLeadingSlash(r)))
                 .sorted()
                 .findFirst();
     }
