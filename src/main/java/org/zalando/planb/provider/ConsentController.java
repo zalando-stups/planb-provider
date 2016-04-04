@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import org.zalando.planb.provider.api.Consent;
 import org.zalando.planb.provider.api.ConsentsApi;
+import org.zalando.planb.provider.realms.ClientRealm;
+import org.zalando.planb.provider.realms.CustomerUserRealm;
+import org.zalando.planb.provider.realms.UserRealm;
 
 @RestController
 public class ConsentController implements ConsentsApi {
@@ -35,10 +38,11 @@ public class ConsentController implements ConsentsApi {
     public ResponseEntity<Consent> consentsRealmUsernameClientIdGet(@PathVariable("realm") final String realm,
             @PathVariable("username") final String username,
             @PathVariable("client_id") final String clientId) {
-        log.info("Get stored consents for user {} on realm {}, application id {}", username, realm, clientId);
         final String realmName = getRealmName(realms, realm);
-        final Consent consentedScopes = new Consent();
+        final UserRealm userRealm = realms.getUserRealm(realmName);
+        log.info("Get stored consents for user {} on realm {}, application id {}", userRealm.maskSubject(username), realm, clientId);
 
+        final Consent consentedScopes = new Consent();
         final Set<String> scopes = cassandraConsentService.getConsentedScopes(username, realmName, clientId);
         consentedScopes.setScopes(new ArrayList<>(scopes));
 
@@ -49,8 +53,9 @@ public class ConsentController implements ConsentsApi {
     public ResponseEntity<Void> consentsRealmUsernameClientIdDelete(@PathVariable("username") final String username,
             @PathVariable("realm") final String realm,
             @PathVariable("client_id") final String clientId) {
-        log.info("Withdrawing stored consents for user {} on realm {}, application id {}", username, realm, clientId);
         final String realmName = getRealmName(realms, realm);
+        final UserRealm userRealm = realms.getUserRealm(realmName);
+        log.info("Withdrawing stored consents for user {} on realm {}, application id {}", userRealm.maskSubject(username), realm, clientId);
 
         cassandraConsentService.withdraw(username, realmName, clientId);
 
