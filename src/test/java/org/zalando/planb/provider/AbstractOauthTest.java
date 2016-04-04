@@ -1,5 +1,6 @@
 package org.zalando.planb.provider;
 
+import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.utils.URIBuilder;
@@ -7,11 +8,24 @@ import org.apache.http.impl.client.HttpClients;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
+import org.springframework.http.RequestEntity;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Base64;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.MediaType.TEXT_XML_VALUE;
 
 @SpringApplicationConfiguration(classes = {Main.class})
 @WebIntegrationTest(randomPort = true)
@@ -105,5 +119,44 @@ public class AbstractOauthTest extends AbstractSpringTest {
 
     protected String getUriWithPathAsString(String path) {
         return HTTP_LOCALHOST + getPort()+ path;
+    }
+
+    protected ResponseEntity<OIDCCreateTokenResponse> createToken(String realm, String clientId, String clientSecret,
+                                                                String username, String password, String scope) {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("realm", realm);
+        requestParameters.add("grant_type", "password");
+        requestParameters.add("username", username);
+        requestParameters.add("password", password);
+        if (scope != null) {
+            requestParameters.add("scope", scope);
+        }
+        String basicAuth = Base64.getEncoder().encodeToString((clientId + ':' + clientSecret).getBytes(UTF_8));
+
+        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
+                .post(getAccessTokenUri())
+                .header("Authorization", "Basic " + basicAuth)
+                .body(requestParameters);
+
+        return getRestTemplate().exchange(request, OIDCCreateTokenResponse.class);
+    }
+
+    protected String stubCustomerService() {
+        final String customerNumber = "123456789";
+        stubFor(post(urlEqualTo("/ws/customerService?wsdl"))
+                .willReturn(aResponse()
+                        .withStatus(OK.value())
+                        .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
+                        .withBody("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
+                                "    <soap:Body>\n" +
+                                "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\">\n" +
+                                "            <return>\n" +
+                                "                <customerNumber>" + customerNumber + "</customerNumber>\n" +
+                                "                <loginResult>SUCCESS</loginResult>\n" +
+                                "            </return>\n" +
+                                "        </ns2:authenticateResponse>\n" +
+                                "    </soap:Body>\n" +
+                                "</soap:Envelope>")));
+        return customerNumber;
     }
 }

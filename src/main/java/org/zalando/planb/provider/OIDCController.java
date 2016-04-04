@@ -11,7 +11,11 @@ import org.springframework.web.bind.annotation.*;
 import org.zalando.planb.provider.realms.*;
 
 import java.net.URI;
-import java.util.*;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -29,6 +33,9 @@ public class OIDCController {
 
     @Autowired
     private RealmConfig realms;
+
+    @Autowired
+    private RealmProperties realmProperties;
 
     @Autowired
     private OIDCKeyHolder keyHolder;
@@ -82,11 +89,11 @@ public class OIDCController {
                 .orElseThrow(() -> new RealmNotFoundException(realmNameParam));
     }
 
-    static OIDCCreateTokenResponse response(String accessToken, Set<String> scopes, String realmName) {
+    private OIDCCreateTokenResponse response(String accessToken, Set<String> scopes, String realmName) {
         return OIDCCreateTokenResponse.builder()
                 .accessToken(accessToken)
                 .idToken(scopes.contains("openid") ? accessToken : (String)null)
-                .expiresIn(JWTIssuer.EXPIRATION_TIME.getSeconds())
+                .expiresIn(realmProperties.getTokenLifetime(realmName).getSeconds())
                 .scope(ScopeService.join(scopes))
                 .realm(realmName)
                 .build();

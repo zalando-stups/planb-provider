@@ -100,7 +100,7 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
         // check required parameters
         assertThat(params).containsKey("access_token");
         assertThat(params).contains(MapEntry.entry("token_type", "Bearer"));
-        assertThat(params).contains(MapEntry.entry("expires_in", "28800")); // 8 hours
+        assertThat(params).contains(MapEntry.entry("expires_in", "3600"));
         assertThat(params).containsKey("scope");
         assertThat(params).containsKey("state");
     }
@@ -137,7 +137,7 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
         // check required parameters
         assertThat(params).containsKey("access_token");
         assertThat(params).contains(MapEntry.entry("token_type", "Bearer"));
-        assertThat(params).contains(MapEntry.entry("expires_in", "28800")); // 8 hours
+        assertThat(params).contains(MapEntry.entry("expires_in", "3600"));
         assertThat(params).containsKey("scope");
         assertThat(params).containsKey("state");
     }
@@ -174,31 +174,12 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
         assertThat(params).containsKey("state");
     }
 
-    String stubCustomerService() {
-        final String customerNumber = "123456789";
-        stubFor(post(urlEqualTo("/ws/customerService?wsdl"))
-                .willReturn(aResponse()
-                        .withStatus(OK.value())
-                        .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
-                        .withBody("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
-                                "    <soap:Body>\n" +
-                                "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\">\n" +
-                                "            <return>\n" +
-                                "                <customerNumber>" + customerNumber + "</customerNumber>\n" +
-                                "                <loginResult>SUCCESS</loginResult>\n" +
-                                "            </return>\n" +
-                                "        </ns2:authenticateResponse>\n" +
-                                "    </soap:Body>\n" +
-                                "</soap:Envelope>")));
-        return customerNumber;
-    }
-
     /**
      * Verify https://github.com/zalando/planb-provider/issues/86
      */
     @Test
     public void customerScopeAllowedByClient() {
-        final String customerNumber = stubCustomerService();
+        stubCustomerService();
 
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("response_type", "token");

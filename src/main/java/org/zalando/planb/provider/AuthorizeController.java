@@ -82,6 +82,9 @@ public class AuthorizeController {
     private RealmConfig realms;
 
     @Autowired
+    private RealmProperties realmProperties;
+
+    @Autowired
     private JWTIssuer jwtIssuer;
 
     @Autowired
@@ -365,7 +368,7 @@ public class AuthorizeController {
 
         final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientId, finalScopes, claims);
         return new URIBuilder(redirectUri).addParameter(PARAM_ACCESS_TOKEN, rawJWT).addParameter(PARAM_TOKEN_TYPE, PARAM_TOKEN_TYPE_BEARER)
-                .addParameter(PARAM_EXPIRES_IN, String.valueOf(JWTIssuer.EXPIRATION_TIME.getSeconds()))
+                .addParameter(PARAM_EXPIRES_IN, String.valueOf(realmProperties.getTokenLifetime(userRealm.getName()).getSeconds()))
                 .addParameter(PARAM_SCOPE, ScopeService.join(finalScopes))
                 .addParameter(PARAM_STATE, state.orElse(EMPTY_STRING)).build();
     }

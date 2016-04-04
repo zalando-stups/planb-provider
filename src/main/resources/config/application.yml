@@ -29,6 +29,10 @@ realm:
   userImpl:
     /employees: org.zalando.planb.provider.realms.UpstreamUserRealm
     /customers: org.zalando.planb.provider.realms.CustomerUserRealm
+  tokenLifetime:
+    /employees: "PT8H"
+    /customers: "P30D"
+    /services: "PT8H"
 
 cassandra:
   keyspace: provider
