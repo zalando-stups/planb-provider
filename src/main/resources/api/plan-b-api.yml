@@ -201,6 +201,10 @@ paths:
           description: The stored consent has successfully been obtained
           schema:
             $ref:  '#/definitions/Consent'
+        400:
+          description: Bad request
+          schema:
+            $ref:  '#/definitions/Error'
         401:
           description: Unauthorized request
           schema:
@@ -219,6 +223,10 @@ paths:
       responses:
         204:
           description: The consent has successfully been withdrawn
+        400:
+          description: Bad request
+          schema:
+            $ref:  '#/definitions/Error'
         401:
           description: Unauthorized request
           schema:
