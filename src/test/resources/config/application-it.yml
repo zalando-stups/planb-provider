@@ -27,3 +27,7 @@ scope:
   defaults:
     services: "hello world"
     customers: "openid"
+
+realm:
+  tokenLifetime:
+    /services: "PT3600S"

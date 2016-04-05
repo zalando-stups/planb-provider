@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.zalando.planb.provider.realms.Realm;
 
-import java.time.Duration;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
@@ -26,7 +25,8 @@ public class JWTIssuer {
     private static final String ISSUER = "B";
     private static final String AUTHORIZED_PARTY = "azp";
 
-    public static final Duration EXPIRATION_TIME = Duration.ofHours(8);
+    @Autowired
+    private RealmProperties realmProperties;
 
     @Autowired
     private OIDCKeyHolder keyHolder;
@@ -63,10 +63,10 @@ public class JWTIssuer {
     public String issueAccessToken(Realm userRealm, String clientId, Set<String> scopes, Map<String, String> claims) throws JOSEException {
         // this should never happen (only if some realm does not return "sub"
         Preconditions.checkState(claims.containsKey(Realm.SUB), "'sub' claim missing");
-
+        final long tokenLifetimeInMilliseconds = realmProperties.getTokenLifetime(userRealm.getName()).toMillis();
         JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
                 .issuer(ISSUER)
-                .expirationTime(new Date(System.currentTimeMillis() + EXPIRATION_TIME.toMillis()))
+                .expirationTime(new Date(System.currentTimeMillis() + tokenLifetimeInMilliseconds))
                 .issueTime(new Date())
                 .claim("realm", userRealm.getName())
                 .claim("scope", scopes);

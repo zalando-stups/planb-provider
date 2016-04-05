@@ -42,26 +42,6 @@ import static org.springframework.http.MediaType.TEXT_XML_VALUE;
 @ActiveProfiles("it")
 public class OIDCCreateTokenIT extends AbstractOauthTest {
 
-    private ResponseEntity<OIDCCreateTokenResponse> createToken(String realm, String clientId, String clientSecret,
-                                                                String username, String password, String scope) {
-        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
-        requestParameters.add("realm", realm);
-        requestParameters.add("grant_type", "password");
-        requestParameters.add("username", username);
-        requestParameters.add("password", password);
-        if (scope != null) {
-            requestParameters.add("scope", scope);
-        }
-        String basicAuth = Base64.getEncoder().encodeToString((clientId + ':' + clientSecret).getBytes(UTF_8));
-
-        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(getAccessTokenUri())
-                .header("Authorization", "Basic " + basicAuth)
-                .body(requestParameters);
-
-        return getRestTemplate().exchange(request, OIDCCreateTokenResponse.class);
-    }
-
     @Test
     public void createServiceUserToken() {
         ResponseEntity<OIDCCreateTokenResponse> response = createToken("/services",
@@ -216,25 +196,6 @@ public class OIDCCreateTokenIT extends AbstractOauthTest {
         assertThat(jwt.getJWTClaimsSet().getStringClaim("realm")).isEqualTo("/customers");
         assertThat(jwt.getJWTClaimsSet().getStringClaim("iss")).isEqualTo("B");
         assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("uid", "openid");
-    }
-
-    String stubCustomerService() {
-        final String customerNumber = "123456789";
-        stubFor(post(urlEqualTo("/ws/customerService?wsdl"))
-                .willReturn(aResponse()
-                        .withStatus(OK.value())
-                        .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
-                        .withBody("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
-                                "    <soap:Body>\n" +
-                                "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\">\n" +
-                                "            <return>\n" +
-                                "                <customerNumber>" + customerNumber + "</customerNumber>\n" +
-                                "                <loginResult>SUCCESS</loginResult>\n" +
-                                "            </return>\n" +
-                                "        </ns2:authenticateResponse>\n" +
-                                "    </soap:Body>\n" +
-                                "</soap:Envelope>")));
-        return customerNumber;
     }
 
     @Test
