@@ -1,15 +1,12 @@
 package org.zalando.planb.provider;
 
-import static org.slf4j.LoggerFactory.getLogger;
-
 import static org.springframework.http.HttpStatus.NO_CONTENT;
 import static org.zalando.planb.provider.OIDCController.getRealmName;
 
 import java.util.ArrayList;
 import java.util.Set;
 
-import lombok.extern.log4j.Log4j2;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.http.ResponseEntity;
@@ -22,7 +19,7 @@ import org.zalando.planb.provider.api.ConsentsApi;
 import org.zalando.planb.provider.realms.UserRealm;
 
 @RestController
-@Log4j2
+@Slf4j
 public class ConsentController implements ConsentsApi {
 
     @Autowired
