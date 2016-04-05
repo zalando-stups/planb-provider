@@ -8,7 +8,7 @@ import static org.zalando.planb.provider.OIDCController.getRealmName;
 import java.util.ArrayList;
 import java.util.Set;
 
-import org.slf4j.Logger;
+import lombok.extern.log4j.Log4j2;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -19,14 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import org.zalando.planb.provider.api.Consent;
 import org.zalando.planb.provider.api.ConsentsApi;
-import org.zalando.planb.provider.realms.ClientRealm;
-import org.zalando.planb.provider.realms.CustomerUserRealm;
 import org.zalando.planb.provider.realms.UserRealm;
 
 @RestController
+@Log4j2
 public class ConsentController implements ConsentsApi {
-
-    private final Logger log = getLogger(getClass());
 
     @Autowired
     private CassandraConsentService cassandraConsentService;
