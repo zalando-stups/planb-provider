@@ -9,7 +9,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
-import org.zalando.planb.provider.*;
+import org.zalando.planb.provider.CassandraProperties;
+import org.zalando.planb.provider.ClientData;
+import org.zalando.planb.provider.CurrentUser;
+import org.zalando.planb.provider.NotFoundException;
 
 import java.util.Optional;
 
@@ -31,6 +34,8 @@ public class CassandraClientRealm implements ClientManagedRealm {
     private static final String NAME = "name";
     private static final String DESCRIPTION = "description";
     private static final String REDIRECT_URIS = "redirect_uris";
+    private static final String IMAGE_URI = "image_uri";
+    private static final String HOMEPAGE_URL = "homepage_url";
     private static final String CREATED_BY = "created_by";
     private static final String LAST_MODIFIED_BY = "last_modified_by";
 
@@ -65,6 +70,8 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .column(NAME)
                 .column(DESCRIPTION)
                 .column(REDIRECT_URIS)
+                .column(IMAGE_URI)
+                .column(HOMEPAGE_URL)
                 .column(CREATED_BY)
                 .column(LAST_MODIFIED_BY)
                 .from(CLIENT)
@@ -82,6 +89,8 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .value(NAME, bindMarker(NAME))
                 .value(DESCRIPTION, bindMarker(DESCRIPTION))
                 .value(REDIRECT_URIS, bindMarker(REDIRECT_URIS))
+                .value(IMAGE_URI, bindMarker(IMAGE_URI))
+                .value(HOMEPAGE_URL, bindMarker(HOMEPAGE_URL))
                 .value(CREATED_BY, bindMarker(CREATED_BY))
                 .value(LAST_MODIFIED_BY, bindMarker(LAST_MODIFIED_BY)))
                 .setConsistencyLevel(cassandraProperties.getWriteConsistencyLevel());
@@ -111,6 +120,8 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .setString(NAME, Optional.ofNullable(data.getName()).orElseGet(existing::getName))
                 .setString(DESCRIPTION, Optional.ofNullable(data.getDescription()).orElseGet(existing::getDescription))
                 .setSet(REDIRECT_URIS, Optional.ofNullable(data.getRedirectUris()).filter(set -> !set.isEmpty()).orElseGet(existing::getRedirectUris))
+                .setString(IMAGE_URI, Optional.ofNullable(data.getImageUri()).orElseGet(existing::getImageUri))
+                .setString(HOMEPAGE_URL, Optional.ofNullable(data.getHomepageUrl()).orElseGet(existing::getHomepageUrl))
                 .setString(CREATED_BY, existing.getCreatedBy())
                 .setString(LAST_MODIFIED_BY, currentUser.get()));
     }
@@ -135,6 +146,8 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .setString(NAME, client.getName())
                 .setString(DESCRIPTION, client.getDescription())
                 .setSet(REDIRECT_URIS, newHashSet(client.getRedirectUris()))
+                .setString(IMAGE_URI, client.getImageUri())
+                .setString(HOMEPAGE_URL, client.getHomepageUrl())
                 .setString(CREATED_BY, existingCreatedBy.orElseGet(currentUser))
                 .setString(LAST_MODIFIED_BY, currentUser.get()));
     }

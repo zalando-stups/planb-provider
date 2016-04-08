@@ -20,6 +20,8 @@ public class ClientData {
     private String name;
     private String description;
     private Set<String> redirectUris;
+    private String imageUri;
+    private String homepageUrl;
     private String createdBy;
     private String lastModifiedBy;
 
@@ -35,7 +37,9 @@ public class ClientData {
                 .confidential(client.getIsConfidential())
                 .name(client.getName())
                 .description(client.getDescription())
-                .redirectUris(ImmutableSet.copyOf(client.getRedirectUris()));
+                .redirectUris(ImmutableSet.copyOf(client.getRedirectUris()))
+                .imageUri(client.getImageUri())
+                .homepageUrl(client.getHomepageUrl());
     }
 
 
