@@ -47,7 +47,3 @@ docker run -i --link ${CONTAINER_NAME}:cassandra --rm cassandra:2.1 cqlsh cassan
 rm -f sample-data.cql
 
 echo "Done!"
-echo "To access the Cassandra command line client use:"
-echo "docker exec -it ${CONTAINER_NAME} cqlsh"
-
-
