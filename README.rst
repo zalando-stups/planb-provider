@@ -51,11 +51,12 @@ Setup a local Cassandra
 
     $ ./setup-dev-cassandra.sh
 
-To access the Cassandra command line client use:
+Afterwards you can access the Cassandra command line client via Docker, e.g.:
 
 .. code-block:: bash
 
     $ docker exec -it planb-provider-cassandra cqlsh
+    cqlsh> DESCRIBE KEYSPACE provider;
 
 Set up the following environment variables
 ------------------------------------------
