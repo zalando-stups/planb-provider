@@ -22,6 +22,7 @@ import java.util.Map;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.bouncycastle.asn1.ua.DSTU4145NamedCurves.params;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.TEXT_XML_VALUE;
 import static org.zalando.planb.provider.AuthorizationCodeGrantFlowIT.parseURLParams;
@@ -94,7 +95,7 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
 
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
-        assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback?");
+        assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback#");
         Map<String, String> params = parseURLParams(authResponse.getHeaders().getLocation());
         // http://tools.ietf.org/html/rfc6749#section-4.2.2
         // check required parameters
@@ -131,7 +132,7 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
 
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        assertThat(authResponse.getBody().getRedirect()).startsWith("https://myapp.example.org/callback?");
+        assertThat(authResponse.getBody().getRedirect()).startsWith("https://myapp.example.org/callback#");
         Map<String, String> params = parseURLParams(URI.create(authResponse.getBody().getRedirect()));
         // http://tools.ietf.org/html/rfc6749#section-4.2.2
         // check required parameters
@@ -168,7 +169,7 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
 
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
-        assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback?");
+        assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback#");
         Map<String, String> params = parseURLParams(authResponse.getHeaders().getLocation());
         assertThat(params).contains(MapEntry.entry("error", "access_denied"));
         assertThat(params).containsKey("state");
