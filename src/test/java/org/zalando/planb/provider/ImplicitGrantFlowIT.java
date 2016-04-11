@@ -1,7 +1,9 @@
 package org.zalando.planb.provider;
 
 import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.impl.client.HttpClients;
 import org.assertj.core.data.MapEntry;
 import org.junit.Test;
@@ -17,14 +19,20 @@ import org.springframework.web.client.HttpClientErrorException;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.reducing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.bouncycastle.asn1.ua.DSTU4145NamedCurves.params;
 import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.TEXT_XML_VALUE;
+import static org.springframework.security.oauth2.common.AuthenticationScheme.query;
 import static org.zalando.planb.provider.AuthorizationCodeGrantFlowIT.parseURLParams;
 
 @ActiveProfiles("it")
@@ -96,7 +104,7 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
         assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback#");
-        Map<String, String> params = parseURLParams(authResponse.getHeaders().getLocation());
+        Map<String, String> params = parseURLFragments(authResponse.getHeaders().getLocation());
         // http://tools.ietf.org/html/rfc6749#section-4.2.2
         // check required parameters
         assertThat(params).containsKey("access_token");
@@ -133,7 +141,8 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         assertThat(authResponse.getBody().getRedirect()).startsWith("https://myapp.example.org/callback#");
-        Map<String, String> params = parseURLParams(URI.create(authResponse.getBody().getRedirect()));
+
+        Map<String, String> params = parseURLFragments(URI.create(authResponse.getBody().getRedirect()));
         // http://tools.ietf.org/html/rfc6749#section-4.2.2
         // check required parameters
         assertThat(params).containsKey("access_token");
@@ -170,7 +179,7 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
         assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
         assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback#");
-        Map<String, String> params = parseURLParams(authResponse.getHeaders().getLocation());
+        Map<String, String> params = parseURLFragments(authResponse.getHeaders().getLocation());
         assertThat(params).contains(MapEntry.entry("error", "access_denied"));
         assertThat(params).containsKey("state");
     }
@@ -225,5 +234,20 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(ex.getResponseBodyAsString()).contains("invalid_scope");
         }
+    }
+
+    static Map<String, String> parseURLFragments(URI uri) {
+        List<NameValuePair> nameValuePairs = parse(uri, "UTF-8");
+
+        return nameValuePairs.stream()
+                .collect(groupingBy(NameValuePair::getName, reducing("", NameValuePair::getValue, (x, y) -> y)));
+    }
+
+    static List <NameValuePair> parse(final URI uri, final String charset) {
+        final String query = uri.getRawFragment();
+        if (query != null && !query.isEmpty()) {
+            return URLEncodedUtils.parse(query, Charset.forName(charset));
+        }
+        return Collections.emptyList();
     }
 }
