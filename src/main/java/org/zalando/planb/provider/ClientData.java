@@ -42,5 +42,4 @@ public class ClientData {
                 .homepageUrl(client.getHomepageUrl());
     }
 
-
 }

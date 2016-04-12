@@ -16,7 +16,10 @@ import org.zalando.planb.provider.NotFoundException;
 
 import java.util.Optional;
 
-import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.bindMarker;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.insertInto;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.select;
 import static java.lang.String.format;
 import static org.hibernate.validator.internal.util.CollectionHelper.newHashSet;
 
@@ -169,6 +172,8 @@ public class CassandraClientRealm implements ClientManagedRealm {
                 .name(row.getString(NAME))
                 .description(row.getString(DESCRIPTION))
                 .redirectUris(row.getSet(REDIRECT_URIS, String.class))
+                .imageUri(row.getString(IMAGE_URI))
+                .homepageUrl(row.getString(HOMEPAGE_URL))
                 .createdBy(row.getString(CREATED_BY))
                 .lastModifiedBy(row.getString(LAST_MODIFIED_BY))
                 .build();

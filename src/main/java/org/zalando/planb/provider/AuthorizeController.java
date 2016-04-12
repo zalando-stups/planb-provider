@@ -42,6 +42,8 @@ public class AuthorizeController {
     private static final String LOGIN_FORM = "login";
 
     private static final String MODEL_CLIENT_DESCRIPTION = "clientDescription";
+    private static final String MODEL_IMAGE_URI = "imageUri";
+    private static final String MODEL_HOMEPAGE_URL = "homepageUrl";
     private static final String MODEL_CLIENT_ID = "clientId";
     private static final String MODEL_CLIENT_NAME = "clientName";
     private static final String MODEL_CONSENT = "consent";
@@ -109,7 +111,7 @@ public class AuthorizeController {
                                  @RequestParam(value = PARAM_ERROR) final Optional<String> error,
                                  @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader, final Model model) {
 
-        checkReponseType(responseType);
+        checkResponseType(responseType);
 
         final String realmName = getRealmName(realms, realmNameParam, hostHeader);
         ClientRealm clientRealm = realms.getClientRealm(realmName);
@@ -187,7 +189,7 @@ public class AuthorizeController {
             @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader) throws IOException, URISyntaxException,
             JOSEException {
 
-        checkReponseType(responseType);
+        checkResponseType(responseType);
 
         final String realmName = getRealmName(realms, realmNameParam, hostHeader);
 
@@ -236,7 +238,7 @@ public class AuthorizeController {
         return AuthorizeResponse.builder().redirect(redirect.toString()).build();
     }
 
-    private void checkReponseType(final String responseType) {
+    private void checkResponseType(final String responseType) {
         if (!SUPPORTED_RESPONSE_TYPES.contains(responseType)) {
             // see https://tools.ietf.org/html/rfc6749#section-4.2.2.1
             throw new BadRequestException("Unsupported response_type", "unsupported_response_type",
@@ -314,6 +316,8 @@ public class AuthorizeController {
         final Map<String, Object> model = new HashMap<>();
         model.put(MODEL_CLIENT_NAME, authorizeResponse.getClientName());
         model.put(MODEL_CLIENT_DESCRIPTION, authorizeResponse.getClientDescription());
+        model.put(MODEL_IMAGE_URI, authorizeResponse.getImageUri());
+        model.put(MODEL_HOMEPAGE_URL, authorizeResponse.getHomepageUrl());
         model.put(MODEL_SCOPES, authorizeResponse.getScopes());
         model.put(MODEL_RESPONSE_TYPE, authorizeResponse.getResponseType());
         model.put(MODEL_REALM, authorizeResponse.getRealm());
@@ -395,6 +399,8 @@ public class AuthorizeController {
                 .redirect(redirectUri.toString())
                 .clientName(clientData.getName())
                 .clientDescription(clientData.getDescription())
+                .imageUri(clientData.getImageUri())
+                .homepageUrl(clientData.getHomepageUrl())
                 .clientId(clientId)
                 .responseType(responseType)
                 .state(state.orElse(EMPTY_STRING))
