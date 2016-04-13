@@ -1,15 +1,12 @@
 package org.zalando.planb.provider;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
+import org.immutables.value.Value;
 
-@Getter
-@AllArgsConstructor
-@Builder
-public class ClientCredentials {
+@Value.Immutable
+public interface ClientCredentials {
 
-    private String clientId;
-    private String clientSecret;
+    String clientId();
+
+    String clientSecret();
 
 }

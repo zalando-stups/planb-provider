@@ -79,7 +79,7 @@ public class OIDCController {
                         "Malformed or missing Authorization header.",
                         "invalid_client",
                         "Client authentication failed"));
-        return ClientCredentials.builder().clientId(basicAuth[0]).clientSecret(basicAuth[1]).build();
+        return ImmutableClientCredentials.builder().clientId(basicAuth[0]).clientSecret(basicAuth[1]).build();
     }
 
     public static ClientCredentials getClientCredentials(Optional<String> authorization, Optional<String> clientId,
@@ -87,7 +87,8 @@ public class OIDCController {
             throws RealmAuthenticationException {
 
         if (clientId.isPresent() && clientSecret.isPresent()) {
-            return ClientCredentials.builder().clientId(clientId.get()).clientSecret(clientSecret.get()).build();
+            return ImmutableClientCredentials.builder().clientId(clientId.get()).clientSecret(clientSecret.get())
+                    .build();
         } else {
             return getClientCredentials(authorization);
         }
@@ -155,16 +156,16 @@ public class OIDCController {
 
             final ClientCredentials clientCredentials =
                     getClientCredentials(authorization, clientIdParam, clientSecretParam);
-            clientRealm.authenticate(clientCredentials.getClientId(), clientCredentials.getClientSecret(),
+            clientRealm.authenticate(clientCredentials.clientId(), clientCredentials.clientSecret(),
                     authCode.scopes(), authCode.scopes());
 
-            if (!clientCredentials.getClientId().equals(authCode.clientId())) {
+            if (!clientCredentials.clientId().equals(authCode.clientId())) {
                 // authorization code can only be used by the client who requested it
                 throw new BadRequestException("Invalid authorization code: client mismatch", "invalid_request",
                         "Invalid authorization code: client mismatch");
             }
 
-            final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientCredentials.getClientId(),
+            final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientCredentials.clientId(),
                     authCode.scopes(), authCode.claims());
             metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
 
@@ -222,12 +223,12 @@ public class OIDCController {
 
             final ClientCredentials clientCredentials = getClientCredentials(authorization, clientIdParam,
                     clientSecretParam);
-            clientRealm.authenticate(clientCredentials.getClientId(), clientCredentials.getClientSecret(), scopes,
+            clientRealm.authenticate(clientCredentials.clientId(), clientCredentials.clientSecret(), scopes,
                     defaultScopes);
             final Map<String, String> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
 
             // request authorized, create JWT
-            final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientCredentials.getClientId(), finalScopes,
+            final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientCredentials.clientId(), finalScopes,
                     extraClaims);
             metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
 
