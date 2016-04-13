@@ -3,6 +3,7 @@ package org.zalando.planb.provider.realms;
 import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
 import com.github.tomakehurst.wiremock.http.Fault;
 import com.netflix.hystrix.exception.HystrixRuntimeException;
+import exclude.from.component.scan.CassandraTestAddressTranslatorConfig;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
@@ -20,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.TEXT_XML_VALUE;
 
-@SpringApplicationConfiguration(classes = {Main.class})
+@SpringApplicationConfiguration(classes = {Main.class, CassandraTestAddressTranslatorConfig.class})
 @WebIntegrationTest(randomPort = true)
 @ActiveProfiles({"it"})
 public class CustomerUserRealmIT extends AbstractSpringTest {

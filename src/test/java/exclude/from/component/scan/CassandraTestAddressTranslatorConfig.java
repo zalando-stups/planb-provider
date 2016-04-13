@@ -1,4 +1,4 @@
-package org.zalando.planb.provider;
+package exclude.from.component.scan;
 
 import com.datastax.driver.core.policies.AddressTranslator;
 import com.datastax.driver.core.policies.IdentityTranslator;

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Set;
 
+import exclude.from.component.scan.CassandraTestAddressTranslatorConfig;
 import org.junit.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import com.google.common.collect.ImmutableSet;
 
-@SpringApplicationConfiguration(classes = {Main.class})
+@SpringApplicationConfiguration(classes = {Main.class, CassandraTestAddressTranslatorConfig.class})
 @WebIntegrationTest(randomPort = true)
 @ActiveProfiles("it")
 public class CassandraConsentServiceIT extends AbstractSpringTest {
