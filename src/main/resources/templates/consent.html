@@ -17,11 +17,12 @@
 </head>
 <body>
 <div id="wrapper">
-    <h1>Consent</h1>
-    <h2 th:text="${clientName}"></h2>
+    <h1>Consent</h1><img th:unless="${#strings.isEmpty(imageUri)}" th:src="${imageUri}" style="float: right;"/>
+    <h2><a th:unless="${#strings.isEmpty(homepageUrl)}" th:href="${homepageUrl}" th:text="${clientName}" target="_blank"></a><span
+            th:if="${#strings.isEmpty(homepageUrl)}" th:text="${clientName}"></span></h2>
     <p th:text="${clientDescription}"></p>
-    <ul th:each="s : ${scopes}">
-        <li th:text="${s}"></li>
+    <ul>
+        <li th:each="s : ${scopes}" th:text="${s}"></li>
     </ul>
     <form action="/oauth2/authorize" method="post">
         <input type="hidden" name="response_type" th:value="${responseType}"/>

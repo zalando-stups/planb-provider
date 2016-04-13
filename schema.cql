@@ -11,6 +11,8 @@ CREATE TABLE provider.client (
     name TEXT,                       -- client's human readable name (shown on authorization consent form)
     description TEXT,                -- client's human readable description (for consent form)
     redirect_uris SET<TEXT>,         -- configured redirect URLs for Authorization Code Grant flow
+    image_uri TEXT,                  -- an optional URI to the client application logo
+    homepage_url TEXT,               -- an optional URL that points to the client application
     created_by TEXT,                 -- name of the user who created this entry
     last_modified_by TEXT,           -- name of the user did the last modification on this entry
     PRIMARY KEY ((client_id), realm)

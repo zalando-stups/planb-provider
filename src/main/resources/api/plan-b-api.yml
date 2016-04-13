@@ -307,6 +307,10 @@ definitions:
         type: array
         items:
           type: string
+      image_uri:
+        type: string
+      homepage_url:
+        type: string
 
   User:
     type: object

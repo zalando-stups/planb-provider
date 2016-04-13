@@ -23,6 +23,12 @@ public class AuthorizeResponse {
     @JsonProperty("client_description")
     private String clientDescription;
 
+    @JsonProperty("image_uri")
+    private String imageUri;
+
+    @JsonProperty("homepage_url")
+    private String homepageUrl;
+
     @JsonProperty("scopes")
     private Set<String> scopes;
 
