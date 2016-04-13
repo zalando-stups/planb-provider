@@ -289,13 +289,29 @@ public class ClientControllerIT extends AbstractOauthTest {
         assertThat(fetchClient("1234", "/services"))
                 .has(valuesEqualTo(builderOf(service1234).createdBy(USER1).lastModifiedBy(USER2).build()));
 
-        // and when finally the confidential flag is updated
+        // and when the confidential flag is updated
         final Client body3 = new Client();
         body3.setIsConfidential(false);
         getRestTemplate().exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body3), Void.class);
 
         // then this change is also reflected in data storage
         service1234.setIsConfidential(false);
+        assertThat(fetchClient("1234", "/services"))
+                .has(valuesEqualTo(builderOf(service1234).createdBy(USER1).lastModifiedBy(USER1).build()));
+
+        // go on with the meta data:
+        final Client body4 = new Client();
+        body4.setName("My App");
+        body4.setDescription("Lorem ipsum dolor");
+        body4.setImageUri("https://path.to.my/logo.jpg");
+        body4.setHomepageUrl("https://github.com/zalando");
+        getRestTemplate().exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body4), Void.class);
+
+        // and verify the changes
+        service1234.setName("My App");
+        service1234.setDescription("Lorem ipsum dolor");
+        service1234.setImageUri("https://path.to.my/logo.jpg");
+        service1234.setHomepageUrl("https://github.com/zalando");
         assertThat(fetchClient("1234", "/services"))
                 .has(valuesEqualTo(builderOf(service1234).createdBy(USER1).lastModifiedBy(USER1).build()));
     }
