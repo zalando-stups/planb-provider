@@ -6,6 +6,7 @@ import org.apache.http.client.utils.URLEncodedUtils;
 import org.assertj.core.data.MapEntry;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
@@ -368,5 +369,43 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
             assertThat(ex.getResponseBodyAsString()).contains("Invalid authorization code");
         }
 
+    }
+
+    @Test
+    public void testRenderSimpleConsentHtml() throws Exception {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "code");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testconsentsimple");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope openid");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        final ResponseEntity<String> loginResponse = getRestTemplate().exchange(
+                post(getAuthorizeUrl()).accept(MediaType.TEXT_HTML).body(requestParameters),
+                String.class);
+
+        assertThat(loginResponse.getBody())
+                .isXmlEqualToContentOf(new ClassPathResource("/golden-files/consent-authcode-simple.html").getFile());
+    }
+
+    @Test
+    public void testRenderConsentWithMetaDataHtml() throws Exception {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "code");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testconsentwithmetadata");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope openid");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        final ResponseEntity<String> loginResponse = getRestTemplate().exchange(
+                post(getAuthorizeUrl()).accept(MediaType.TEXT_HTML).body(requestParameters),
+                String.class);
+
+        assertThat(loginResponse.getBody())
+                .isXmlEqualToContentOf(new ClassPathResource("/golden-files/consent-authcode-with-meta-data.html").getFile());
     }
 }

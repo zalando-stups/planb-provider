@@ -33,6 +33,14 @@ INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_co
     VALUES ('testcustomerimplicit', '/customers', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
             {'uid', 'read-customer-profile'}, false, 'Test Customer App', {'https://myapp.example.org/callback'}, '/services/user1', '/services/user1');
 
+INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential, redirect_uris, name, description, image_uri, homepage_url, created_by, last_modified_by)
+    VALUES ('testconsentsimple', '/services', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
+            {'uid', 'ascope', 'openid'}, false, {'https://myapp.example.org/callback'}, 'Consent Simple Test', 'Lorem ipsum dolor', null, null, '/services/user1', '/services/user1');
+
+INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential, redirect_uris, name, description, image_uri, homepage_url, created_by, last_modified_by)
+    VALUES ('testconsentwithmetadata', '/services', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
+            {'uid', 'ascope', 'openid'}, false, {'https://myapp.example.org/callback'}, 'Consent More Metadata Test', 'Lorem ipsum dolor', 'https://avatars2.githubusercontent.com/u/1564818?s=50', 'https://github.com/zalando', '/services/user1', '/services/user1');
+
 -- default keys
 
 INSERT INTO provider.keypair (kid, realms, private_key_pem, algorithm, valid_from)
