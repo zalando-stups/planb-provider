@@ -194,6 +194,12 @@
             <version>1.16.8</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.immutables</groupId>
+            <artifactId>value</artifactId>
+            <version>2.1.15</version>
+            <scope>provided</scope>
+        </dependency>
 
         <!-- Generates META-INF/spring-configuration-metadata.json for all @ConfigurationProperties.
              This provides us auto completion for yaml files -->

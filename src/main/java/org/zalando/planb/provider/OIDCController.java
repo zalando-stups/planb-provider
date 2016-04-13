@@ -141,32 +141,34 @@ public class OIDCController {
         // ensure that the redirection URI used to obtain the authorization code
         // is identical to the redirection URI provided when exchanging the
         // authorization code for an access token.
-        if (!redirectUri.equals(authCode.getRedirectUri())) {
+        if (!redirectUri.equals(authCode.redirectUri())) {
             throw new BadRequestException("Invalid authorization code: redirect_uri mismatch", "invalid_request",
                     "Invalid authorization code: redirect_uri mismatch");
         }
 
-        final String realmName = authCode.getRealm();
+        final String realmName = authCode.realm();
         try {
 
             // retrieve realms for the given realm
             ClientRealm clientRealm = realms.getClientRealm(realmName);
             UserRealm userRealm = realms.getUserRealm(realmName);
 
-            final ClientCredentials clientCredentials = getClientCredentials(authorization, clientIdParam, clientSecretParam);
-            clientRealm.authenticate(clientCredentials.getClientId(), clientCredentials.getClientSecret(), authCode.getScopes(), authCode.getScopes());
+            final ClientCredentials clientCredentials =
+                    getClientCredentials(authorization, clientIdParam, clientSecretParam);
+            clientRealm.authenticate(clientCredentials.getClientId(), clientCredentials.getClientSecret(),
+                    authCode.scopes(), authCode.scopes());
 
-            if (!clientCredentials.getClientId().equals(authCode.getClientId())) {
+            if (!clientCredentials.getClientId().equals(authCode.clientId())) {
                 // authorization code can only be used by the client who requested it
                 throw new BadRequestException("Invalid authorization code: client mismatch", "invalid_request",
                         "Invalid authorization code: client mismatch");
             }
 
             final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientCredentials.getClientId(),
-                    authCode.getScopes(), authCode.getClaims());
+                    authCode.scopes(), authCode.claims());
             metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
 
-            return response(rawJWT, authCode.getScopes(), realmName);
+            return response(rawJWT, authCode.scopes(), realmName);
         } catch (Throwable t) {
             final String errorType = Optional.of(t)
                     .filter(e -> e instanceof RestException)

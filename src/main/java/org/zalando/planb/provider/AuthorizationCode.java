@@ -1,29 +1,25 @@
 package org.zalando.planb.provider;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
+import org.immutables.value.Value;
 
 import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 
-@Getter
-@AllArgsConstructor
-@Builder
-public class AuthorizationCode {
+@Value.Immutable
+public interface AuthorizationCode {
 
-    private String code;
+    String code();
 
-    private String state;
+    String state();
 
-    private String clientId;
+    String clientId();
 
-    private String realm;
+    String realm();
 
-    private Set<String> scopes;
+    Set<String> scopes();
 
-    private Map<String, String> claims;
+    Map<String, String> claims();
 
-    private URI redirectUri;
+    URI redirectUri();
 }

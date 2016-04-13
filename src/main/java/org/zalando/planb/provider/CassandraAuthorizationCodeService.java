@@ -133,7 +133,7 @@ public class CassandraAuthorizationCodeService {
     }
 
     private static AuthorizationCode toAuthorizationCode(Row row) {
-        return AuthorizationCode.builder()
+        return ImmutableAuthorizationCode.builder()
                 .code(row.getString(CODE))
                 .state(row.getString(STATE))
                 .clientId(row.getString(CLIENT_ID))
