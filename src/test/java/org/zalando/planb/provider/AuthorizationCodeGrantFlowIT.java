@@ -408,7 +408,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
                 post(getAuthorizeUrl()).accept(MediaType.APPLICATION_JSON).body(requestParameters),
                 String.class);
         assertThat(om.readTree(loginResponse.getBody()))
-                .isEqualTo(om.readTree(new ClassPathResource("/golden-files/consent-authcode-simple.json").getInputStream()));
+                .isEqualTo(om.readTree(new ClassPathResource("/golden-files/consent-simple.json").getInputStream()));
     }
 
     @Test
@@ -446,6 +446,6 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
                 String.class);
 
         assertThat(om.readTree(loginResponse.getBody()))
-                .isEqualTo(om.readTree(new ClassPathResource("/golden-files/consent-authcode-with-meta-data.json").getInputStream()));
+                .isEqualTo(om.readTree(new ClassPathResource("/golden-files/consent-with-meta-data.json").getInputStream()));
     }
 }

@@ -1,11 +1,10 @@
 package org.zalando.planb.provider;
 
-import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.HttpClients;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.assertj.core.data.MapEntry;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
@@ -19,15 +18,15 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
-import static org.springframework.http.HttpStatus.*;
-import static org.springframework.http.MediaType.TEXT_XML_VALUE;
+import static org.springframework.http.RequestEntity.post;
 import static org.zalando.planb.provider.AuthorizationCodeGrantFlowIT.parseURLParams;
 
 @ActiveProfiles("it")
 public class ImplicitGrantFlowIT extends AbstractOauthTest {
+
+    private final ObjectMapper om = new ObjectMapper();
 
     @Autowired
     private CassandraConsentService cassandraConsentService;
@@ -224,5 +223,81 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(ex.getResponseBodyAsString()).contains("invalid_scope");
         }
+    }
+
+
+    @Test
+    public void testRenderSimpleConsentHtml() throws Exception {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "token");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testconsentsimple");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope openid");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        final ResponseEntity<String> loginResponse = getRestTemplate().exchange(
+                post(getAuthorizeUrl()).accept(MediaType.TEXT_HTML).body(requestParameters),
+                String.class);
+
+        assertThat(loginResponse.getBody())
+                .isXmlEqualToContentOf(new ClassPathResource("/golden-files/consent-implicit-simple.html").getFile());
+    }
+
+    @Test
+    public void testRenderSimpleConsentJson() throws Exception {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "token");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testconsentsimple");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope openid");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        final ResponseEntity<String> loginResponse = getRestTemplate().exchange(
+                post(getAuthorizeUrl()).accept(MediaType.APPLICATION_JSON).body(requestParameters),
+                String.class);
+        assertThat(om.readTree(loginResponse.getBody()))
+                .isEqualTo(om.readTree(new ClassPathResource("/golden-files/consent-simple.json").getInputStream()));
+    }
+
+    @Test
+    public void testRenderConsentWithMetaDataHtml() throws Exception {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "token");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testconsentwithmetadata");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope openid");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        final ResponseEntity<String> loginResponse = getRestTemplate().exchange(
+                post(getAuthorizeUrl()).accept(MediaType.TEXT_HTML).body(requestParameters),
+                String.class);
+
+        assertThat(loginResponse.getBody())
+                .isXmlEqualToContentOf(new ClassPathResource("/golden-files/consent-implicit-with-meta-data.html").getFile());
+    }
+
+    @Test
+    public void testRenderConsentWithMetaDataJson() throws Exception {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "token");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testconsentwithmetadata");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope openid");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        final ResponseEntity<String> loginResponse = getRestTemplate().exchange(
+                post(getAuthorizeUrl()).accept(MediaType.APPLICATION_JSON).body(requestParameters),
+                String.class);
+
+        assertThat(om.readTree(loginResponse.getBody()))
+                .isEqualTo(om.readTree(new ClassPathResource("/golden-files/consent-with-meta-data.json").getInputStream()));
     }
 }
