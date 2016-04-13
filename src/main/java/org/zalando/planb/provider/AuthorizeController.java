@@ -371,10 +371,15 @@ public class AuthorizeController {
             throws URISyntaxException, JOSEException {
 
         final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientId, finalScopes, claims);
-        return new URIBuilder(redirectUri).addParameter(PARAM_ACCESS_TOKEN, rawJWT).addParameter(PARAM_TOKEN_TYPE, PARAM_TOKEN_TYPE_BEARER)
+
+        final URI queryURI = new URIBuilder()
+                .addParameter(PARAM_ACCESS_TOKEN, rawJWT)
+                .addParameter(PARAM_TOKEN_TYPE, PARAM_TOKEN_TYPE_BEARER)
                 .addParameter(PARAM_EXPIRES_IN, String.valueOf(realmProperties.getTokenLifetime(userRealm.getName()).getSeconds()))
                 .addParameter(PARAM_SCOPE, ScopeService.join(finalScopes))
                 .addParameter(PARAM_STATE, state.orElse(EMPTY_STRING)).build();
+
+        return new URIBuilder(redirectUri).setFragment(queryURI.getQuery()).build();
     }
 
     private URI generateLoginURIAfterAccessDenied(final Optional<String> realmName, final String responseType, final Optional<String> state,
@@ -415,15 +420,15 @@ public class AuthorizeController {
 
     private AuthorizeResponse noConsentedScopesResponse(final URI redirectUri, final Optional<String> state)
             throws URISyntaxException {
-        final URI redirect = new URIBuilder(redirectUri)
+        final URI queryURI = new URIBuilder()
                 .addParameter(PARAM_ERROR, PARAM_ERROR_ACCESS_DENIED)
                 .addParameter(PARAM_STATE, state.orElse(EMPTY_STRING))
                 .build();
+
+        final URI redirect = new URIBuilder(redirectUri).setFragment(queryURI.getQuery()).build();
         return AuthorizeResponse
                 .builder()
                 .redirect(redirect.toString())
                 .build();
     }
-
-
 }
