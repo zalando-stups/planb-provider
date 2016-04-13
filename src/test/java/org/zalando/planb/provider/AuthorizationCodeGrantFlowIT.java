@@ -1,5 +1,6 @@
 package org.zalando.planb.provider;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableSet;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
@@ -32,7 +33,9 @@ import static org.springframework.http.RequestEntity.post;
 
 @ActiveProfiles("it")
 public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
-    
+
+    private final ObjectMapper om = new ObjectMapper();
+
     @Autowired
     private ConsentService consentService;
 
@@ -56,7 +59,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
                 .build();
 
         try {
-            ResponseEntity<String> response = getRestTemplate().exchange(request, String.class);
+            getRestTemplate().exchange(request, String.class);
             fail("GET should have thrown Bad Request");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -71,7 +74,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
                 .build();
 
         try {
-            ResponseEntity<String> response = getRestTemplate().exchange(request, String.class);
+            getRestTemplate().exchange(request, String.class);
             fail("GET should have thrown Bad Request");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -96,7 +99,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
                 .body(requestParameters);
 
         try {
-            ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
+            getRestTemplate().exchange(request, Void.class);
             fail("POST should have thrown Bad Request");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -391,6 +394,24 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
     }
 
     @Test
+    public void testRenderSimpleConsentJson() throws Exception {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "code");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testconsentsimple");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope openid");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        final ResponseEntity<String> loginResponse = getRestTemplate().exchange(
+                post(getAuthorizeUrl()).accept(MediaType.APPLICATION_JSON).body(requestParameters),
+                String.class);
+        assertThat(om.readTree(loginResponse.getBody()))
+                .isEqualTo(om.readTree(new ClassPathResource("/golden-files/consent-authcode-simple.json").getInputStream()));
+    }
+
+    @Test
     public void testRenderConsentWithMetaDataHtml() throws Exception {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("response_type", "code");
@@ -407,5 +428,24 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
 
         assertThat(loginResponse.getBody())
                 .isXmlEqualToContentOf(new ClassPathResource("/golden-files/consent-authcode-with-meta-data.html").getFile());
+    }
+
+    @Test
+    public void testRenderConsentWithMetaDataJson() throws Exception {
+        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
+        requestParameters.add("response_type", "code");
+        requestParameters.add("realm", "/services");
+        requestParameters.add("client_id", "testconsentwithmetadata");
+        requestParameters.add("username", "testuser");
+        requestParameters.add("password", "test");
+        requestParameters.add("scope", "uid ascope openid");
+        requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
+
+        final ResponseEntity<String> loginResponse = getRestTemplate().exchange(
+                post(getAuthorizeUrl()).accept(MediaType.APPLICATION_JSON).body(requestParameters),
+                String.class);
+
+        assertThat(om.readTree(loginResponse.getBody()))
+                .isEqualTo(om.readTree(new ClassPathResource("/golden-files/consent-authcode-with-meta-data.json").getInputStream()));
     }
 }
