@@ -40,7 +40,6 @@ public class RestControllerAdvice {
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<Map<String, String>> handleRequestMethodNotSupportedExceptions(HttpRequestMethodNotSupportedException e) {
-       log.warn("Method not allowed ({})", e.getMessage(), e.getClass().getSimpleName());
        return status(HttpStatus.METHOD_NOT_ALLOWED).header(HttpHeaders.ALLOW, e.getSupportedMethods()).body(errorBody("not_allowed", e.getMessage()));
     }
 
