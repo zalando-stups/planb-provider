@@ -3,7 +3,7 @@ package org.zalando.planb.provider;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.net.HttpHeaders;
 import com.netflix.hystrix.exception.HystrixRuntimeException;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -14,11 +14,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.slf4j.LoggerFactory.getLogger;
 import static org.springframework.http.ResponseEntity.status;
 
 @ControllerAdvice
-@Slf4j
 public class RestControllerAdvice {
+
+    private final Logger log = getLogger(getClass());
 
     @ExceptionHandler(ServletRequestBindingException.class)
     public ResponseEntity<Map<String, String>> argumentProcessingExceptions(ServletRequestBindingException e) {
@@ -35,12 +37,14 @@ public class RestControllerAdvice {
     @ExceptionHandler(HystrixRuntimeException.class)
     public ResponseEntity<Map<String, String>> handleHystrixExceptions(HystrixRuntimeException e) {
         log.warn("Dependency unavailable:", e);
-        return status(HttpStatus.SERVICE_UNAVAILABLE).body(errorBody("unavailable_dependency", "Dependency unavailable"));
+        return status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(errorBody("unavailable_dependency", "Dependency unavailable"));
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<Map<String, String>> handleRequestMethodNotSupportedExceptions(HttpRequestMethodNotSupportedException e) {
-       return status(HttpStatus.METHOD_NOT_ALLOWED).header(HttpHeaders.ALLOW, e.getSupportedMethods()).body(errorBody("not_allowed", e.getMessage()));
+        return status(HttpStatus.METHOD_NOT_ALLOWED).header(HttpHeaders.ALLOW,
+                e.getSupportedMethods()).body(errorBody("not_allowed", e.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

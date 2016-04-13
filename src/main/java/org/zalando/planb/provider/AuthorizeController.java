@@ -2,8 +2,8 @@ package org.zalando.planb.provider;
 
 import com.google.common.collect.ImmutableSet;
 import com.nimbusds.jose.JOSEException;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.utils.URIBuilder;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
@@ -28,14 +28,16 @@ import java.util.Optional;
 import java.util.Set;
 
 import static java.lang.String.format;
+import static org.slf4j.LoggerFactory.getLogger;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 import static org.zalando.planb.provider.OIDCController.getRealmName;
 import static org.zalando.planb.provider.realms.ClientRealmAuthenticationException.clientNotFound;
 
-@Slf4j
 @Controller
 @RequestMapping(path = "/oauth2/authorize")
 public class AuthorizeController {
+
+    private final static Logger LOG = getLogger(AuthorizeController.class);
 
     private static final String EMPTY_STRING = "";
     private static final String HEADER_HOST = "Host";
@@ -78,7 +80,8 @@ public class AuthorizeController {
     private static final String PARAM_TOKEN_TYPE_BEARER = "Bearer";
     private static final String PARAM_USERNAME = "username";
 
-    private static final Set<String> SUPPORTED_RESPONSE_TYPES = ImmutableSet.of(PARAM_RESPONSE_TYPE_CODE, PARAM_RESPONSE_TYPE_TOKEN);
+    private static final Set<String> SUPPORTED_RESPONSE_TYPES = ImmutableSet
+            .of(PARAM_RESPONSE_TYPE_CODE, PARAM_RESPONSE_TYPE_TOKEN);
 
     @Autowired
     private RealmConfig realms;
@@ -109,7 +112,8 @@ public class AuthorizeController {
                                  @RequestParam(value = PARAM_REDIRECT_URI) final Optional<URI> redirectUriParam,
                                  @RequestParam(value = PARAM_STATE) final Optional<String> state,
                                  @RequestParam(value = PARAM_ERROR) final Optional<String> error,
-                                 @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader, final Model model) {
+                                 @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader,
+                                 final Model model) {
 
         checkResponseType(responseType);
 
@@ -152,8 +156,9 @@ public class AuthorizeController {
             @RequestParam(value = PARAM_USERNAME) final String username,
             @RequestParam(value = PARAM_PASSWORD) final String password,
             @RequestParam(value = PARAM_DECISION) final Optional<String> decision,
-            @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader) throws IOException, URISyntaxException,
-            JOSEException {
+            @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader)
+            throws IOException, URISyntaxException, JOSEException {
+
         try {
             final AuthorizeResponse authorizeResponse = authorizeAsJson(responseType, realmNameParam, clientId, scope,
                     redirectUri, state, username, password, decision, hostHeader);
@@ -162,16 +167,20 @@ public class AuthorizeController {
                     generateConsentScopesView(authorizeResponse) :
                     generateRedirectView(authorizeResponse);
         } catch (UserRealmAuthenticationException e) {
-            return generateRedirectViewOnAccessDenied(responseType, realmNameParam, clientId, scope, redirectUri, state);
+            return generateRedirectViewOnAccessDenied(responseType, realmNameParam, clientId, scope, redirectUri,
+                    state);
         }
 
     }
 
     private ModelAndView generateRedirectViewOnAccessDenied(String responseType, Optional<String> realmNameParam,
                                                             String clientId, Optional<String> scope, URI redirectUri,
-                                                            Optional<String> state) throws URISyntaxException, JOSEException {
+                                                            Optional<String> state)
+            throws URISyntaxException, JOSEException {
+
         return new ModelAndView(new RedirectView(
-                generateLoginURIAfterAccessDenied(realmNameParam, responseType, state, clientId, scope, redirectUri).toString()));
+                generateLoginURIAfterAccessDenied(realmNameParam, responseType, state, clientId, scope, redirectUri)
+                        .toString()));
     }
 
     @RequestMapping(method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -186,8 +195,8 @@ public class AuthorizeController {
             @RequestParam(value = PARAM_USERNAME) final String username,
             @RequestParam(value = PARAM_PASSWORD) final String password,
             @RequestParam(value = PARAM_DECISION) final Optional<String> decision,
-            @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader) throws IOException, URISyntaxException,
-            JOSEException {
+            @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader)
+            throws IOException, URISyntaxException, JOSEException {
 
         checkResponseType(responseType);
 
@@ -226,12 +235,13 @@ public class AuthorizeController {
                 return generateConsentNeededResponse(clientData, finalScopes, realmName, clientId, redirectUri,
                         username, password, responseType, state);
             } else {
-                redirect = generateRedirectURIbasedOnGrantType(responseType, realmName, userRealm, state, clientId, finalScopes, claims, redirectUri);
+                redirect = generateRedirectURIbasedOnGrantType(responseType, realmName, userRealm, state, clientId,
+                        finalScopes, claims, redirectUri);
             }
 
         } catch (UserRealmAuthenticationException e) {
             // redirect back to login form with error message
-            log.info("{} (status {} / {})", e.getMessage(), e.getStatusCode(), e.getClass().getSimpleName());
+            LOG.info("{} (status {} / {})", e.getMessage(), e.getStatusCode(), e.getClass().getSimpleName());
             throw e;
         }
 
@@ -254,10 +264,11 @@ public class AuthorizeController {
      */
     static void validateRedirectUri(String realm, String clientId, ClientData clientData, URI redirectUri) {
         if (clientData.getRedirectUris().isEmpty()) {
-            log.warn("client {} has zero redirect URIs configured", clientId);
+            LOG.warn("client {} has zero redirect URIs configured", clientId);
         }
         if (!clientData.getRedirectUris().contains(redirectUri.toString())) {
-            throw new BadRequestException(format("Redirect URI mismatch for client %s/%s", realm, clientId), "invalid_request", "Redirect URI mismatch");
+            throw new BadRequestException(format("Redirect URI mismatch for client %s/%s", realm, clientId),
+                    "invalid_request", "Redirect URI mismatch");
         }
     }
 
@@ -269,7 +280,8 @@ public class AuthorizeController {
         return consentedScopes.isPresent() && consentedScopes.get().containsAll(finalScopes);
     }
 
-    private void checkNonConfidentialClientForImplicitCodeGrant(final String clientId, final String responseType, final boolean isConfidential) {
+    private void checkNonConfidentialClientForImplicitCodeGrant(final String clientId, final String responseType,
+                                                                final boolean isConfidential) {
 
         if (isImplicitGrant(responseType) && isConfidential) {
             throw new BadRequestException(format("Invalid response_type 'token' for confidential client %s", clientId),
@@ -287,7 +299,8 @@ public class AuthorizeController {
     }
 
     private Optional<Set<String>> storeOrGetConsentedScopes(final Optional<String> decision, final String username,
-                                                            final String clientId, final UserRealm userRealm, final Set<String> finalScopes) throws URISyntaxException {
+                                                            final String clientId, final UserRealm userRealm,
+                                                            final Set<String> finalScopes) throws URISyntaxException {
         Optional<Set<String>> consentedScopes = Optional.empty();
 
         switch (decision.orElse(PARAM_DECISION_DEFAULT)) {
@@ -332,8 +345,9 @@ public class AuthorizeController {
     }
 
     private void updateModelForLogin(final Model model, final String responseType, final String realmName,
-                                     final String clientId, final Optional<String> scope, final Optional<String> state, final URI redirectUri,
-                                     final Optional<String> error) {
+                                     final String clientId, final Optional<String> scope, final Optional<String> state,
+                                     final URI redirectUri, final Optional<String> error) {
+
         model.addAttribute(MODEL_RESPONSE_TYPE, responseType);
         model.addAttribute(MODEL_REALM, realmName);
         model.addAttribute(MODEL_CLIENT_ID, clientId);
@@ -358,8 +372,10 @@ public class AuthorizeController {
     }
 
     private URI generateCodeResponseURI(final String realmName, final Optional<String> state, final String clientId,
-                                        final Set<String> finalScopes, final Map<String, String> claims, final URI redirectUri)
+                                        final Set<String> finalScopes, final Map<String, String> claims,
+                                        final URI redirectUri)
             throws URISyntaxException {
+
         final String code = cassandraAuthorizationCodeService
                 .create(state.orElse(EMPTY_STRING), clientId, realmName, finalScopes, claims, redirectUri);
 
@@ -367,7 +383,8 @@ public class AuthorizeController {
     }
 
     private URI generateTokenResponseURI(final UserRealm userRealm, final Optional<String> state, final String clientId,
-                                         final Set<String> finalScopes, final Map<String, String> claims, final URI redirectUri)
+                                         final Set<String> finalScopes, final Map<String, String> claims,
+                                         final URI redirectUri)
             throws URISyntaxException, JOSEException {
 
         final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientId, finalScopes, claims);
@@ -375,16 +392,19 @@ public class AuthorizeController {
         final URI queryURI = new URIBuilder()
                 .addParameter(PARAM_ACCESS_TOKEN, rawJWT)
                 .addParameter(PARAM_TOKEN_TYPE, PARAM_TOKEN_TYPE_BEARER)
-                .addParameter(PARAM_EXPIRES_IN, String.valueOf(realmProperties.getTokenLifetime(userRealm.getName()).getSeconds()))
+                .addParameter(PARAM_EXPIRES_IN, String.valueOf(realmProperties.getTokenLifetime(userRealm.getName())
+                        .getSeconds()))
                 .addParameter(PARAM_SCOPE, ScopeService.join(finalScopes))
                 .addParameter(PARAM_STATE, state.orElse(EMPTY_STRING)).build();
 
         return new URIBuilder(redirectUri).setFragment(queryURI.getQuery()).build();
     }
 
-    private URI generateLoginURIAfterAccessDenied(final Optional<String> realmName, final String responseType, final Optional<String> state,
-                                                  final String clientId, final Optional<String> finalScopes, final URI redirectUri) throws URISyntaxException,
-            JOSEException {
+    private URI generateLoginURIAfterAccessDenied(final Optional<String> realmName, final String responseType,
+                                                  final Optional<String> state, final String clientId,
+                                                  final Optional<String> finalScopes, final URI redirectUri)
+            throws URISyntaxException, JOSEException {
+
         return new URIBuilder(linkTo(AuthorizeController.class).toUri().getPath())
                 .addParameter(PARAM_RESPONSE_TYPE, responseType)
                 .addParameter(PARAM_REALM, realmName.orElse(EMPTY_STRING))
@@ -396,8 +416,10 @@ public class AuthorizeController {
     }
 
     private AuthorizeResponse generateConsentNeededResponse(final ClientData clientData, final Set<String> finalScopes,
-                                                            final String realmName, final String clientId, final URI redirectUri, final String username,
-                                                            final String password, final String responseType, final Optional<String> state) {
+                                                            final String realmName, final String clientId,
+                                                            final URI redirectUri, final String username,
+                                                            final String password, final String responseType,
+                                                            final Optional<String> state) {
 
         return AuthorizeResponse
                 .builder()
