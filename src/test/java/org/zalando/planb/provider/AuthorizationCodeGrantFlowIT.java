@@ -8,8 +8,6 @@ import org.assertj.core.data.MapEntry;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
@@ -28,7 +26,11 @@ import static java.util.stream.Collectors.reducing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FOUND;
 import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.http.RequestEntity.post;
 
 @ActiveProfiles("it")
@@ -62,7 +64,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
             getRestTemplate().exchange(request, String.class);
             fail("GET should have thrown Bad Request");
         } catch (HttpClientErrorException ex) {
-            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
             assertThat(ex.getResponseBodyAsString()).contains("response_type");
         }
     }
@@ -77,7 +79,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
             getRestTemplate().exchange(request, String.class);
             fail("GET should have thrown Bad Request");
         } catch (HttpClientErrorException ex) {
-            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
             assertThat(ex.getResponseBodyAsString()).contains("Missing redirect_uri");
         }
     }
@@ -102,7 +104,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
             getRestTemplate().exchange(request, Void.class);
             fail("POST should have thrown Bad Request");
         } catch (HttpClientErrorException ex) {
-            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
             assertThat(ex.getResponseBodyAsString()).contains("Redirect URI mismatch");
         }
 
@@ -124,12 +126,12 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
 
         RequestEntity<MultiValueMap<String, Object>> request =
                 post(getAuthorizeUrl())
-                .accept(MediaType.TEXT_HTML)
+                        .accept(TEXT_HTML)
                 .body(requestParameters);
 
         ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
-        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+        assertThat(authResponse.getStatusCode()).isEqualTo(FOUND);
 
         assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback?code=");
         List<NameValuePair> params = URLEncodedUtils.parse(authResponse.getHeaders().getLocation(), "UTF-8");
@@ -151,7 +153,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
             getRestTemplate().exchange(request2, OIDCCreateTokenResponse.class);
             fail("Token creation should have failed with 'client mismatch'");
         } catch (HttpClientErrorException ex) {
-            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
             assertThat(ex.getResponseBodyAsString()).contains("Invalid authorization code: redirect_uri mismatch");
         }
     }
@@ -172,12 +174,12 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
 
         RequestEntity<MultiValueMap<String, Object>> request =
                 post(getAuthorizeUrl())
-                .accept(MediaType.TEXT_HTML)
+                        .accept(TEXT_HTML)
                 .body(requestParameters);
 
         ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
-        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+        assertThat(authResponse.getStatusCode()).isEqualTo(FOUND);
 
         assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback?code=");
         List<NameValuePair> params = URLEncodedUtils.parse(authResponse.getHeaders().getLocation(), "UTF-8");
@@ -199,7 +201,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
             getRestTemplate().exchange(request2, OIDCCreateTokenResponse.class);
             fail("Token creation should have failed with 'client mismatch'");
         } catch (HttpClientErrorException ex) {
-            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
             assertThat(ex.getResponseBodyAsString()).contains("Invalid authorization code: client mismatch");
         }
     }
@@ -227,13 +229,13 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
 
         RequestEntity<MultiValueMap<String, Object>> request =
                 post(getAuthorizeUrl())
-                .accept(MediaType.APPLICATION_JSON)
+                        .accept(APPLICATION_JSON)
                 .body(requestParameters);
 
         try {
             getRestTemplate().exchange(request, Void.class);
         } catch (HttpClientErrorException ex) {
-            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
             assertThat(ex.getResponseBodyAsString()).contains("invalid_grant");
         }
 
@@ -253,12 +255,12 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
 
         RequestEntity<MultiValueMap<String, Object>> request =
                 post(getAuthorizeUrl())
-                .accept(MediaType.TEXT_HTML)
+                        .accept(TEXT_HTML)
                 .body(requestParameters);
 
         ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
-        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+        assertThat(authResponse.getStatusCode()).isEqualTo(FOUND);
 
         assertThat(authResponse.getHeaders().getLocation().toString()).contains("/oauth2/authorize");
         Map<String, String> params = parseURLParams(authResponse.getHeaders().getLocation());
@@ -284,7 +286,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         final ResponseEntity<String> loginResponse = getRestTemplate().exchange(
-                post(getAuthorizeUrl()).accept(MediaType.TEXT_HTML).body(requestParameters),
+                post(getAuthorizeUrl()).accept(TEXT_HTML).body(requestParameters),
                 String.class);
 
         assertThat(loginResponse.getStatusCode()).isEqualTo(OK);
@@ -293,11 +295,11 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
         requestParameters.add("decision", "deny");
 
         final ResponseEntity<Void> authResponse = getRestTemplate().exchange(
-                post(getAuthorizeUrl()).accept(MediaType.TEXT_HTML).body(requestParameters),
+                post(getAuthorizeUrl()).accept(TEXT_HTML).body(requestParameters),
                 Void.class);
 
 
-        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+        assertThat(authResponse.getStatusCode()).isEqualTo(FOUND);
         final URI location = authResponse.getHeaders().getLocation();
         assertThat(location).isNotNull();
         assertThat(location.toString()).startsWith("https://myapp.example.org/callback");
@@ -320,7 +322,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
 
         RequestEntity<MultiValueMap<String, Object>> request =
                 post(getAuthorizeUrl())
-                .accept(MediaType.TEXT_HTML)
+                        .accept(TEXT_HTML)
                 .body(requestParameters);
 
         ResponseEntity<String> loginResponse = getRestTemplate().exchange(request, String.class);
@@ -330,13 +332,13 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
 
         request =
                 post(getAuthorizeUrl())
-                .accept(MediaType.TEXT_HTML)
+                        .accept(TEXT_HTML)
                 .body(requestParameters);
 
         ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
 
-        assertThat(authResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+        assertThat(authResponse.getStatusCode()).isEqualTo(FOUND);
 
         assertThat(authResponse.getHeaders().getLocation().toString()).startsWith("https://myapp.example.org/callback?code=");
         List<NameValuePair> params = URLEncodedUtils.parse(authResponse.getHeaders().getLocation(), "UTF-8");
@@ -368,7 +370,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
             getRestTemplate().exchange(request2, OIDCCreateTokenResponse.class);
             fail("Authorization code should have been invalidated");
         } catch (HttpClientErrorException ex) {
-            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
             assertThat(ex.getResponseBodyAsString()).contains("Invalid authorization code");
         }
 
@@ -386,7 +388,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         final ResponseEntity<String> loginResponse = getRestTemplate().exchange(
-                post(getAuthorizeUrl()).accept(MediaType.TEXT_HTML).body(requestParameters),
+                post(getAuthorizeUrl()).accept(TEXT_HTML).body(requestParameters),
                 String.class);
 
         assertThat(loginResponse.getBody())
@@ -405,7 +407,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         final ResponseEntity<String> loginResponse = getRestTemplate().exchange(
-                post(getAuthorizeUrl()).accept(MediaType.APPLICATION_JSON).body(requestParameters),
+                post(getAuthorizeUrl()).accept(APPLICATION_JSON).body(requestParameters),
                 String.class);
         assertThat(om.readTree(loginResponse.getBody()))
                 .isEqualTo(om.readTree(new ClassPathResource("/golden-files/consent-simple.json").getInputStream()));
@@ -423,7 +425,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         final ResponseEntity<String> loginResponse = getRestTemplate().exchange(
-                post(getAuthorizeUrl()).accept(MediaType.TEXT_HTML).body(requestParameters),
+                post(getAuthorizeUrl()).accept(TEXT_HTML).body(requestParameters),
                 String.class);
 
         assertThat(loginResponse.getBody())
@@ -442,7 +444,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
         requestParameters.add("redirect_uri", "https://myapp.example.org/callback");
 
         final ResponseEntity<String> loginResponse = getRestTemplate().exchange(
-                post(getAuthorizeUrl()).accept(MediaType.APPLICATION_JSON).body(requestParameters),
+                post(getAuthorizeUrl()).accept(APPLICATION_JSON).body(requestParameters),
                 String.class);
 
         assertThat(om.readTree(loginResponse.getBody()))
