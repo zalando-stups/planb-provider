@@ -6,24 +6,22 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 
 import javax.annotation.PostConstruct;
-
 import java.net.URI;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Duration;
-import java.time.temporal.TemporalAmount;
-import java.time.temporal.TemporalUnit;
-import java.util.*;
+import java.util.Base64;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
-import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.bindMarker;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.insertInto;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.select;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.ttl;
 import static java.time.ZonedDateTime.now;
 
 @Component
@@ -66,7 +64,15 @@ public class CassandraAuthorizationCodeService {
     }
 
     private void prepareStatements() {
-        findOne = session.prepare(select().all()
+        findOne = session.prepare(select()
+                .column(CODE)
+                .column(STATE)
+                .column(CLIENT_ID)
+                .column(REALM)
+                .column(SCOPES)
+                .column(CLAIMS)
+                .column(REDIRECT_URI)
+                .column(EXPIRES)
                 .from(AUTHORIZATION_CODE)
                 .where(eq(CODE, bindMarker(CODE))))
                 .setConsistencyLevel(cassandraProperties.getReadConsistencyLevel());
