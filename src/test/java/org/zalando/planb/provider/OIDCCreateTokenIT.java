@@ -3,7 +3,6 @@ package org.zalando.planb.provider;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
-import com.google.common.collect.ImmutableList;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
 import org.jose4j.jwk.HttpsJwks;
@@ -14,62 +13,34 @@ import org.jose4j.jwt.consumer.JwtConsumerBuilder;
 import org.jose4j.jwt.consumer.JwtContext;
 import org.jose4j.keys.resolvers.HttpsJwksVerificationKeyResolver;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.SpringApplicationConfiguration;
-import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.Base64;
 import java.util.Map;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.StrictAssertions.fail;
-import static org.assertj.core.api.StrictAssertions.failBecauseExceptionWasNotThrown;
+import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.data.MapEntry.entry;
-import static org.springframework.http.HttpStatus.*;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.http.MediaType.TEXT_XML_VALUE;
 
-@SpringApplicationConfiguration(classes = {Main.class})
-@WebIntegrationTest(randomPort = true)
 @ActiveProfiles("it")
-public class OIDCCreateTokenIT extends AbstractSpringTest {
-    @Value("${local.server.port}")
-    private int port;
-
-    private final RestTemplate rest = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
-
-    private ResponseEntity<OIDCCreateTokenResponse> createToken(String realm, String clientId, String clientSecret,
-                                                                String username, String password, String scope) {
-        MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
-        requestParameters.add("realm", realm);
-        requestParameters.add("grant_type", "password");
-        requestParameters.add("username", username);
-        requestParameters.add("password", password);
-        if (scope != null) {
-            requestParameters.add("scope", scope);
-        }
-        String basicAuth = Base64.getEncoder().encodeToString((clientId + ':' + clientSecret).getBytes(UTF_8));
-
-        RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
-                .header("Authorization", "Basic " + basicAuth)
-                .body(requestParameters);
-
-        return rest.exchange(request, OIDCCreateTokenResponse.class);
-    }
+public class OIDCCreateTokenIT extends AbstractOauthTest {
 
     @Test
     public void createServiceUserToken() {
@@ -77,12 +48,13 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
                 "testclient", "test", "testuser", "test", "uid ascope");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getScope()).isEqualTo("uid ascope");
+        // NOTE: returned scopes are sorted
+        assertThat(response.getBody().getScope()).isEqualTo("ascope uid");
         assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
         assertThat(response.getBody().getRealm()).isEqualTo("/services");
 
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
-        assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
+        assertThat(response.getBody().getIdToken()).isNull();
     }
 
     @Test
@@ -97,10 +69,10 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         requestParameters.add("client_secret", "test");
 
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .post(getAccessTokenUri())
                 .body(requestParameters);
 
-        ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
+        ResponseEntity<OIDCCreateTokenResponse> response = getRestTemplate().exchange(request, OIDCCreateTokenResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
@@ -117,13 +89,13 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
         // wrong Host header (not mapping to any realm)
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .post(getAccessTokenUri())
                 .header("Authorization", "Basic " + basicAuth)
                 .header("Host", "token.servicesX.example.org")
                 .body(requestParameters);
 
         try {
-            rest.exchange(request, OIDCCreateTokenResponse.class);
+            getRestTemplate().exchange(request, OIDCCreateTokenResponse.class);
             fail("Request with invalid Host header should have failed.");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -143,17 +115,17 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
         // Host header contains a valid realm name
         RequestEntity<MultiValueMap<String, Object>> request = RequestEntity
-                .post(URI.create("http://localhost:" + port + "/oauth2/access_token"))
+                .post(getAccessTokenUri())
                 .header("Authorization", "Basic " + basicAuth)
                 .header("Host", "token.services.example.org")
                 .body(requestParameters);
-        ResponseEntity<OIDCCreateTokenResponse> response = rest.exchange(request, OIDCCreateTokenResponse.class);
+        ResponseEntity<OIDCCreateTokenResponse> response = getRestTemplate().exchange(request, OIDCCreateTokenResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getRealm()).isEqualTo("/services");
 
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
-        assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
+        assertThat(response.getBody().getIdToken()).isNull();
     }
 
     @Test
@@ -172,7 +144,7 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
                 "testclient", "test", "testuser", "test", "hello world uid");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getScope()).isEqualTo("hello world uid");
+        assertThat(response.getBody().getScope()).isEqualTo("hello uid world");
     }
 
     @Test
@@ -180,10 +152,10 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
         ResponseEntity<OIDCCreateTokenResponse> response = createToken("/services",
                 "testclient", "test", "testuser", "test", "uid ascope");
 
-        String jwt = response.getBody().getIdToken();
+        String jwt = response.getBody().getAccessToken();
 
         // fetch JWK
-        HttpsJwks httpsJkws = new HttpsJwks("http://localhost:" + port + "/oauth2/connect/keys");
+        HttpsJwks httpsJkws = new HttpsJwks(getHttpPublicKeysUri());
         HttpsJwksVerificationKeyResolver httpsJwksKeyResolver = new HttpsJwksVerificationKeyResolver(httpsJkws);
         JwtConsumer jwtConsumer = new JwtConsumerBuilder()
                 .setVerificationKeyResolver(httpsJwksKeyResolver)
@@ -206,67 +178,85 @@ public class OIDCCreateTokenIT extends AbstractSpringTest {
 
     @Test
     public void testCreateCustomerToken() throws Exception {
-        stubFor(post(urlEqualTo("/ws/customerService?wsdl"))
-                .willReturn(aResponse()
-                        .withStatus(OK.value())
-                        .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
-                        .withBody("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
-                                "    <soap:Body>\n" +
-                                "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\">\n" +
-                                "            <return>\n" +
-                                "                <customerNumber>123456789</customerNumber>\n" +
-                                "                <loginResult>SUCCESS</loginResult>\n" +
-                                "            </return>\n" +
-                                "        </ns2:authenticateResponse>\n" +
-                                "    </soap:Body>\n" +
-                                "</soap:Envelope>")));
+        final String customerNumber = stubCustomerService();
 
-        final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "uid");
+        final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "uid openid");
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getScope()).isEqualTo("uid");
+        assertThat(response.getBody().getScope()).isEqualTo("openid uid"); // scopes are sorted
         assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
         assertThat(response.getBody().getRealm()).isEqualTo("/customers");
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
         assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
-        assertThat(response.getBody().getAccessToken().length()).isLessThan(280);
+        assertThat(response.getBody().getAccessToken().length()).isLessThanOrEqualTo(280);
 
-        final String customerNumber = "123456789";
         JWT jwt = JWTParser.parse(response.getBody().getAccessToken());
         assertThat(jwt.getHeader().toJSONObject()).containsOnlyKeys("kid", "alg");
         assertThat(jwt.getJWTClaimsSet().getSubject()).isEqualTo(customerNumber);
         assertThat(jwt.getJWTClaimsSet().getClaims()).containsOnlyKeys("sub", "realm", "iss", "iat", "exp", "scope");
         assertThat(jwt.getJWTClaimsSet().getStringClaim("realm")).isEqualTo("/customers");
         assertThat(jwt.getJWTClaimsSet().getStringClaim("iss")).isEqualTo("B");
-        assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("uid");
+        assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("uid", "openid");
     }
 
     @Test
     public void testCreateCustomerTokenNoScope() throws Exception {
-        stubFor(post(urlEqualTo("/ws/customerService?wsdl"))
-                .willReturn(aResponse()
-                        .withStatus(OK.value())
-                        .withHeader(ContentTypeHeader.KEY, TEXT_XML_VALUE)
-                        .withBody("<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n" +
-                                "    <soap:Body>\n" +
-                                "        <ns2:authenticateResponse xmlns:ns2=\"http://service.webservice.customer.zalando.de/\">\n" +
-                                "            <return>\n" +
-                                "                <customerNumber>123456789</customerNumber>\n" +
-                                "                <loginResult>SUCCESS</loginResult>\n" +
-                                "            </return>\n" +
-                                "        </ns2:authenticateResponse>\n" +
-                                "    </soap:Body>\n" +
-                                "</soap:Envelope>")));
+        stubCustomerService();
 
         final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", null);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         final OIDCCreateTokenResponse body = response.getBody();
         assertThat(body).isNotNull();
-        assertThat(body.getScope()).isEmpty();
+        // "openid" scope is set as default for /customers realm (in application-it.yml)
+        assertThat(body.getScope()).isEqualTo("openid");
         final String accessToken = body.getAccessToken();
         assertThat(body.getTokenType()).isEqualTo("Bearer");
         assertThat(body.getRealm()).isEqualTo("/customers");
         assertThat(accessToken).isNotEmpty();
         assertThat(accessToken).isEqualTo(body.getIdToken());
+    }
+
+    @Test
+    public void testCreateCustomerTokenWithAzpScope() throws Exception {
+        final String customerNumber = stubCustomerService();
+
+        final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "azp");
+        assertThat(response.getBody().getScope()).isEqualTo("azp");
+        assertThat(response.getBody().getRealm()).isEqualTo("/customers");
+
+        JWT jwt = JWTParser.parse(response.getBody().getAccessToken());
+        assertThat(jwt.getJWTClaimsSet().getSubject()).isEqualTo(customerNumber);
+        assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("azp");
+        assertThat(jwt.getJWTClaimsSet().getStringClaim("azp")).isEqualTo("testclient");
+    }
+
+    /**
+     * Verify https://github.com/zalando/planb-provider/issues/86
+     */
+    @Test
+    public void createCustomerTokenWithCustomScope() throws Exception {
+        final String customerNumber = stubCustomerService();
+
+        final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "ascope");
+        assertThat(response.getBody().getScope()).isEqualTo("ascope");
+        assertThat(response.getBody().getRealm()).isEqualTo("/customers");
+
+        JWT jwt = JWTParser.parse(response.getBody().getAccessToken());
+        assertThat(jwt.getJWTClaimsSet().getSubject()).isEqualTo(customerNumber);
+        assertThat(jwt.getJWTClaimsSet().getStringListClaim("scope")).containsExactly("ascope");
+    }
+
+    /**
+     * Verify https://github.com/zalando/planb-provider/issues/86
+     */
+    @Test
+    public void createCustomerTokenWithScopeForbiddenByClient() throws Exception {
+        stubCustomerService();
+
+        try {
+            createToken("/customers", "testclient", "test", "testcustomer", "test", "invalidscope");
+        } catch (HttpClientErrorException e) {
+            assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
+            assertThat(getErrorResponseMap(e)).contains(entry("error", "invalid_scope"));
+        }
     }
 
     @Test

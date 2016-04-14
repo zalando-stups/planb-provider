@@ -1,93 +1,45 @@
 package org.zalando.planb.provider;
 
 import com.google.common.collect.ImmutableSet;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 import org.zalando.planb.provider.api.Client;
 
 import java.util.Set;
 
+@Getter
+@AllArgsConstructor
+@Builder
 public class ClientData {
 
-    private final String clientSecretHash;
-    private final Set<String> scopes;
-    private final Boolean confidential;
-    private final String createdBy;
-    private final String lastModifiedBy;
+    private String clientSecretHash;
+    private Set<String> scopes;
+    private Set<String> defaultScopes;
+    private Boolean confidential;
+    private String name;
+    private String description;
+    private Set<String> redirectUris;
+    private String imageUri;
+    private String homepageUrl;
+    private String createdBy;
+    private String lastModifiedBy;
 
-
-    public ClientData(String clientSecretHash,
-                      Set<String> scopes,
-                      Boolean confidential,
-                      String createdBy,
-                      String lastModifiedBy) {
-        this.clientSecretHash = clientSecretHash;
-        this.scopes = scopes;
-        this.confidential = confidential;
-        this.createdBy = createdBy;
-        this.lastModifiedBy = lastModifiedBy;
+    public static ClientData copyOf(Client client) {
+        return ClientData.builderOf(client).build();
     }
 
-    public String getClientSecretHash() {
-        return clientSecretHash;
+    public static ClientDataBuilder builderOf(Client client) {
+        return ClientData.builder()
+                .clientSecretHash(client.getSecretHash())
+                .scopes(ImmutableSet.copyOf(client.getScopes()))
+                .defaultScopes(ImmutableSet.copyOf(client.getDefaultScopes()))
+                .confidential(client.getIsConfidential())
+                .name(client.getName())
+                .description(client.getDescription())
+                .redirectUris(ImmutableSet.copyOf(client.getRedirectUris()))
+                .imageUri(client.getImageUri())
+                .homepageUrl(client.getHomepageUrl());
     }
 
-    public Set<String> getScopes() {
-        return scopes;
-    }
-
-    public Boolean isConfidential() {
-        return confidential;
-    }
-
-    public String getCreatedBy() {
-        return createdBy;
-    }
-
-    public String getLastModifiedBy() {
-        return lastModifiedBy;
-    }
-
-    public static Builder copyOf(Client client) {
-        return new ClientData.Builder()
-                .withClientSecretHash(client.getSecretHash())
-                .withScopes(ImmutableSet.copyOf(client.getScopes()))
-                .withConfidential(client.getIsConfidential());
-    }
-
-    public static class Builder {
-
-        private String clientSecretHash;
-        private Set<String> scopes;
-        private Boolean confidential;
-        private String createdBy;
-        private String lastModifiedBy;
-
-        public ClientData build() {
-            return new ClientData(clientSecretHash, scopes, confidential, createdBy, lastModifiedBy);
-        }
-
-        public Builder withClientSecretHash(String clientSecretHash) {
-            this.clientSecretHash = clientSecretHash;
-            return this;
-        }
-
-        public Builder withScopes(Set<String> scopes) {
-            this.scopes = scopes;
-            return this;
-        }
-
-        public Builder withConfidential(Boolean confidential) {
-            this.confidential = confidential;
-            return this;
-        }
-
-        public Builder withCreatedBy(String createdBy) {
-            this.createdBy = createdBy;
-            return this;
-        }
-
-        public Builder withLastModifiedBy(String lastModifiedBy) {
-            this.lastModifiedBy = lastModifiedBy;
-            return this;
-        }
-    }
 }

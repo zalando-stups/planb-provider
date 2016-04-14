@@ -1,11 +1,15 @@
 package org.zalando.planb.provider;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.zalando.planb.provider.realms.CassandraClientRealm;
+import org.zalando.planb.provider.realms.CassandraUserRealm;
+import org.zalando.planb.provider.realms.ClientRealm;
+import org.zalando.planb.provider.realms.UserRealm;
 
 import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotNull;
@@ -22,6 +26,13 @@ public class RealmConfig implements BeanFactoryAware {
     private BeanFactory beanFactory;
 
     private static final Pattern HOST_WORD_BOUNDARY = Pattern.compile("[.-]");
+
+    private RealmProperties realmProperties;
+
+    @Autowired
+    public RealmConfig(RealmProperties realmProperties) {
+        this.realmProperties = realmProperties;
+    }
 
     public static String ensureLeadingSlash(String realmName) {
         return realmName.startsWith("/") ? realmName : "/" + realmName;
@@ -48,28 +59,49 @@ public class RealmConfig implements BeanFactoryAware {
 
     @PostConstruct
     void setup() {
-        newRealm("/services", CassandraClientRealm.class, CassandraUserRealm.class);
-        newRealm("/customers", CassandraClientRealm.class, CustomerUserRealm.class);
+        for (String realmName : realmProperties.getNames()) {
+            Class<? extends ClientRealm> clientImpl = realmProperties.getClientImpl(realmName, CassandraClientRealm.class);
+            Class<? extends UserRealm> userImpl = realmProperties.getUserImpl(realmName, CassandraUserRealm.class);
+            newRealm(realmName, clientImpl, userImpl);
+        }
     }
 
     static Optional<String> findRealmNameInHost(@NotNull final Set<String> realmNames, @NotNull final String host) {
         Set<String> hostParts = ImmutableSet.copyOf(HOST_WORD_BOUNDARY.split(host));
-        Optional<String> realmFromHost = realmNames.stream()
+        return realmNames.stream()
                 .filter(realm -> hostParts.contains(stripLeadingSlash(realm)))
                 .sorted()
                 .findFirst();
-        return realmFromHost;
+    }
+
+    static Optional<String> findRealmNameInRealm(@NotNull final Set<String> realmNames, @NotNull final String realm) {
+        return realmNames.stream()
+                .filter(r -> stripLeadingSlash(realm).equals(stripLeadingSlash(r)))
+                .sorted()
+                .findFirst();
     }
 
     Optional<String> findRealmNameInHost(@NotNull final String host) {
         return findRealmNameInHost(clientRealms.keySet(), host);
     }
 
+    Optional<String> findRealmNameInRealm(@NotNull final String realm) {
+        return findRealmNameInRealm(clientRealms.keySet(), realm);
+    }
+
     UserRealm getUserRealm(String name) {
-        return userRealms.get(name);
+        UserRealm realm = userRealms.get(name);
+        if (realm == null) {
+            throw new RealmNotFoundException(name);
+        }
+        return realm;
     }
 
     ClientRealm getClientRealm(String name) {
-        return clientRealms.get(name);
+        ClientRealm realm = clientRealms.get(name);
+        if (realm == null) {
+            throw new RealmNotFoundException(name);
+        }
+        return realm;
     }
 }

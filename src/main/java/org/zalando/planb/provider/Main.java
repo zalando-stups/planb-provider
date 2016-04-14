@@ -9,6 +9,7 @@ import org.springframework.cloud.netflix.hystrix.EnableHystrix;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
+import org.zalando.planb.provider.realms.UpstreamRealmProperties;
 
 import java.security.Security;
 
@@ -19,7 +20,7 @@ import java.security.Security;
 @ComponentScan
 @EnableHystrix
 @EnableAspectJAutoProxy(proxyTargetClass = true)
-@EnableConfigurationProperties(ScopeProperties.class)
+@EnableConfigurationProperties(value = {ScopeProperties.class, RealmProperties.class, UpstreamRealmProperties.class})
 public class Main {
 
     static {

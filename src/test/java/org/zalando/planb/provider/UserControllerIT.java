@@ -7,14 +7,9 @@ import org.assertj.core.api.Assertions;
 import org.assertj.core.api.Condition;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.SpringApplicationConfiguration;
-import org.springframework.boot.test.WebIntegrationTest;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 import org.zalando.planb.provider.api.Password;
 import org.zalando.planb.provider.api.User;
 
@@ -24,41 +19,38 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.insertInto;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.select;
 import static com.google.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.toList;
+import static org.assertj.core.api.Assertions.allOf;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.StrictAssertions.*;
+import static org.assertj.core.api.Assertions.failBecauseExceptionWasNotThrown;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.junit.Assert.fail;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
-import static org.springframework.http.HttpStatus.*;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.RequestEntity.delete;
-import static org.springframework.http.RequestEntity.*;
+import static org.springframework.http.RequestEntity.patch;
+import static org.springframework.http.RequestEntity.post;
 import static org.springframework.http.RequestEntity.put;
-import static org.zalando.planb.provider.UserData.copyOf;
+import static org.zalando.planb.provider.UserData.builderOf;
+import static org.zalando.planb.provider.UserData.toUserPasswordHashSet;
 
-@SpringApplicationConfiguration(classes = {Main.class})
-@WebIntegrationTest(randomPort = true)
 @ActiveProfiles("it")
-public class UserControllerIT extends AbstractSpringTest {
-
-    @Value("${local.server.port}")
-    private int port;
+public class UserControllerIT extends AbstractOauthTest {
 
     @SuppressWarnings("SpringJavaAutowiredMembersInspection")
     @Autowired
     private Session session;
-
-    // use Apache HttpClient, because it supports the PATCH method
-    private final RestTemplate restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
-
-    private String basePath() {
-        return "http://localhost:" + port + "/raw-sync";
-    }
 
     private static String genHash(String pass) {
         return BCrypt.hashpw(pass, BCrypt.gensalt(4));
@@ -66,7 +58,7 @@ public class UserControllerIT extends AbstractSpringTest {
 
     @Test
     public void testCreateAndReplaceUser() throws Exception {
-        final URI uri = URI.create(basePath() + "/users/services/4711");
+        final URI uri = URI.create(getRawSyncBaseUri() + "/users/services/4711");
 
         // check that client doesn't exist before
         assertThat(fetchUser("4711", "/services")).isNull();
@@ -78,18 +70,20 @@ public class UserControllerIT extends AbstractSpringTest {
                 "write_all", "true"));
 
         // create the user
-        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body1), Void.class)
+        assertThat(getRestTemplate().exchange(
+                put(uri)
+                        .contentType(APPLICATION_JSON)
+                        .header(AUTHORIZATION, USER1_ACCESS_TOKEN)
+                        .body(body1), Void.class)
                 .getStatusCode())
                 .isEqualTo(OK);
 
         assertThat(fetchUser("4711", "/services"))
                 .isNotNull()
-                .has(valuesEqualTo(copyOf(body1)
-                        .withCreatedBy(USER1)
-                        .withLastModifiedBy(USER1)
-                        .withPasswordHashes(body1.getPasswordHashes().stream()
-                                .map(h -> new UserPasswordHash(h, USER1))
-                                .collect(toList()))
+                .has(valuesEqualTo(builderOf(body1)
+                        .createdBy(USER1)
+                        .lastModifiedBy(USER1)
+                        .passwordHashes(toUserPasswordHashSet(body1.getPasswordHashes(), USER1))
                         .build()));
 
         final User body2 = new User();
@@ -97,25 +91,23 @@ public class UserControllerIT extends AbstractSpringTest {
         body2.setScopes(singletonMap("write_all", "false"));
 
         // update the user. modify all (non-key) columns
-        assertThat(restTemplate.exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER2_ACCESS_TOKEN).body(body2), Void.class)
+        assertThat(getRestTemplate().exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER2_ACCESS_TOKEN).body(body2), Void.class)
                 .getStatusCode())
                 .isEqualTo(OK);
 
         assertThat(fetchUser("4711", "/services"))
                 .isNotNull()
-                .has(valuesEqualTo(copyOf(body2)
-                        .withCreatedBy(USER1)
-                        .withLastModifiedBy(USER2)
-                        .withPasswordHashes(body2.getPasswordHashes().stream()
-                                .map(h -> new UserPasswordHash(h, USER2))
-                                .collect(toList()))
+                .has(valuesEqualTo(builderOf(body2)
+                        .createdBy(USER1)
+                        .lastModifiedBy(USER2)
+                        .passwordHashes(toUserPasswordHashSet(body2.getPasswordHashes(), USER2))
                         .build()));
     }
 
     @Test
     public void testDeleteInNotManagedRealm() throws Exception {
         try {
-            restTemplate.exchange(delete(URI.create(basePath() + "/users/animals/1"))
+            getRestTemplate().exchange(delete(URI.create(getRawSyncBaseUri() + "/users/animals/1"))
                     .header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (HttpClientErrorException e) {
@@ -126,7 +118,7 @@ public class UserControllerIT extends AbstractSpringTest {
     @Test
     public void testDeleteUnauthorized() throws Exception {
         try {
-            restTemplate.exchange(delete(URI.create(basePath() + "/users/animals/1")).header(AUTHORIZATION, INVALID_ACCESS_TOKEN).build(), Void.class);
+            getRestTemplate().exchange(delete(URI.create(getRawSyncBaseUri() + "/users/animals/1")).header(AUTHORIZATION, INVALID_ACCESS_TOKEN).build(), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(UNAUTHORIZED);
@@ -145,7 +137,7 @@ public class UserControllerIT extends AbstractSpringTest {
                 .value("last_modified_by", USER2));
         assertThat(fetchUser("0815", "/services")).isNotNull();
 
-        restTemplate.exchange(delete(URI.create(basePath() + "/users/services/0815"))
+        getRestTemplate().exchange(delete(URI.create(getRawSyncBaseUri() + "/users/services/0815"))
                 .header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), Void.class);
 
         assertThat(fetchUser("0815", "/services")).isNull();
@@ -154,7 +146,7 @@ public class UserControllerIT extends AbstractSpringTest {
     @Test
     public void testDeleteUsersNotFound() throws Exception {
         try {
-            restTemplate.exchange(delete(URI.create(basePath() + "/users/services/not-found"))
+            getRestTemplate().exchange(delete(URI.create(getRawSyncBaseUri() + "/users/services/not-found"))
                     .header(AUTHORIZATION, USER1_ACCESS_TOKEN).build(), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
@@ -165,8 +157,8 @@ public class UserControllerIT extends AbstractSpringTest {
     @Test
     public void testUpdateUserNotFound() throws Exception {
         try {
-            final URI uri = URI.create(basePath() + "/users/services/not-found");
-            restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(new User()), Void.class);
+            final URI uri = URI.create(getRawSyncBaseUri() + "/users/services/not-found");
+            getRestTemplate().exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(new User()), Void.class);
             failBecauseExceptionWasNotThrown(HttpClientErrorException.class);
         } catch (final HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(NOT_FOUND);
@@ -186,21 +178,21 @@ public class UserControllerIT extends AbstractSpringTest {
                 .value("created_by", USER1)
                 .value("last_modified_by", USER1));
 
-        final URI uri = URI.create(basePath() + "/users/services/1234");
+        final URI uri = URI.create(getRawSyncBaseUri() + "/users/services/1234");
 
         // when the password_hashes is updated
         final List<String> newPasswordHashes = asList(genHash("bar"), genHash("hello"), genHash("world"));
         final User body1 = new User();
         body1.setPasswordHashes(newPasswordHashes);
-        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER2_ACCESS_TOKEN).body(body1), Void.class);
+        getRestTemplate().exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER2_ACCESS_TOKEN).body(body1), Void.class);
 
         assertThat(fetchUser("1234", "/services"))
                 .isNotNull()
-                .has(valuesEqualTo(new UserData.Builder()
-                        .withScopes(initialScopes)
-                        .withPasswordHashes(newPasswordHashes.stream().map(h -> new UserPasswordHash(h, USER2)).collect(toList()))
-                        .withCreatedBy(USER1)
-                        .withLastModifiedBy(USER2)
+                .has(valuesEqualTo(UserData.builder()
+                        .scopes(initialScopes)
+                        .passwordHashes(toUserPasswordHashSet(newPasswordHashes, USER2))
+                        .createdBy(USER1)
+                        .lastModifiedBy(USER2)
                         .build()));
 
         // when the scopes are updated
@@ -209,15 +201,15 @@ public class UserControllerIT extends AbstractSpringTest {
                 "write_all", "true");
         final User body2 = new User();
         body2.setScopes(newScopes);
-        restTemplate.exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body2), Void.class);
+        getRestTemplate().exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body2), Void.class);
 
         assertThat(fetchUser("1234", "/services"))
                 .isNotNull()
-                .has(valuesEqualTo(new UserData.Builder()
-                        .withScopes(newScopes)
-                        .withPasswordHashes(newPasswordHashes.stream().map(h -> new UserPasswordHash(h, USER2)).collect(toList()))
-                        .withCreatedBy(USER1)
-                        .withLastModifiedBy(USER1)
+                .has(valuesEqualTo(UserData.builder()
+                        .scopes(newScopes)
+                        .passwordHashes(toUserPasswordHashSet(newPasswordHashes, USER2))
+                        .createdBy(USER1)
+                        .lastModifiedBy(USER1)
                         .build()));
     }
 
@@ -232,11 +224,11 @@ public class UserControllerIT extends AbstractSpringTest {
                 .value("created_by", USER1)
                 .value("last_modified_by", USER2));
 
-        final URI uri = URI.create(basePath() + "/users/services/testAddPasswordWrongHash/password");
+        final URI uri = URI.create(getRawSyncBaseUri() + "/users/services/testAddPasswordWrongHash/password");
         final Password body = new Password();
         body.setPasswordHash("not a valid hash");
         try {
-            restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body), Void.class);
+            getRestTemplate().exchange(post(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body), Void.class);
             fail("wrong BCrypt hash should fail with Bad Request");
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
@@ -257,11 +249,11 @@ public class UserControllerIT extends AbstractSpringTest {
                 .value("created_by", USER1)
                 .value("last_modified_by", USER2));
 
-        final URI uri = URI.create(basePath() + "/users/services/9876/password");
+        final URI uri = URI.create(getRawSyncBaseUri() + "/users/services/9876/password");
         final Password body = new Password();
         String hash = genHash("bar");
         body.setPasswordHash(hash);
-        assertThat(restTemplate.exchange(post(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body), Void.class)
+        assertThat(getRestTemplate().exchange(post(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body), Void.class)
                 .getStatusCode())
                 .isEqualTo(CREATED);
         assertThat(fetchUser("9876", "/services").getSet("password_hashes", UserPasswordHash.class))

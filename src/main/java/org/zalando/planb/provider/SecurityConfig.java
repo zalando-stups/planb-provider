@@ -50,7 +50,10 @@ public class SecurityConfig extends ResourceServerConfigurerAdapter {
 
                 .and().authorizeRequests()
 
-                .antMatchers("/raw-sync/**").access(apiSecurity.getRawSyncExpr());
+                .antMatchers("/raw-sync/**").access(apiSecurity.getRawSyncExpr())
+
+                .antMatchers("/consents/**").access(apiSecurity.getConsentExpr());
+
     }
 
 
@@ -59,12 +62,19 @@ public class SecurityConfig extends ResourceServerConfigurerAdapter {
 
         private String rawSyncExpr = "#oauth2.hasScope('uid')";
 
+        private String consentExpr = "#oauth2.hasScope('uid')";
+
+
         public String getRawSyncExpr() {
             return rawSyncExpr;
         }
 
         public void setRawSyncExpr(String rawSyncExpr) {
             this.rawSyncExpr = rawSyncExpr;
+        }
+
+        public String getConsentExpr() {
+            return consentExpr;
         }
     }
 }

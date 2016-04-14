@@ -12,6 +12,7 @@ cassandra:
   clusterName: Test Cluster
   username: cassandra
   password: cassandra
+  health-check-query: "SELECT release_version FROM system.local;"
 
 security:
   oauth2:
@@ -25,3 +26,8 @@ api:
 scope:
   defaults:
     services: "hello world"
+    customers: "openid"
+
+realm:
+  tokenLifetime:
+    /services: "PT3600S"

@@ -1,0 +1,7 @@
+approvals:
+    minimum: 1
+    pattern: "^:\\+1:$"
+    from:
+        # commenter must be a public zalando org member
+        orgs:
+          - zalando

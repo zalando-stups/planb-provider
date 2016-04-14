@@ -1,0 +1,11 @@
+{
+  "client_name": "Consent Simple Test",
+  "client_description": "Lorem ipsum dolor",
+  "scopes": [
+    "uid",
+    "openid",
+    "ascope"
+  ],
+  "redirect": "https://myapp.example.org/callback",
+  "consent_needed": true
+}

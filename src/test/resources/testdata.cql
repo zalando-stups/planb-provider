@@ -10,11 +10,36 @@ INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_co
 
 INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential, created_by, last_modified_by)
     VALUES ('testclient', '/customers', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
-            {'uid', 'ascope', 'clientonly'}, true, '/services/user1', '/services/user1');
+            {'uid', 'ascope', 'clientonly', 'azp'}, true, '/services/user1', '/services/user1');
+
+INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential, redirect_uris, created_by, last_modified_by)
+    VALUES ('testauthcode', '/services', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
+            {'uid', 'ascope', 'clientonly', 'openid'}, true, {'https://myapp.example.org/callback'}, '/services/user1', '/services/user1');
+
+INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential, redirect_uris, name, image_uri, homepage_url, created_by, last_modified_by)
+    VALUES ('testimplicit', '/services', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
+            {'uid', 'ascope', 'clientonly'}, false, {'https://myapp.example.org/callback'}, 'Implicit Flow Test', 'https://avatars2.githubusercontent.com/u/1564818?s=50', 'https://github.com/zalando', '/services/user1', '/services/user1');
+
+INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, default_scopes, is_confidential, redirect_uris, created_by, last_modified_by)
+    VALUES ('testdefaultscope', '/services', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
+            {'uid', 'ascope', 'clientonly'}, {'uid'}, false, {'https://myapp.example.org/callback'}, '/services/user1', '/services/user1');
+
 
 INSERT INTO provider.user (username, realm, password_hashes, scopes, created_by, last_modified_by)
     VALUES ('testuser', '/services', { {password_hash: '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K', created: 123, created_by: 'testdata.cql'} },
-            {'uid': 'uidval', 'ascope': 'ascopeval', 'useronly': 'useronlyval'}, '/services/user1', '/services/user1');
+            {'uid': 'uidval', 'ascope': 'ascopeval', 'useronly': 'useronlyval', 'openid': 'yes'}, '/services/user1', '/services/user1');
+
+INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential, name, redirect_uris, created_by, last_modified_by)
+    VALUES ('testcustomerimplicit', '/customers', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
+            {'uid', 'read-customer-profile'}, false, 'Test Customer App', {'https://myapp.example.org/callback'}, '/services/user1', '/services/user1');
+
+INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential, redirect_uris, name, description, image_uri, homepage_url, created_by, last_modified_by)
+    VALUES ('testconsentsimple', '/services', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
+            {'uid', 'ascope', 'openid'}, false, {'https://myapp.example.org/callback'}, 'Consent Simple Test', 'Lorem ipsum dolor', null, null, '/services/user1', '/services/user1');
+
+INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, is_confidential, redirect_uris, name, description, image_uri, homepage_url, created_by, last_modified_by)
+    VALUES ('testconsentwithmetadata', '/services', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
+            {'uid', 'ascope', 'openid'}, false, {'https://myapp.example.org/callback'}, 'Consent More Metadata Test', 'Lorem ipsum dolor', 'https://avatars2.githubusercontent.com/u/1564818?s=50', 'https://github.com/zalando', '/services/user1', '/services/user1');
 
 -- default keys
 

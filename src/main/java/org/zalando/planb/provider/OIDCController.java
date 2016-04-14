@@ -2,31 +2,28 @@ package org.zalando.planb.provider;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
-import com.nimbusds.jose.*;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
-import net.minidev.json.JSONStyle;
-import org.slf4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.zalando.planb.provider.realms.*;
 
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.net.URI;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.stream.Collectors.joining;
-import static org.slf4j.LoggerFactory.getLogger;
 import static org.zalando.planb.provider.Metric.trimSlash;
-import static org.zalando.planb.provider.ScopeProperties.SPACE;
 
 @RestController
+@Slf4j
 public class OIDCController {
-    private static final long EXPIRATION_TIME = 8;
-    private static final TimeUnit EXPIRATION_TIME_UNIT = TimeUnit.HOURS;
 
     private static final Joiner COMMA_SEPARATED = Joiner.on(",");
 
@@ -34,145 +31,120 @@ public class OIDCController {
 
     private static final String BASIC_AUTH_PREFIX = "Basic ";
 
-    // we just need one char to identify ourselves as "Plan B Provider" (Base64 has 33% overhead)
-    private static final String ISSUER = "B";
-
-    private final Logger log = getLogger(getClass());
-
     @Autowired
     private RealmConfig realms;
+
+    @Autowired
+    private RealmProperties realmProperties;
 
     @Autowired
     private OIDCKeyHolder keyHolder;
 
     @Autowired
+    private JWTIssuer jwtIssuer;
+
+    @Autowired
     private MetricRegistry metricRegistry;
 
     @Autowired
-    private ScopeProperties scopeProperties;
+    private ScopeService scopeService;
+
+    @Autowired
+    private CassandraAuthorizationCodeService cassandraAuthorizationCodeService;
 
     /**
      * Get client_id and client_secret from HTTP Basic Auth
      */
-    public static String[] getClientCredentials(Optional<String> authorization) throws RealmAuthenticationException {
-        return authorization
+    public static ClientCredentials getClientCredentials(Optional<String> authorization) throws RealmAuthenticationException {
+        String[] basicAuth = authorization
                 .filter(string -> string.toUpperCase().startsWith(BASIC_AUTH_PREFIX.toUpperCase()))
                 .map(string -> string.substring(BASIC_AUTH_PREFIX.length()))
                 .map(BASE_64_DECODER::decode)
                 .map(bytes -> new String(bytes, UTF_8))
-                .map(string -> string.split(":"))
+                .map(string -> string.split(":", 2))
                 .filter(array -> array.length == 2)
                 .orElseThrow(() -> new BadRequestException(
                         "Malformed or missing Authorization header.",
                         "invalid_client",
                         "Client authentication failed"));
+        return ClientCredentials.builder().clientId(basicAuth[0]).clientSecret(basicAuth[1]).build();
+    }
+
+    public static ClientCredentials getClientCredentials(Optional<String> authorization, Optional<String> clientId, Optional<String> clientSecret) throws RealmAuthenticationException {
+        if (clientId.isPresent() && clientSecret.isPresent()) {
+            return ClientCredentials.builder().clientId(clientId.get()).clientSecret(clientSecret.get()).build();
+        } else {
+            return getClientCredentials(authorization);
+        }
+    }
+
+    static String getRealmName(RealmConfig realms, Optional<String> realmNameParam, Optional<String> hostHeader) {
+        return realmNameParam.orElseGet(() -> realms.findRealmNameInHost(hostHeader
+                .orElseThrow(() -> new BadRequestException("Missing realm parameter and no Host header.", "missing_realm", "Missing realm parameter and no Host header.")))
+                .orElseThrow(() -> new RealmNotFoundException(hostHeader.get())));
+    }
+
+    static String getRealmName(RealmConfig realms, String realmNameParam) {
+        return  realms.findRealmNameInRealm(realmNameParam)
+                .orElseThrow(() -> new RealmNotFoundException(realmNameParam));
+    }
+
+    private OIDCCreateTokenResponse response(String accessToken, Set<String> scopes, String realmName) {
+        return OIDCCreateTokenResponse.builder()
+                .accessToken(accessToken)
+                .idToken(scopes.contains("openid") ? accessToken : (String)null)
+                .expiresIn(realmProperties.getTokenLifetime(realmName).getSeconds())
+                .scope(ScopeService.join(scopes))
+                .realm(realmName)
+                .build();
     }
 
     /**
      * https://bitbucket.org/b_c/jose4j/wiki/JWT%20Examples
      */
-    @RequestMapping(value = {"/oauth2/access_token", "/z/oauth2/access_token"}, method = RequestMethod.POST)
+    @RequestMapping(value = "/oauth2/access_token", method = RequestMethod.POST, params = "grant_type=authorization_code")
     @ResponseBody
-    OIDCCreateTokenResponse createToken(@RequestParam(value = "realm") Optional<String> realmNameParam,
-                                        @RequestParam(value = "grant_type", required = true) String grantType,
-                                        @RequestParam(value = "username", required = true) String username,
-                                        @RequestParam(value = "password", required = true) String password,
-                                        @RequestParam(value = "scope") Optional<String> scope,
-                                        @RequestParam(value = "client_id") Optional<String> clientIdParam,
-                                        @RequestParam(value = "client_secret") Optional<String> clientSecretParam,
-                                        @RequestHeader(name = "Authorization") Optional<String> authorization,
-                                        @RequestHeader(name = "Host") Optional<String> hostHeader)
-            throws RealmAuthenticationException, RealmAuthorizationException, JOSEException {
+    OIDCCreateTokenResponse createTokenFromCode(
+            @RequestParam(value = "grant_type", required = true) String grantType,
+            @RequestParam(value = "code", required = true) String code,
+            @RequestParam(value = "client_id") Optional<String> clientIdParam,
+            @RequestParam(value = "client_secret") Optional<String> clientSecretParam,
+            @RequestParam(value = "redirect_uri", required = true) URI redirectUri,
+            @RequestHeader(name = "Authorization") Optional<String> authorization) throws JOSEException {
+
         final Metric metric = new Metric(metricRegistry).start();
+        final AuthorizationCode authCode = cassandraAuthorizationCodeService.invalidate(code)
+                .orElseThrow(() -> new BadRequestException("Invalid authorization code", "invalid_request", "Invalid authorization code"));
 
-        final String realmName = realmNameParam.orElseGet(() -> realms.findRealmNameInHost(hostHeader
-                .orElseThrow(() -> new BadRequestException("Missing realm parameter and no Host header.", "missing_realm", "Missing realm parameter and no Host header.")))
-                .orElseThrow(() -> new RealmNotFoundException(hostHeader.get())));
+        // Check that redirect_uri parameter matches the one from authorization request
+        // (required by RFC, see http://tools.ietf.org/html/rfc6749#section-4.1.3
+        // In order to prevent such an attack, the authorization server MUST
+        // ensure that the redirection URI used to obtain the authorization code
+        // is identical to the redirection URI provided when exchanging the
+        // authorization code for an access token.
+        if (!redirectUri.equals(authCode.getRedirectUri())) {
+            throw new BadRequestException("Invalid authorization code: redirect_uri mismatch", "invalid_request", "Invalid authorization code: redirect_uri mismatch");
+        }
 
+        final String realmName = authCode.getRealm();
         try {
-            if (username.trim().isEmpty() || password.trim().isEmpty()) {
-                throw new BadRequestException(
-                        "Username and password should be provided.",
-                        "invalid_grant",
-                        "The provided access grant is invalid, expired, or revoked.");
-            }
-
-            // check for supported grant types
-            if (!"password".equals(grantType)) {
-                throw new BadRequestException(
-                        "Grant type is not supported: " + grantType,
-                        "unsupported_grant_type",
-                        "Grant type is not supported: " + grantType);
-            }
 
             // retrieve realms for the given realm
             ClientRealm clientRealm = realms.getClientRealm(realmName);
-            if (clientRealm == null) {
-                throw new RealmNotFoundException(realmName);
-            }
-
             UserRealm userRealm = realms.getUserRealm(realmName);
-            if (userRealm == null) {
-                throw new RealmNotFoundException(realmName);
+
+            final ClientCredentials clientCredentials = getClientCredentials(authorization, clientIdParam, clientSecretParam);
+            clientRealm.authenticate(clientCredentials.getClientId(), clientCredentials.getClientSecret(), authCode.getScopes(), authCode.getScopes());
+
+            if (!clientCredentials.getClientId().equals(authCode.getClientId())) {
+                // authorization code can only be used by the client who requested it
+                throw new BadRequestException("Invalid authorization code: client mismatch", "invalid_request", "Invalid authorization code: client mismatch");
             }
 
-            // parse requested scopes
-            final Set<String> scopes = ScopeProperties.split(scope);
-            final Set<String> defaultScopes = scopeProperties.getDefaultScopes(realmName);
-            final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
-
-            // do the authentication
-            String clientId;
-            String clientSecret;
-            if (clientIdParam.isPresent() && clientSecretParam.isPresent()) {
-                // passing client credentials in request body is not recommended!
-                // https://tools.ietf.org/html/rfc6749#section-2.3.1
-                clientId = clientIdParam.get();
-                clientSecret = clientSecretParam.get();
-            } else {
-                final String[] clientCredentials = getClientCredentials(authorization);
-                clientId = clientCredentials[0];
-                clientSecret = clientCredentials[1];
-            }
-
-            clientRealm.authenticate(clientId, clientSecret, scopes, defaultScopes);
-            final Map<String, Object> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
-
-            // this should never happen (only if some realm does not return "sub"
-            Preconditions.checkState(extraClaims.containsKey(Realm.SUB), "'sub' claim missing");
-
-            // request authorized, create JWT
-            JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
-                    .issuer(ISSUER)
-                    .expirationTime(new Date(System.currentTimeMillis() + EXPIRATION_TIME_UNIT.toMillis(EXPIRATION_TIME)))
-                    .issueTime(new Date())
-                    .claim("realm", realmName)
-                    .claim("scope", finalScopes);
-            extraClaims.forEach(claimsBuilder::claim);
-            final JWTClaimsSet claims = claimsBuilder.build();
-
-            // sign JWT
-            OIDCKeyHolder.Signer signer = keyHolder.getCurrentSigner(realmName)
-                    .orElseThrow(() -> new UnsupportedOperationException("No key found for signing requests of realm " + realmName));
-
-            final Metric signingMetric = new Metric(metricRegistry).start();
-            String rawJWT;
-            try {
-                rawJWT = getSignedJWT(claims, signer);
-            } finally {
-                signingMetric.finish("planb.provider.jwt.signing." + signer.getAlgorithm().getName());
-            }
-
-            final String maskedSubject = userRealm.maskSubject((String) extraClaims.get(Realm.SUB));
-            log.info("Issued JWT for '{}' requested by client {}/{}", maskedSubject, realmName, clientId);
+            final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientCredentials.getClientId(), authCode.getScopes(), authCode.getClaims());
             metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
 
-            return new OIDCCreateTokenResponse(
-                    rawJWT,
-                    rawJWT,
-                    EXPIRATION_TIME_UNIT.toSeconds(EXPIRATION_TIME),
-                    finalScopes.stream().collect(joining(SPACE)),
-                    realmName);
+            return response(rawJWT, authCode.getScopes(), realmName);
         } catch (Throwable t) {
             final String errorType = Optional.of(t)
                     .filter(e -> e instanceof RestException)
@@ -184,20 +156,61 @@ public class OIDCController {
         }
     }
 
-    static String getSignedJWT(JWTClaimsSet claims, OIDCKeyHolder.Signer signer) throws JOSEException {
-        final JWSAlgorithm algorithm = signer.getAlgorithm();
+    /**
+     * https://bitbucket.org/b_c/jose4j/wiki/JWT%20Examples
+     */
+    @RequestMapping(value = {"/oauth2/access_token", "/z/oauth2/access_token"}, method = RequestMethod.POST, params = "grant_type=password")
+    @ResponseBody
+    OIDCCreateTokenResponse createToken(@RequestParam(value = "realm") Optional<String> realmNameParam,
+                                        @RequestParam(value = "grant_type", required = true) String grantType,
+                                        @RequestParam(value = "username", required = true) String username,
+                                        @RequestParam(value = "password", required = true) String password,
 
-        // NOTE: we are doing the JSON serialization "by hand" here to use the correct compression flag
-        // (the default is using net.minidev.json.JStylerObj.ESCAPE4Web which also escapes forward slashes)
-        final String serializedJson = claims.toJSONObject().toJSONString(JSONStyle.LT_COMPRESS);
-        final JWSHeader header = new JWSHeader(algorithm, null, null, null, null, null, null, null, null, null,
-                signer.getKid(), null, null);
-        final Payload payload = new Payload(serializedJson);
-        final JWSObject jwt = new JWSObject(header, payload);
+                                        @RequestParam(value = "scope") Optional<String> scope,
+                                        @RequestParam(value = "client_id") Optional<String> clientIdParam,
+                                        @RequestParam(value = "client_secret") Optional<String> clientSecretParam,
+                                        @RequestHeader(name = "Authorization") Optional<String> authorization,
+                                        @RequestHeader(name = "Host") Optional<String> hostHeader)
+            throws RealmAuthenticationException, RealmAuthorizationException, JOSEException {
+        final Metric metric = new Metric(metricRegistry).start();
 
-        jwt.sign(signer.getJWSSigner());
+        final String realmName = getRealmName(realms, realmNameParam, hostHeader);
 
-        return jwt.serialize();
+        try {
+            if (username.trim().isEmpty() || password.trim().isEmpty()) {
+                throw new BadRequestException(
+                        "Username and password should be provided.",
+                        "invalid_grant",
+                        "The provided access grant is invalid, expired, or revoked.");
+            }
+
+            // retrieve realms for the given realm
+            ClientRealm clientRealm = realms.getClientRealm(realmName);
+            UserRealm userRealm = realms.getUserRealm(realmName);
+
+            // parse requested scopes
+            final Set<String> scopes = ScopeService.split(scope);
+            final Set<String> defaultScopes = scopeService.getDefaultScopesForClient(clientRealm, clientIdParam);
+            final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
+
+            final ClientCredentials clientCredentials = getClientCredentials(authorization, clientIdParam, clientSecretParam);
+            clientRealm.authenticate(clientCredentials.getClientId(), clientCredentials.getClientSecret(), scopes, defaultScopes);
+            final Map<String, String> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
+
+            // request authorized, create JWT
+            final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientCredentials.getClientId(), finalScopes, extraClaims);
+            metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".success");
+
+            return response(rawJWT, finalScopes, realmName);
+        } catch (Throwable t) {
+            final String errorType = Optional.of(t)
+                    .filter(e -> e instanceof RestException)
+                    .map(e -> (RestException) e)
+                    .flatMap(RestException::getErrorLocation)
+                    .orElse("other");
+            metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".error." + errorType);
+            throw t;
+        }
     }
 
     @RequestMapping("/.well-known/openid-configuration")

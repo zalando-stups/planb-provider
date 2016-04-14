@@ -42,7 +42,7 @@ public class Metric {
     }
 
     public static String trimSlash(String realm) {
-        return realm.startsWith("/") ? realm.substring(1) : realm;
+        return RealmConfig.stripLeadingSlash(realm);
     }
 
 }

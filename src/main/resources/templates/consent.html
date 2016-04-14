@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Login</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <style>
+        body { font: 17px Arial, Helvetica, sans-serif; }
+        h1 { font-size: 23px; margin: 16px 0; text-align: center; }
+        #wrapper { max-width: 612px; margin: 0 auto; }
+        #error { margin: 8px 0; border: 2px solid #ff0000; padding: 8px 16px; color: #990000; font-weight: bold; }
+        form { margin: 8px 0; padding: 8px 16px; border: 2px solid #eeeeee; }
+        form div { margin-bottom: 4px; }
+        label { font-weight: bold; width: 130px; float: left; display: block; }
+        input { font: 17px Arial, Helvetica, sans-serif; }
+    </style>
+</head>
+<body>
+<div id="wrapper">
+    <h1>Consent</h1><img th:unless="${#strings.isEmpty(imageUri)}" th:src="${imageUri}" style="float: right;"/>
+    <h2><a th:unless="${#strings.isEmpty(homepageUrl)}" th:href="${homepageUrl}" th:text="${clientName}" target="_blank"></a><span
+            th:if="${#strings.isEmpty(homepageUrl)}" th:text="${clientName}"></span></h2>
+    <p th:text="${clientDescription}"></p>
+    <ul>
+        <li th:each="s : ${scopes}" th:text="${s}"></li>
+    </ul>
+    <form action="/oauth2/authorize" method="post">
+        <input type="hidden" name="response_type" th:value="${responseType}"/>
+        <input type="hidden" name="realm" th:value="${realm}"/>
+        <input type="hidden" name="client_id" th:value="${clientId}"/>
+        <input type="hidden" name="scope" th:value="${scope}"/>
+        <input type="hidden" name="state" th:value="${state}"/>
+        <input type="hidden" name="redirect_uri" th:value="${redirectUri}"/>
+        <input type="hidden" name="username" th:value="${username}"/>
+        <input type="hidden" name="password" th:value="${password}"/>
+        <input type="hidden" name="decision" value="allow" />
+        <button type="submit">Allow</button>
+    </form>
+
+    <form action="/oauth2/authorize" method="post">
+        <input type="hidden" name="response_type" th:value="${responseType}"/>
+        <input type="hidden" name="realm" th:value="${realm}"/>
+        <input type="hidden" name="client_id" th:value="${clientId}"/>
+        <input type="hidden" name="scope" th:value="${scope}"/>
+        <input type="hidden" name="state" th:value="${state}"/>
+        <input type="hidden" name="redirect_uri" th:value="${redirectUri}"/>
+        <input type="hidden" name="username" th:value="${username}"/>
+        <input type="hidden" name="password" th:value="${password}"/>
+        <input type="hidden" name="decision" value="deny" />
+        <button type="submit">Deny</button>
+    </form>
+</div>
+</body>
+</html>

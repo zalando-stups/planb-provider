@@ -1,49 +1,24 @@
 package org.zalando.planb.provider;
 
-import com.google.common.collect.ImmutableSet;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.TreeMap;
 
-import static com.google.common.collect.Maps.newHashMap;
+import static java.lang.String.CASE_INSENSITIVE_ORDER;
 
 @ConfigurationProperties(prefix = "scope")
 public class ScopeProperties {
 
-    public static final String SPACE = " ";
-
     /**
-     * List of default scopes per realm. Scopes are seprated by a space character %20
+     * List of default scopes per realm. Scopes are separated by a space character %20.
+     *
+     * CASE_INSENSITIVE TreeMap to support using an env var like "SCOPE_DEFAULTS_MYREALM=uid"
      */
-    private Map<String, String> defaults = newHashMap();
+    private Map<String, String> defaults = new TreeMap<>(CASE_INSENSITIVE_ORDER);
 
-    public Set<String> getDefaultScopes(String realm) {
-        return split(Optional.ofNullable(realm)
-                .map(RealmConfig::stripLeadingSlash)
-                .map(String::toLowerCase)
-                // we try to find the key with both lower and uppercase
-                // to support using an env var like "SCOPE_DEFAULTS_MYREALM=uid"
-                .map(key -> defaults.getOrDefault(key, defaults.get(key.toUpperCase()))));
-    }
-
-    @SuppressWarnings("unused")
     public Map<String, String> getDefaults() {
         return defaults;
-    }
-
-    public static Set<String> split(Optional<String> scope) {
-        return scope
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(ScopeProperties::splitScope)
-                .orElseGet(Collections::emptySet);
-    }
-
-    private static Set<String> splitScope(String scope) {
-        return ImmutableSet.copyOf(scope.split(SPACE));
     }
 
 }

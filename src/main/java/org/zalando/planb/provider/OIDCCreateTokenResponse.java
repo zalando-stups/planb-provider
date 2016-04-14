@@ -1,8 +1,20 @@
 package org.zalando.planb.provider;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class OIDCCreateTokenResponse {
+
     @JsonProperty("access_token")
     private String accessToken;
 
@@ -21,36 +33,4 @@ public class OIDCCreateTokenResponse {
     @JsonProperty("realm")
     private String realm;
 
-    private OIDCCreateTokenResponse() {
-    }
-
-    public OIDCCreateTokenResponse(String accessToken, String idToken, long expiresIn, String scope, String realm) {
-        this.accessToken = accessToken;
-        this.idToken = idToken;
-        this.expiresIn = expiresIn;
-        this.scope = scope;
-        this.realm = realm;
-    }
-
-    public String getAccessToken() {
-        return accessToken;
-    }
-
-    public String getIdToken() {
-        return idToken;
-    }
-
-    public String getTokenType() {
-        return tokenType;
-    }
-
-    public long getExpiresIn() {
-        return expiresIn;
-    }
-
-    public String getScope() {
-        return scope;
-    }
-
-    public String getRealm() { return realm; }
 }

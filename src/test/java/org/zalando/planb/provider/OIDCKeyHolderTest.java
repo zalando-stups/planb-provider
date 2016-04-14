@@ -13,11 +13,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
-/**
- * Created by hjacobs on 27.02.16.
- */
 public class OIDCKeyHolderTest {
-
 
     private static final String TEST_RS256_PEM = "-----BEGIN RSA PRIVATE KEY-----\n" +
             "MIIEpAIBAAKCAQEA3dEMoTXmK7/+WJJpnyjR6hzcG4fKhLfQ0i5VOyT7wny2yw0P\n" +

@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.zalando.planb.provider.api.Client;
 import org.zalando.planb.provider.api.ClientsApi;
+import org.zalando.planb.provider.realms.ClientManagedRealm;
+import org.zalando.planb.provider.realms.Realm;
 
 import java.util.Optional;
 
@@ -43,7 +45,7 @@ public class ClientController implements ClientsApi {
             @RequestBody Client client) {
         log.info("Create or replace client /{}/{}: {}", realm, id, client);
         validateBCryptHash("client secret", client.getSecretHash());
-        getClientManagedRealm(realm).createOrReplace(id, ClientData.copyOf(client).build());
+        getClientManagedRealm(realm).createOrReplace(id, ClientData.copyOf(client));
         return new ResponseEntity<>(OK);
     }
 
@@ -63,7 +65,7 @@ public class ClientController implements ClientsApi {
             @RequestBody Client client) {
         log.info("Update client /{}/{}: {}", realm, id, client);
         validateBCryptHash("client secret", client.getSecretHash());
-        getClientManagedRealm(realm).update(id, ClientData.copyOf(client).build());
+        getClientManagedRealm(realm).update(id, ClientData.copyOf(client));
         return new ResponseEntity<>(OK);
     }
 
