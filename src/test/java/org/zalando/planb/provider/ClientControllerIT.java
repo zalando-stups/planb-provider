@@ -7,8 +7,6 @@ import com.google.common.collect.ImmutableList;
 import org.assertj.core.api.Condition;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.SpringApplicationConfiguration;
-import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.HttpClientErrorException;
@@ -166,6 +164,8 @@ public class ClientControllerIT extends AbstractOauthTest {
         body1.setSecretHash(hash);
         body1.setScopes(asList("read_foo", "read_bar"));
         body1.setIsConfidential(true);
+        body1.setImageUri("https://path.to.my/logo.jpg");
+        body1.setHomepageUrl("https://github.com/zalando");
 
         // user1 creates the client
         assertThat(getRestTemplate().exchange(put(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body1), Void.class)
@@ -289,13 +289,29 @@ public class ClientControllerIT extends AbstractOauthTest {
         assertThat(fetchClient("1234", "/services"))
                 .has(valuesEqualTo(builderOf(service1234).createdBy(USER1).lastModifiedBy(USER2).build()));
 
-        // and when finally the confidential flag is updated
+        // and when the confidential flag is updated
         final Client body3 = new Client();
         body3.setIsConfidential(false);
         getRestTemplate().exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body3), Void.class);
 
         // then this change is also reflected in data storage
         service1234.setIsConfidential(false);
+        assertThat(fetchClient("1234", "/services"))
+                .has(valuesEqualTo(builderOf(service1234).createdBy(USER1).lastModifiedBy(USER1).build()));
+
+        // go on with the meta data:
+        final Client body4 = new Client();
+        body4.setName("My App");
+        body4.setDescription("Lorem ipsum dolor");
+        body4.setImageUri("https://path.to.my/logo.jpg");
+        body4.setHomepageUrl("https://github.com/zalando");
+        getRestTemplate().exchange(patch(uri).contentType(APPLICATION_JSON).header(AUTHORIZATION, USER1_ACCESS_TOKEN).body(body4), Void.class);
+
+        // and verify the changes
+        service1234.setName("My App");
+        service1234.setDescription("Lorem ipsum dolor");
+        service1234.setImageUri("https://path.to.my/logo.jpg");
+        service1234.setHomepageUrl("https://github.com/zalando");
         assertThat(fetchClient("1234", "/services"))
                 .has(valuesEqualTo(builderOf(service1234).createdBy(USER1).lastModifiedBy(USER1).build()));
     }
@@ -308,6 +324,8 @@ public class ClientControllerIT extends AbstractOauthTest {
                 new Condition<>(r -> Objects.equals(r.getString("name"), expected.getName()), "name = %s", expected.getName()),
                 new Condition<>(r -> Objects.equals(r.getString("description"), expected.getDescription()), "description = %s", expected.getDescription()),
                 new Condition<>(r -> Objects.equals(r.getSet("redirect_uris", String.class), newHashSet(expected.getRedirectUris())), "redirect_uris = %s", expected.getRedirectUris()),
+                new Condition<>(r -> Objects.equals(r.getString("image_uri"), expected.getImageUri()), "image_uri = %s", expected.getImageUri()),
+                new Condition<>(r -> Objects.equals(r.getString("homepage_url"), expected.getHomepageUrl()), "homepage_url = %s", expected.getHomepageUrl()),
                 new Condition<>(r -> Objects.equals(r.getString("created_by"), expected.getCreatedBy()), "created_by = %s", expected.getCreatedBy()),
                 new Condition<>(r -> Objects.equals(r.getString("last_modified_by"), expected.getLastModifiedBy()), "last_modified_by = %s", expected.getLastModifiedBy()));
     }

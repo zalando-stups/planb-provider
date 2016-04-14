@@ -13,8 +13,6 @@ import java.util.Set;
 import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
-
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import com.datastax.driver.core.PreparedStatement;
@@ -22,8 +20,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 
 @Component
-@Scope("prototype")
-public class CassandraConsentService implements ConsentService{
+public class CassandraConsentService implements ConsentService {
 
     private static final String CONSENT = "consent";
 

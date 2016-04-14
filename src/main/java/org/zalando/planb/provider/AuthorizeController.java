@@ -217,7 +217,7 @@ public class AuthorizeController {
 
             // no consented scopes -> access was denied
             if (!consentedScopes.isPresent()) {
-                return noConsentedScopesResponse(redirectUri, state);
+                return noConsentedScopesResponse(responseType, redirectUri, state);
             }
 
             if (!allScopesAreConsented(consentedScopes, finalScopes)) {
@@ -418,17 +418,24 @@ public class AuthorizeController {
                 .build();
     }
 
-    private AuthorizeResponse noConsentedScopesResponse(final URI redirectUri, final Optional<String> state)
+    private AuthorizeResponse noConsentedScopesResponse(String responseType, final URI redirectUri, final Optional<String> state)
             throws URISyntaxException {
         final URI queryURI = new URIBuilder()
                 .addParameter(PARAM_ERROR, PARAM_ERROR_ACCESS_DENIED)
                 .addParameter(PARAM_STATE, state.orElse(EMPTY_STRING))
                 .build();
 
-        final URI redirect = new URIBuilder(redirectUri).setFragment(queryURI.getQuery()).build();
+        final URIBuilder redirect = new URIBuilder(redirectUri);
+
+        if (isAuthorizationCodeGrant(responseType)) {
+            redirect.setCustomQuery(queryURI.getQuery());
+        } else {
+            redirect.setFragment(queryURI.getQuery());
+        }
+
         return AuthorizeResponse
                 .builder()
-                .redirect(redirect.toString())
+                .redirect(redirect.build().toString())
                 .build();
     }
 }

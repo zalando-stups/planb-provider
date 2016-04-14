@@ -1,0 +1,13 @@
+{
+  "client_name": "Consent More Metadata Test",
+  "client_description": "Lorem ipsum dolor",
+  "scopes": [
+    "uid",
+    "openid",
+    "ascope"
+  ],
+  "redirect": "https://myapp.example.org/callback",
+  "consent_needed": true,
+  "image_uri": "https://avatars2.githubusercontent.com/u/1564818?s=50",
+  "homepage_url": "https://github.com/zalando"
+}

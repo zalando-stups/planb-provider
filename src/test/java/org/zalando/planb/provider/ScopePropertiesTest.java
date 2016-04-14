@@ -1,11 +1,13 @@
 package org.zalando.planb.provider;
 
-import org.junit.*;
+import exclude.from.component.scan.ScopePropertiesTestConfig;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.ConfigFileApplicationContextInitializer;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.rules.SpringClassRule;
@@ -13,7 +15,9 @@ import org.springframework.test.context.junit4.rules.SpringMethodRule;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ContextConfiguration(initializers = ConfigFileApplicationContextInitializer.class)
+@ContextConfiguration(
+        classes = ScopePropertiesTestConfig.class,
+        initializers = ConfigFileApplicationContextInitializer.class)
 @ActiveProfiles("scopePropertiesTest") // load a specific config file
 public class ScopePropertiesTest {
 
@@ -51,9 +55,4 @@ public class ScopePropertiesTest {
         assertThat(scopeService.getDefaultScopesByRealm("fooBar")).containsOnly("id", "team");
     }
 
-    @Configuration
-    @Import(ScopeService.class)
-    @EnableConfigurationProperties(ScopeProperties.class)
-    static class TestConfig {
-    }
 }

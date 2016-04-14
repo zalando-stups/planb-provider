@@ -1,6 +1,7 @@
 package org.zalando.planb.provider;
 
 import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
+import exclude.from.component.scan.CassandraTestAddressTranslatorConfig;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.utils.URIBuilder;
@@ -27,7 +28,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.TEXT_XML_VALUE;
 
-@SpringApplicationConfiguration(classes = {Main.class})
+@SpringApplicationConfiguration(classes = {Main.class, CassandraTestAddressTranslatorConfig.class})
 @WebIntegrationTest(randomPort = true)
 public class AbstractOauthTest extends AbstractSpringTest {
 

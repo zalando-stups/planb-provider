@@ -1,5 +1,6 @@
 package org.zalando.planb.provider;
 
+import exclude.from.component.scan.CassandraTestAddressTranslatorConfig;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
@@ -16,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.RequestEntity.get;
 
-@SpringApplicationConfiguration(classes = {Main.class})
+@SpringApplicationConfiguration(classes = {Main.class, CassandraTestAddressTranslatorConfig.class})
 @WebIntegrationTest(randomPort = true)
 @ActiveProfiles("it")
 public class HealthCheckIT extends AbstractSpringTest {
