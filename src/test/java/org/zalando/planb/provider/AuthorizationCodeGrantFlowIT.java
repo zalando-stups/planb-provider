@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -359,7 +360,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
         assertThat(response.getStatusCode()).isEqualTo(OK);
         assertThat(response.getBody().getScope()).contains("uid");
         assertThat(response.getBody().getScope()).contains("ascope");
-        assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
+        assertThat(response.getBody().getTokenType()).isEqualTo(OAuth2AccessToken.BEARER_TYPE);
         assertThat(response.getBody().getRealm()).isEqualTo("/services");
 
         assertThat(response.getBody().getAccessToken()).isNotEmpty();

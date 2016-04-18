@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.utils.URIBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -75,7 +76,6 @@ public class AuthorizeController {
     private static final String PARAM_RESPONSE_TYPE_TOKEN = "token";
     private static final String PARAM_STATE = "state";
     private static final String PARAM_TOKEN_TYPE = "token_type";
-    private static final String PARAM_TOKEN_TYPE_BEARER = "Bearer";
     private static final String PARAM_USERNAME = "username";
 
     private static final Set<String> SUPPORTED_RESPONSE_TYPES = ImmutableSet.of(PARAM_RESPONSE_TYPE_CODE, PARAM_RESPONSE_TYPE_TOKEN);
@@ -374,7 +374,7 @@ public class AuthorizeController {
 
         final URI queryURI = new URIBuilder()
                 .addParameter(PARAM_ACCESS_TOKEN, rawJWT)
-                .addParameter(PARAM_TOKEN_TYPE, PARAM_TOKEN_TYPE_BEARER)
+                .addParameter(PARAM_TOKEN_TYPE, OAuth2AccessToken.BEARER_TYPE)
                 .addParameter(PARAM_EXPIRES_IN, String.valueOf(realmProperties.getTokenLifetime(userRealm.getName()).getSeconds()))
                 .addParameter(PARAM_SCOPE, ScopeService.join(finalScopes))
                 .addParameter(PARAM_STATE, state.orElse(EMPTY_STRING)).build();

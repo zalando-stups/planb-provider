@@ -124,6 +124,11 @@ public class AbstractOauthTest extends AbstractSpringTest {
 
     protected ResponseEntity<OIDCCreateTokenResponse> createToken(String realm, String clientId, String clientSecret,
                                                                 String username, String password, String scope) {
+        return createToken(realm, clientId, clientSecret, username, password, scope, OIDCCreateTokenResponse.class);
+    }
+    protected <RESPONSE> ResponseEntity<RESPONSE> createToken(String realm, String clientId, String clientSecret,
+                                                              String username, String password, String scope,
+                                                              Class<RESPONSE> responseType) {
         MultiValueMap<String, Object> requestParameters = new LinkedMultiValueMap<>();
         requestParameters.add("realm", realm);
         requestParameters.add("grant_type", "password");
@@ -139,7 +144,7 @@ public class AbstractOauthTest extends AbstractSpringTest {
                 .header("Authorization", "Basic " + basicAuth)
                 .body(requestParameters);
 
-        return getRestTemplate().exchange(request, OIDCCreateTokenResponse.class);
+        return getRestTemplate().exchange(request, responseType);
     }
 
     protected String stubCustomerService() {

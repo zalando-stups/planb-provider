@@ -22,7 +22,7 @@ public class OIDCCreateTokenResponse {
     private String idToken;
 
     @JsonProperty("token_type")
-    private String tokenType = "Bearer";
+    private String tokenType;
 
     @JsonProperty("expires_in")
     private long expiresIn;
