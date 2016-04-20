@@ -187,15 +187,15 @@ public class OIDCController {
             // retrieve realms for the given realm
             ClientRealm clientRealm = realms.getClientRealm(realmName);
             UserRealm userRealm = realms.getUserRealm(realmName);
+            final ClientCredentials clientCredentials = getClientCredentials(authorization, clientIdParam, clientSecretParam);
 
             // parse requested scopes
             final Set<String> scopes = ScopeService.split(scope);
-            final Set<String> defaultScopes = scopeService.getDefaultScopesForClient(clientRealm, clientIdParam);
+            final Set<String> defaultScopes = scopeService.getDefaultScopesForClient(clientRealm, clientCredentials.getClientId());
             final Set<String> finalScopes = scopes.isEmpty() ? defaultScopes : scopes;
 
-            final ClientCredentials clientCredentials = getClientCredentials(authorization, clientIdParam, clientSecretParam);
-            clientRealm.authenticate(clientCredentials.getClientId(), clientCredentials.getClientSecret(), scopes, defaultScopes);
-            final Map<String, String> extraClaims = userRealm.authenticate(username, password, scopes, defaultScopes);
+            clientRealm.authenticate(clientCredentials.getClientId(), clientCredentials.getClientSecret(), finalScopes, defaultScopes);
+            final Map<String, String> extraClaims = userRealm.authenticate(username, password, finalScopes, defaultScopes);
 
             // request authorized, create JWT
             final String rawJWT = jwtIssuer.issueAccessToken(userRealm, clientCredentials.getClientId(), finalScopes, extraClaims);

@@ -32,12 +32,6 @@ public class ScopeService {
                 .orElse(getDefaultScopesByRealm(clientRealm.getName()));
     }
 
-    public Set<String> getDefaultScopesForClient(final ClientRealm clientRealm, final Optional<String> clientId) {
-        return clientId
-                .map((theClientId) -> getDefaultScopesForClient(clientRealm, theClientId))
-                .orElse(getDefaultScopesByRealm(clientRealm.getName()));
-    }
-
     public Set<String> getDefaultScopesByRealm(String realm) {
         return split(Optional.ofNullable(realm)
                 .map(RealmConfig::stripLeadingSlash)

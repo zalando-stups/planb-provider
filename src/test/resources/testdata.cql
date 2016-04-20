@@ -24,6 +24,9 @@ INSERT INTO provider.client (client_id, realm, client_secret_hash, scopes, defau
     VALUES ('testdefaultscope', '/services', '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K',
             {'uid', 'ascope', 'clientonly'}, {'uid'}, false, {'https://myapp.example.org/callback'}, '/services/user1', '/services/user1');
 
+INSERT INTO provider.user (username, realm, password_hashes, scopes, created_by, last_modified_by)
+    VALUES ('testdefaultscope', '/services', { {password_hash: '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K', created: 123, created_by: 'testdata.cql'} },
+            {'uid': 'true'}, '/services/testdefaultscope', '/services/testdefaultscope');
 
 INSERT INTO provider.user (username, realm, password_hashes, scopes, created_by, last_modified_by)
     VALUES ('testuser', '/services', { {password_hash: '$2b$04$iXpLcLet3KbvJ2MOEnd49u6sMTBAfRlLc43kehrCI.3OWbkIGcS7K', created: 123, created_by: 'testdata.cql'} },
