@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -83,7 +84,7 @@ public class ServiceUserAuthenticationIT extends AbstractOauthTest {
         assertThat(response.getStatusCode()).isEqualTo(OK);
         final OIDCCreateTokenResponse tokenResponse = response.getBody();
         assertThat(tokenResponse.getScope()).isEqualTo("uid");
-        assertThat(tokenResponse.getTokenType()).isEqualTo("Bearer");
+        assertThat(tokenResponse.getTokenType()).isEqualTo(OAuth2AccessToken.BEARER_TYPE);
         assertThat(tokenResponse.getRealm()).isEqualTo("/services");
         assertThat(tokenResponse.getAccessToken()).isNotEmpty();
         assertThat(tokenResponse.getIdToken()).isNull();
@@ -106,7 +107,7 @@ public class ServiceUserAuthenticationIT extends AbstractOauthTest {
         assertThat(response2.getStatusCode()).isEqualTo(OK);
         final OIDCCreateTokenResponse tokenResponse2 = response2.getBody();
         assertThat(tokenResponse2.getScope()).isEqualTo("uid");
-        assertThat(tokenResponse2.getTokenType()).isEqualTo("Bearer");
+        assertThat(tokenResponse2.getTokenType()).isEqualTo(OAuth2AccessToken.BEARER_TYPE);
         assertThat(tokenResponse2.getRealm()).isEqualTo("/services");
         assertThat(tokenResponse2.getAccessToken()).isNotEmpty();
         assertThat(tokenResponse2.getIdToken()).isNull();

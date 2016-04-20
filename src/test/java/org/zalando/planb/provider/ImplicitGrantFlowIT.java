@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -104,7 +105,7 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
         // http://tools.ietf.org/html/rfc6749#section-4.2.2
         // check required parameters
         assertThat(params).containsKey("access_token");
-        assertThat(params).contains(MapEntry.entry("token_type", "Bearer"));
+        assertThat(params).contains(MapEntry.entry("token_type", OAuth2AccessToken.BEARER_TYPE));
         assertThat(params).contains(MapEntry.entry("expires_in", "3600"));
         assertThat(params).containsKey("scope");
         assertThat(params).containsKey("state");
@@ -142,7 +143,7 @@ public class ImplicitGrantFlowIT extends AbstractOauthTest {
         // http://tools.ietf.org/html/rfc6749#section-4.2.2
         // check required parameters
         assertThat(params).containsKey("access_token");
-        assertThat(params).contains(MapEntry.entry("token_type", "Bearer"));
+        assertThat(params).contains(MapEntry.entry("token_type", OAuth2AccessToken.BEARER_TYPE));
         assertThat(params).contains(MapEntry.entry("expires_in", "3600"));
         assertThat(params).containsKey("scope");
         assertThat(params).containsKey("state");

@@ -2,7 +2,6 @@ package org.zalando.planb.provider;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.http.ContentTypeHeader;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
 import org.jose4j.jwk.HttpsJwks;
@@ -16,6 +15,7 @@ import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -26,18 +26,12 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.Map;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.data.MapEntry.entry;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
-import static org.springframework.http.MediaType.TEXT_XML_VALUE;
 
 @ActiveProfiles("it")
 public class OIDCCreateTokenIT extends AbstractOauthTest {
@@ -50,11 +44,24 @@ public class OIDCCreateTokenIT extends AbstractOauthTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         // NOTE: returned scopes are sorted
         assertThat(response.getBody().getScope()).isEqualTo("ascope uid");
-        assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
+        assertThat(response.getBody().getTokenType()).isEqualTo(OAuth2AccessToken.BEARER_TYPE);
         assertThat(response.getBody().getRealm()).isEqualTo("/services");
 
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
         assertThat(response.getBody().getIdToken()).isNull();
+    }
+
+    /*
+     * Regression test to Issue #115
+     */
+    @Test
+    public void testTokenTypeIsPresentInResponse() {
+        ResponseEntity<String> response = createToken("/services",
+                "testclient", "test", "testuser", "test", "uid ascope", String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).contains("token_type");
+        assertThat(response.getBody()).contains(OAuth2AccessToken.BEARER_TYPE);
     }
 
     @Test
@@ -75,7 +82,7 @@ public class OIDCCreateTokenIT extends AbstractOauthTest {
         ResponseEntity<OIDCCreateTokenResponse> response = getRestTemplate().exchange(request, OIDCCreateTokenResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
+        assertThat(response.getBody().getTokenType()).isEqualTo(OAuth2AccessToken.BEARER_TYPE);
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
     }
 
@@ -183,7 +190,7 @@ public class OIDCCreateTokenIT extends AbstractOauthTest {
         final ResponseEntity<OIDCCreateTokenResponse> response = createToken("/customers", "testclient", "test", "testcustomer", "test", "uid openid");
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getScope()).isEqualTo("openid uid"); // scopes are sorted
-        assertThat(response.getBody().getTokenType()).isEqualTo("Bearer");
+        assertThat(response.getBody().getTokenType()).isEqualTo(OAuth2AccessToken.BEARER_TYPE);
         assertThat(response.getBody().getRealm()).isEqualTo("/customers");
         assertThat(response.getBody().getAccessToken()).isNotEmpty();
         assertThat(response.getBody().getAccessToken()).isEqualTo(response.getBody().getIdToken());
@@ -208,7 +215,7 @@ public class OIDCCreateTokenIT extends AbstractOauthTest {
         // "openid" scope is set as default for /customers realm (in application-it.yml)
         assertThat(body.getScope()).isEqualTo("openid");
         final String accessToken = body.getAccessToken();
-        assertThat(body.getTokenType()).isEqualTo("Bearer");
+        assertThat(body.getTokenType()).isEqualTo(OAuth2AccessToken.BEARER_TYPE);
         assertThat(body.getRealm()).isEqualTo("/customers");
         assertThat(accessToken).isNotEmpty();
         assertThat(accessToken).isEqualTo(body.getIdToken());

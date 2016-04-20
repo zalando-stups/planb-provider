@@ -7,6 +7,7 @@ import com.nimbusds.jose.jwk.JWK;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.web.bind.annotation.*;
 import org.zalando.planb.provider.realms.*;
 
@@ -96,6 +97,7 @@ public class OIDCController {
                 .expiresIn(realmProperties.getTokenLifetime(realmName).getSeconds())
                 .scope(ScopeService.join(scopes))
                 .realm(realmName)
+                .tokenType(OAuth2AccessToken.BEARER_TYPE)
                 .build();
     }
 
