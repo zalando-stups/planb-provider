@@ -56,19 +56,25 @@ public class OIDCController {
     /**
      * Get client_id and client_secret from HTTP Basic Auth
      */
-    public static ClientCredentials getClientCredentials(Optional<String> authorization) throws RealmAuthenticationException {
-        String[] basicAuth = authorization
-                .filter(string -> string.toUpperCase().startsWith(BASIC_AUTH_PREFIX.toUpperCase()))
-                .map(string -> string.substring(BASIC_AUTH_PREFIX.length()))
-                .map(BASE_64_DECODER::decode)
-                .map(bytes -> new String(bytes, UTF_8))
-                .map(string -> string.split(":", 2))
-                .filter(array -> array.length == 2)
-                .orElseThrow(() -> new BadRequestException(
-                        "Malformed or missing Authorization header.",
-                        "invalid_client",
-                        "Client authentication failed"));
-        return ClientCredentials.builder().clientId(basicAuth[0]).clientSecret(basicAuth[1]).build();
+    public static ClientCredentials getClientCredentials(Optional<String> authorization) {
+        final BadRequestException badRequest = new BadRequestException(
+                "Malformed or missing Authorization header.",
+                "invalid_client",
+                "Client authentication failed");
+        try {
+            String[] basicAuth = authorization
+                    .filter(string -> string.toUpperCase().startsWith(BASIC_AUTH_PREFIX.toUpperCase()))
+                    .map(string -> string.substring(BASIC_AUTH_PREFIX.length()))
+                    .map(BASE_64_DECODER::decode)
+                    .map(bytes -> new String(bytes, UTF_8))
+                    .map(string -> string.split(":", 2))
+                    .filter(array -> array.length == 2)
+                    .orElseThrow(() -> badRequest);
+
+            return ClientCredentials.builder().clientId(basicAuth[0]).clientSecret(basicAuth[1]).build();
+        } catch (IllegalArgumentException e) {
+            throw badRequest;
+        }
     }
 
     public static ClientCredentials getClientCredentials(Optional<String> authorization, Optional<String> clientId, Optional<String> clientSecret) throws RealmAuthenticationException {
