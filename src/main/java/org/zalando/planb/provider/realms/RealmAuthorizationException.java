@@ -15,7 +15,7 @@ public class RealmAuthorizationException extends RestException {
     }
 
     private static String buildMessage(String identity, String realm, Iterable<String> scopes) {
-        return "Identity " + identity + " in realm " + realm + " is not authorized to request scope: " + join(" ", scopes);
+        return "Identity '" + identity + "' in realm '" + realm + "' is not authorized to request scope: " + join(" ", scopes);
     }
 
     private static String buildDescription(Iterable<String> scopes) {
