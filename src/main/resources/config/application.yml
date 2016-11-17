@@ -26,12 +26,15 @@ realm:
     - "/services"
     - "/employees"
     - "/customers"
+    - "/guest-customers"
   userImpl:
     /employees: org.zalando.planb.provider.realms.UpstreamUserRealm
     /customers: org.zalando.planb.provider.realms.CustomerUserRealm
+    /guest-customers: org.zalando.planb.provider.realms.GuestCustomerUserRealm
   tokenLifetime:
     /employees: "PT8H"
     /customers: "P30D"
+    /guest-customers: "PT30M"
     /services: "PT8H"
 
 cassandra:

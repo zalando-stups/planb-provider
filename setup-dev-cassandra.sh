@@ -22,7 +22,7 @@ echo "Inserting sample data..."
 # key pair
 echo "INSERT INTO provider.keypair \
     (kid, realms, private_key_pem, algorithm, valid_from) VALUES \
-    ('testkey', {'/services', '/customers'}, '$(cat src/test/resources/test-es384-secp384r1.pem)', 'ES384', $(date +"%s"));" > sample-data.cql
+    ('testkey', {'/services', '/customers', '/guest-customers'}, '$(cat src/test/resources/test-es384-secp384r1.pem)', 'ES384', $(date +"%s"));" > sample-data.cql
 
 # confidential client
 # client_id/client_secret: test0/test0
@@ -34,13 +34,13 @@ echo "INSERT INTO provider.client \
 # client_id/client_secret: test1/test0
 echo "INSERT INTO provider.client \
     (client_id, realm, client_secret_hash, is_confidential, scopes, default_scopes, redirect_uris) VALUES \
-    ('test1', '/services', '"'$2b$04$0PzwhGVD9MYyXd9sqtf/dOSgN1PC18dSWEliTQdUMT3hJztlvW3Em'"', false, {'uid'}, {'uid'}, {'http://localhost:8080/callback'});" >> sample-data.cql
-
+    ('test1', '/services', '"'$2b$04$0PzwhGVD9MYyXd9sqtf/dOSgN1PC18dSWEliTQdUMT3hJztlvW3Em'"', false, {'uid'}, {'uid'}, {'stylight://partnerLogin/zalando'});" >> sample-data.cql
 # user
 # username/password: test0/test0
 echo "INSERT INTO provider.user \
     (username, realm, password_hashes, scopes) VALUES \
-    ('test0', '/services', { {password_hash: '"'$2b$04$0PzwhGVD9MYyXd9sqtf/dOSgN1PC18dSWEliTQdUMT3hJztlvW3Em'"', created: 1457044516, created_by: 'test'} }, {'uid': 'true'});" >> sample-data.cql
+    ('test0@zalando.com', '/services', { {password_hash:
+    '"'$2b$04$0PzwhGVD9MYyXd9sqtf/dOSgN1PC18dSWEliTQdUMT3hJztlvW3Em'"', created: 1457044516, created_by: 'test'} }, {'uid': 'true'});" >> sample-data.cql
 
 docker run -i --link ${CONTAINER_NAME}:cassandra --rm cassandra:2.1 cqlsh cassandra < sample-data.cql
 
