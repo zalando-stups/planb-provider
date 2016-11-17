@@ -30,7 +30,6 @@ import java.util.Set;
 
 import static java.lang.String.format;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
-import static org.springframework.http.HttpHeaders.ORIGIN;
 import static org.zalando.planb.provider.OIDCController.getRealmName;
 import static org.zalando.planb.provider.realms.ClientRealmAuthenticationException.clientNotFound;
 
@@ -153,13 +152,11 @@ public class AuthorizeController {
             @RequestParam(value = PARAM_USERNAME) final String username,
             @RequestParam(value = PARAM_PASSWORD) final String password,
             @RequestParam(value = PARAM_DECISION) final Optional<String> decision,
-            @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader,
-            @RequestHeader(value = ORIGIN) final Optional<String> originHeader) throws IOException,
-            URISyntaxException,
+            @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader) throws IOException, URISyntaxException,
             JOSEException {
         try {
             final AuthorizeResponse authorizeResponse = authorizeAsJson(responseType, realmNameParam, clientId, scope,
-                    redirectUri, state, username, password, decision, hostHeader, originHeader);
+                    redirectUri, state, username, password, decision, hostHeader);
 
             return authorizeResponse.isConsentNeeded() ?
                     generateConsentScopesView(authorizeResponse) :
@@ -179,7 +176,6 @@ public class AuthorizeController {
 
     @RequestMapping(method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-//    @CrossOrigin
     AuthorizeResponse authorizeAsJson(
             @RequestParam(value = PARAM_RESPONSE_TYPE) final String responseType,
             @RequestParam(value = PARAM_REALM) final Optional<String> realmNameParam,
@@ -190,9 +186,7 @@ public class AuthorizeController {
             @RequestParam(value = PARAM_USERNAME) final String username,
             @RequestParam(value = PARAM_PASSWORD) final String password,
             @RequestParam(value = PARAM_DECISION) final Optional<String> decision,
-            @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader,
-            @RequestHeader(value = ORIGIN) final Optional<String> originHeader) throws IOException,
-            URISyntaxException,
+            @RequestHeader(value = HEADER_HOST) final Optional<String> hostHeader) throws IOException, URISyntaxException,
             JOSEException {
 
         checkResponseType(responseType);
