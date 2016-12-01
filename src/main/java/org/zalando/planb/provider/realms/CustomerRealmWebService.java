@@ -17,4 +17,12 @@ public interface CustomerRealmWebService {
             String email,
             @WebParam(name = "password")
             String password);
+
+    @WebMethod(operationName = "authenticateGuest")
+    @ResponseWrapper(localName = "authenticateGuestResponse")
+    GuestCustomerResponse authenticateGuest(
+            @WebParam(name = "customerNumber")
+            String customerNumber,
+            @WebParam(name = "password")
+            String password);
 }

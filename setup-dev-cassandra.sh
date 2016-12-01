@@ -22,7 +22,7 @@ echo "Inserting sample data..."
 # key pair
 echo "INSERT INTO provider.keypair \
     (kid, realms, private_key_pem, algorithm, valid_from) VALUES \
-    ('testkey', {'/services', '/customers'}, '$(cat src/test/resources/test-es384-secp384r1.pem)', 'ES384', $(date +"%s"));" > sample-data.cql
+    ('testkey', {'/services', '/customers', '/guest-customers'}, '$(cat src/test/resources/test-es384-secp384r1.pem)', 'ES384', $(date +"%s"));" > sample-data.cql
 
 # confidential client
 # client_id/client_secret: test0/test0
