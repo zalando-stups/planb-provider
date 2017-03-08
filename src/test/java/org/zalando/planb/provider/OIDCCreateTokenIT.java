@@ -1,5 +1,6 @@
 package org.zalando.planb.provider;
 
+import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jwt.JWT;
@@ -12,6 +13,7 @@ import org.jose4j.jwt.consumer.JwtConsumerBuilder;
 import org.jose4j.jwt.consumer.JwtContext;
 import org.jose4j.keys.resolvers.HttpsJwksVerificationKeyResolver;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +37,9 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @ActiveProfiles("it")
 public class OIDCCreateTokenIT extends AbstractOauthTest {
+
+    @Autowired
+    private MetricRegistry metricRegistry;
 
     @Test
     public void createServiceUserToken() {
@@ -274,6 +279,7 @@ public class OIDCCreateTokenIT extends AbstractOauthTest {
         } catch (HttpClientErrorException e) {
             assertThat(e.getStatusCode()).isEqualTo(BAD_REQUEST);
             assertThat(getErrorResponseMap(e)).contains(entry("error", "realm_not_found"));
+            assertThat(metricRegistry.getTimers()).containsKey("planb.provider.access_token.unknown-realm.error.other");
         }
     }
 

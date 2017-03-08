@@ -71,6 +71,21 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
     }
 
     @Test
+    public void unknownRealm() {
+        RequestEntity<Void> request = RequestEntity
+                .get(getAuthorizeUrl("code", "/wrong", "testauthcode", "https://myapp.example.org/callback", "mystate"))
+                .build();
+
+        try {
+            getRestTemplate().exchange(request, String.class);
+            fail("GET should have thrown Bad Request");
+        } catch (HttpClientErrorException ex) {
+            assertThat(ex.getStatusCode()).isEqualTo(BAD_REQUEST);
+            assertThat(ex.getResponseBodyAsString()).contains("realm_not_found");
+        }
+    }
+
+    @Test
     public void redirectUriMissing() {
         RequestEntity<Void> request = RequestEntity
                 .get(getAuthorizeUrl("code", "/services", "testclient", "", ""))
@@ -99,7 +114,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
 
         RequestEntity<MultiValueMap<String, Object>> request =
                 post(getAuthorizeUrl())
-                .body(requestParameters);
+                        .body(requestParameters);
 
         try {
             getRestTemplate().exchange(request, Void.class);
@@ -128,7 +143,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
         RequestEntity<MultiValueMap<String, Object>> request =
                 post(getAuthorizeUrl())
                         .accept(TEXT_HTML)
-                .body(requestParameters);
+                        .body(requestParameters);
 
         ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
@@ -147,8 +162,8 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
 
         RequestEntity<MultiValueMap<String, Object>> request2 =
                 post(getAccessTokenUri())
-                .header("Authorization", "Basic " + basicAuth)
-                .body(requestParameters2);
+                        .header("Authorization", "Basic " + basicAuth)
+                        .body(requestParameters2);
 
         try {
             getRestTemplate().exchange(request2, OIDCCreateTokenResponse.class);
@@ -176,7 +191,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
         RequestEntity<MultiValueMap<String, Object>> request =
                 post(getAuthorizeUrl())
                         .accept(TEXT_HTML)
-                .body(requestParameters);
+                        .body(requestParameters);
 
         ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
@@ -195,8 +210,8 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
 
         RequestEntity<MultiValueMap<String, Object>> request2 =
                 post(getAccessTokenUri())
-                .header("Authorization", "Basic " + basicAuth)
-                .body(requestParameters2);
+                        .header("Authorization", "Basic " + basicAuth)
+                        .body(requestParameters2);
 
         try {
             getRestTemplate().exchange(request2, OIDCCreateTokenResponse.class);
@@ -231,7 +246,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
         RequestEntity<MultiValueMap<String, Object>> request =
                 post(getAuthorizeUrl())
                         .accept(APPLICATION_JSON)
-                .body(requestParameters);
+                        .body(requestParameters);
 
         try {
             getRestTemplate().exchange(request, Void.class);
@@ -257,7 +272,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
         RequestEntity<MultiValueMap<String, Object>> request =
                 post(getAuthorizeUrl())
                         .accept(TEXT_HTML)
-                .body(requestParameters);
+                        .body(requestParameters);
 
         ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
@@ -324,7 +339,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
         RequestEntity<MultiValueMap<String, Object>> request =
                 post(getAuthorizeUrl())
                         .accept(TEXT_HTML)
-                .body(requestParameters);
+                        .body(requestParameters);
 
         ResponseEntity<String> loginResponse = getRestTemplate().exchange(request, String.class);
         assertThat(loginResponse.getBody()).contains("value=\"allow\"");
@@ -334,7 +349,7 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
         request =
                 post(getAuthorizeUrl())
                         .accept(TEXT_HTML)
-                .body(requestParameters);
+                        .body(requestParameters);
 
         ResponseEntity<Void> authResponse = getRestTemplate().exchange(request, Void.class);
 
@@ -353,8 +368,8 @@ public class AuthorizationCodeGrantFlowIT extends AbstractOauthTest {
 
         RequestEntity<MultiValueMap<String, Object>> request2 =
                 post(getAccessTokenUri())
-                .header("Authorization", "Basic " + basicAuth)
-                .body(requestParameters2);
+                        .header("Authorization", "Basic " + basicAuth)
+                        .body(requestParameters2);
 
         ResponseEntity<OIDCCreateTokenResponse> response = getRestTemplate().exchange(request2, OIDCCreateTokenResponse.class);
         assertThat(response.getStatusCode()).isEqualTo(OK);
