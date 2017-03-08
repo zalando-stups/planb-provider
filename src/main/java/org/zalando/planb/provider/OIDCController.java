@@ -216,7 +216,11 @@ public class OIDCController {
                     .map(e -> (RestException) e)
                     .flatMap(RestException::getErrorLocation)
                     .orElse("other");
-            metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".error." + errorType);
+            if (t instanceof RealmNotFoundException) {
+                metric.finish("planb.provider.access_token.unknown-realm.error." + errorType);
+            } else {
+                metric.finish("planb.provider.access_token." + trimSlash(realmName) + ".error." + errorType);
+            }
             throw t;
         }
     }
